@@ -19,6 +19,9 @@ C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 - Tiles larger than 1x1 are always drawn with the bottom left corner as the origin
 - Tiles in the tile list are sometimes stretched
 
+### Misc issues
+- Tiles that are unknown (the ones that look like question marks) are ignored by all tools
+
 # Permissions
 
 Read the LICENSE file for info on what you're allowed to do with the software.
