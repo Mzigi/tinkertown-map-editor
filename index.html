@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="main.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Tinkertown Map Editor</title>
+        <link rel="icon" type="image/x-icon" href="assets/favicon.png">
+
+        <!--Third Party Libraries-->
+        <script src="libraries/jszip.min.js" defer></script>
+        <script src="libraries/FileSaver.min.js" defer></script>
+
+        <!--engine-->
+        <script src="engine/webGLextra.js" defer></script>
+        <script src="engine/renderer.js" defer></script>
+        <script src="engine/collision.js" defer></script>
+        <script src="engine/structure.js" defer></script>
+        <script src="engine/input.js" defer></script>
+
+        <script src="libraries/assetInfoToJson.js" defer></script>
+        <script src="libraries/assetInfoHelper.js" defer></script>
+
+        <script src="classes/simpleView.js" defer></script>
+        
+
+        <script src="classes/camera.js" defer></script>
+
+        <script src="classes/tile.js" defer></script>
+        <script src="classes/chunk.js" defer></script>
+        <script src="classes/world.js" defer></script>
+
+        <script src="loader.js" defer></script>
+        <script src="editor.js" defer></script>
+        <script src="tile-list.js" defer></script>
+        <script src="image-loader.js" defer></script>
+        <script src="2d-renderer.js" defer></script>
+    </head>
+    <body>
+        <div id="page-container">
+            <div id="alert">
+                Successfully wore outfit
+            </div>
+
+            <div id="navbar">
+                <label for="navbar-import" class="navbar-button">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import">
+                <button id="navbar-export" class="navbar-button">Export</button>
+                <button id="navbar-world-settings" class="navbar-button">World Settings</button>
+                <button id="navbar-help" class="navbar-button" style="float: right;">Help</button>
+            </div>
+
+            <dialog id="dialog-help">
+                <span class="title">Help</span>
+                <ul>
+                    <li>You can find your map folder at "C:\Users\USERNAME\AppData\LocalLow\Headup\Tinkertown\map\MAPNAME"</li>
+                    <li>Some data may be missing after exporting such as dropped items</li>
+                    <li>The "Auto" layer automatically erases/places on/picks the tile on the top layer</li>
+                </ul>
+                <button id="close-dialog-help" class="dialog-close">Close</button>
+            </dialog>
+
+            <dialog id="dialog-world-settings">
+                <span class="title">World Settings</span>
+                <ul>
+                    WORLD.META
+                    <li>name: <input id="world-settings-name" onchange="changeSetting('name')"></li>
+                    <li>seed: <input id="world-settings-seed" onchange="changeSetting('seed')"></li>
+                    <li>version: <input id="world-settings-version" onchange="changeSetting('version')"></li>
+                    <li>highestUsedVersion: <input id="world-settings-highestUsedVersion" onchange="changeSetting('highestUsedVersion')"></li>
+                    <li>hasBeenGenerated: <input id="world-settings-hasBeenGenerated" onchange="changeSetting('hasBeenGenerated')"></li>
+                    <br>
+                    SETTINGS.META
+                    <li>progression: <input id="world-settings-progression" onchange="changeSetting('progression')"></li>
+                    <li>friendlyFire: <input id="world-settings-friendlyFire" onchange="changeSetting('friendlyFire')"></li>
+                    <li>forestBarrierBroken: <input id="world-settings-forestBarrierBroken" onchange="changeSetting('forestBarrierBroken')"></li>
+                    <li>timescale: <input id="world-settings-timescale" onchange="changeSetting('timescale')"></li>
+                    <li>NPCsOff: <input id="world-settings-NPCsOff" onchange="changeSetting('NPCsOff')"></li>
+                    <li>additionalParams: <input id="world-settings-additionalParams" onchange="changeSetting('additionalParams')"></li>
+                </ul>
+                <button id="close-dialog-world-settings" class="dialog-close">Close</button>
+            </dialog>
+    
+            <div id="item-list-side">
+                <span class="title">Tiles</span>
+                <input id="item-list-searchbar" type="search" placeholder="Search" onkeydown="updateSearch()" onemptied="updateSearch()" onchange="updateSearch()">
+                <select id="item-list-category" title="Categories" onchange="updateSearch()">
+                    <option value="">All</option>
+                </select>
+                <span id="item-list-result-count">0 results</span>
+                <div id="item-list">
+    
+                </div>
+            </div>
+            <div id="layer-list-side">
+                <button id="layer--1" class="layer selected-slot" onclick="setLayer(-1)">Auto</button>
+                <button id="layer-0" class="layer" onclick="setLayer(0)">Layer 0</button>
+                <button id="layer-1" class="layer" onclick="setLayer(1)">Layer 1</button>
+                <button id="layer-2" class="layer" onclick="setLayer(2)">Layer 2</button>
+                <button id="layer-3" class="layer" onclick="setLayer(3)">Layer 3</button>
+                <button id="layer-4" class="layer" onclick="setLayer(4)">Layer 4</button>
+                <button id="layer-5" class="layer" onclick="setLayer(5)">Layer 5</button>
+                <button id="layer-6" class="layer" onclick="setLayer(6)">Layer 6</button>
+                <button id="layer-7" class="layer" onclick="setLayer(7)">Layer 7</button>
+                <button id="layer-8" class="layer" onclick="setLayer(8)">Layer 8</button>
+                <button id="layer-9" class="layer" onclick="setLayer(9)">Layer 9</button>
+                <input id="layer-input" class="layer" placeholder="Layer" onchange="setLayer()">
+            </div>
+            <div id="tool-list-side">
+                <button id="tool-0" class="layer selected-slot" onclick="setTool(0)">Draw Tool</button>
+                <button id="tool-1" class="layer" onclick="setTool(1)">Erase Tool</button>
+                <button id="tool-2" class="layer" onclick="setTool(2)">Pick Tool</button>
+            </div>
+    
+            <canvas id="renderCanvas" hidden></canvas>
+            <canvas id="2Dcanvas" style="width:100%; height:100%; image-rendering: pixelated; position: absolute; z-index: -100;" oncontextmenu="return false;"></canvas>
+        </div>
+    </body>
+</html>
