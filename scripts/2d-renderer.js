@@ -367,9 +367,9 @@ function render() {
     }
 
     //fps counter
-    ctx.fillStyle = "#000000"
-    ctx.font = "48px Arial"
-    ctx.fillText(FPS.toString(), 0, canvasElement.height)
+    ctx.fillStyle = "#ffffff"
+    ctx.font = "32px pixellari"
+    ctx.fillText("FPS: " +FPS.toString(), 0, canvasElement.height)
 
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)
     ctx.fillStyle = "#000000"
