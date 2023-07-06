@@ -15,6 +15,10 @@ var saveByteArray = (function () {
 }());
 
 class Chunk {
+    //private
+    #tileDataList = []
+    #itemDataList = []
+
     constructor () {
         this.x = 0
         this.y = 0
@@ -25,8 +29,8 @@ class Chunk {
         this.layers = 11 //amount of layers + 1
         this.biomeID = 3
 
-        this.tileDataList = []
-        this.itemDataList = []
+        this.#tileDataList = []
+        this.#itemDataList = []
 
         //not saved (only used by editor)
         this.cacheImage = null
@@ -43,15 +47,15 @@ class Chunk {
     }
 
     clearTiles() {
-        this.tileDataList = []
+        this.#tileDataList = []
         this.cacheImage = null
         this.chunkHasBeenEdited = true
         this.resetCacheImage()
     }
 
     findTileIndexAt(x,y,z) {
-        for (let i = 0; i < this.tileDataList.length; i++) {
-            let currentTile = this.tileDataList[i]
+        for (let i = 0; i < this.#tileDataList.length; i++) {
+            let currentTile = this.#tileDataList[i]
             if (currentTile.x == x && currentTile.y == y && currentTile.z == z) {
                 return i
             }
@@ -63,7 +67,7 @@ class Chunk {
     findTileAt(x,y,z) {
         let index = this.findTileIndexAt(x,y,z)
         if (index !== null) {
-            return this.tileDataList[index]
+            return this.#tileDataList[index]
         }
 
         return null
@@ -73,7 +77,7 @@ class Chunk {
         let tileIndex = this.findTileIndexAt(x,y,z)
         
         if (tileIndex != null) {
-            this.tileDataList.splice(tileIndex,1)
+            this.#tileDataList.splice(tileIndex,1)
             this.chunkHasBeenEdited = true
             this.resetCacheImage()
         }
@@ -102,7 +106,7 @@ class Chunk {
 
     setTile(tile) {
         this.removeTileAt(tile.x,tile.y,tile.z)
-        this.tileDataList.push(tile)
+        this.#tileDataList.push(tile)
         if (tile.z + 1 > this.layers) {
             this.layers = tile.z + 1
         }
@@ -113,7 +117,7 @@ class Chunk {
 
     fromBuffer(chunkBuffer) {
         //clear array/lists
-        this.tileDataList = []
+        this.#tileDataList = []
         this.itemDataList = []
 
         //regular values
@@ -134,7 +138,7 @@ class Chunk {
             let tileData = new Tile()
             tileData.fromBuffer(chunkBuffer.slice(begin,end))
             
-            this.tileDataList.push(tileData)
+            this.#tileDataList.push(tileData)
         }
 
         this.chunkHasBeenEdited = false
@@ -154,7 +158,7 @@ class Chunk {
         view.writeUint8(this.biomeID)
 
         //tile data list
-        view.writeInt16(this.tileDataList.length)
+        view.writeInt16(this.#tileDataList.length)
 
         let listOffset = view.viewOffset
 
@@ -163,7 +167,7 @@ class Chunk {
                 for (let z = 0; z < this.layers; z++) {
                     let tileIndex = this.findTileIndexAt(x,y,z)
                     if (tileIndex !== null) {
-                        let tileObject = this.tileDataList[tileIndex]
+                        let tileObject = this.#tileDataList[tileIndex]
                         tileObject.writeToBuffer(writeBuffer, listOffset)
                         listOffset += tileObject.getByteSize()
                     }
@@ -177,7 +181,7 @@ class Chunk {
     }
 
     getByteSize() {
-        return 12 + 10 * this.tileDataList.length
+        return 12 + 10 * this.#tileDataList.length
     }
 
     saveAsFile() {
@@ -197,9 +201,9 @@ class Chunk {
                     let currentTile = new Tile()
                     currentTile.x = x
                     currentTile.y = y
-                    currentTile.tileAssetid = currentId
+                    currentTile.tileAssetId = currentId
 
-                    this.tileDataList.push(currentTile)
+                    this.#tileDataList.push(currentTile)
                 }
 
                 currentId += 1
@@ -222,9 +226,9 @@ class Chunk {
                 let currentTile = new Tile()
                 currentTile.x = x
                 currentTile.y = y
-                currentTile.tileAssetid = Id
+                currentTile.tileAssetId = Id
 
-                this.tileDataList.push(currentTile)
+                this.#tileDataList.push(currentTile)
             }
         } 
 

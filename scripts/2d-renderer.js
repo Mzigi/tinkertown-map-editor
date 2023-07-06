@@ -92,7 +92,7 @@ function isChunkOnScreen(chunk, camera) {
 }
 
 function drawTile(tile, chunk, camera) {
-    let tileInfo = assetInfo[tile.tileAssetid]
+    let tileInfo = assetInfo[tile.tileAssetId]
     if (tileInfo) {
         let sx = tileInfo.xMin * 16
         let sy = tileInfo.yMin * 16
@@ -125,7 +125,7 @@ function drawTile(tile, chunk, camera) {
 }
 
 function drawTileCache(tile, chunk, cacheCtx) {
-    let tileInfo = assetInfo[tile.tileAssetid]
+    let tileInfo = assetInfo[tile.tileAssetId]
     if (tileInfo) {
         let sx = tileInfo.xMin * 16
         let sy = tileInfo.yMin * 16
@@ -235,7 +235,7 @@ function drawChunk(chunk, camera) {
             camera.drawText(canvas, ctx, chunk.x + "_" + chunk.y, dx, dy, 160)*/
             let tileToDraw = chunk.findTileAt(0,0,0)
             if (tileToDraw) {
-                let tileInfo = assetInfo[tileToDraw.tileAssetid]
+                let tileInfo = assetInfo[tileToDraw.tileAssetId]
                 
                 if (tileInfo) {
                     let sx = tileInfo.xMin * 16

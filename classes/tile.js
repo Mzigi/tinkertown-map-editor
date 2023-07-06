@@ -7,7 +7,7 @@ class Tile {
         this.z = 0
 
         this.health = 10
-        this.tileAssetid = 0
+        this.tileAssetId = 0
         this.rotation = 0
 
         this.memoryA = 0
@@ -16,11 +16,11 @@ class Tile {
 
     getName() {
         if (assetInfoLoaded) {
-            if (assetInfo[this.tileAssetid]) {
-                assetInfo[this.tileAssetid].name
+            if (assetInfo[this.tileAssetId]) {
+                assetInfo[this.tileAssetId].name
             }
         }
-        return this.tileAssetid.toString()
+        return this.tileAssetId.toString()
     }
 
     fromBuffer(tileBuffer) {
@@ -30,14 +30,14 @@ class Tile {
         this.z = view.readUint8() //bottom to top
 
         this.health = view.readInt16()
-        this.tileAssetid = view.readInt16()
+        this.tileAssetId = view.readInt16()
         this.rotation = view.readUint8()
         
         this.memoryA = view.readUint8()
         this.memoryB = view.readUint8()
 
-        if (!assetInfoHelper.idExists(this.tileAssetid)) {
-            console.warn("Tile with id " + this.tileAssetid + " was loaded in but isn't in assetInfo!")
+        if (!assetInfoHelper.idExists(this.tileAssetId)) {
+            console.warn("Tile with id " + this.tileAssetId + " was loaded in but isn't in assetInfo!")
         }
     }
 
@@ -50,7 +50,7 @@ class Tile {
         view.writeUint8(this.z)
 
         view.writeInt16(this.health)
-        view.writeInt16(this.tileAssetid)
+        view.writeInt16(this.tileAssetId)
         view.writeUint8(this.rotation)
 
         view.writeUint8(this.memoryA)

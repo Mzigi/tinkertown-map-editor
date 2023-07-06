@@ -125,7 +125,7 @@ function tick() {
         replacementTile.x = tileAtMouse.x
         replacementTile.y = tileAtMouse.y
         replacementTile.z = 9
-        replacementTile.tileAssetid = selectedTile
+        replacementTile.tileAssetId = selectedTile
         
         chunkAtMouse.setTile(replacementTile)*/
     }
@@ -155,7 +155,7 @@ function tick() {
             let replacementTile = new Tile()
             replacementTile.x = tileAtMouse.x
             replacementTile.y = tileAtMouse.y
-            replacementTile.tileAssetid = selectedTile
+            replacementTile.tileAssetId = selectedTile
 
             let highestTile = null
 
@@ -180,7 +180,7 @@ function tick() {
 
             //make sure same tile type arent placed on top of eachother
             if (highestTile) {
-                if (highestTile.tileAssetid != replacementTile.tileAssetid) {
+                if (highestTile.tileAssetId != replacementTile.tileAssetId) {
                     chunkAtMouse.setTile(replacementTile)
                 }
             } else {
@@ -253,11 +253,11 @@ function tick() {
                         previousSlot.classList.remove("selected-slot")
                     }
 
-                    let slot = document.getElementById("list-slot-" + tileToPick.tileAssetid)
+                    let slot = document.getElementById("list-slot-" + tileToPick.tileAssetId)
                     if (slot) {
                         slot.classList.add("selected-slot")
                     }
-                    selectedTile = tileToPick.tileAssetid
+                    selectedTile = tileToPick.tileAssetId
                 }
             }
         }
