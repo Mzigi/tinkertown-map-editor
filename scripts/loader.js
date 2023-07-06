@@ -4,6 +4,7 @@ var worlds = [new World()]
 var uneditedFiles = {}
 var currentWorld = 0
 
+let newButton = document.getElementById("navbar-new")
 let importInput = document.getElementById("navbar-import")
 let exportButton = document.getElementById("navbar-export")
 let helpButton = document.getElementById("navbar-help")
@@ -51,6 +52,11 @@ const readBinaryFile = async (file, filePath) => {
         }
     }
 })*/
+
+newButton.addEventListener("click", () => {
+    worlds[currentWorld] = new World()
+    uneditedFiles = {}
+})
 
 importInput.addEventListener("change", () => {
     worlds[currentWorld] = new World()
