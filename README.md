@@ -20,7 +20,6 @@ C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 - Tiles in the tile list are sometimes stretched
 
 ### Misc issues
-- Tiles that are unknown (the ones that look like question marks) are ignored by all tools
 - Storage tiles can't be moved
 
 # Permissions

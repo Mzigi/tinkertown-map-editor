@@ -148,9 +148,9 @@ function drawTileCache(tile, chunk, cacheCtx) {
         let sWidth = 16
         let sHeight = 16
 
-        let dx = (tile.x) * 16
+        let dx = (tile.x) * 16 + 32
         //dx += sWidth / 2
-        let dy = (tile.y) * -16
+        let dy = (tile.y) * -16 + 32
         //dy -= sHeight / 2
         dy -= sHeight
         dy += 16 * 10
