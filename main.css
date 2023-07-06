@@ -329,7 +329,7 @@ input[type=number] {
     float: right;
     display: block;
     width: 7%;
-    height: 88vh;
+    height: calc(100% / 12 * 3);
     margin-top: 100px;
     margin-right: 8px;
 }
