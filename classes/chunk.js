@@ -172,6 +172,7 @@ class Chunk {
         }
 
         //item data list (not yet implemented)
+        view.viewOffset = listOffset
         view.writeInt16(0)
     }
 
