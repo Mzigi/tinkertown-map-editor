@@ -12,7 +12,6 @@ C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 ### Import/Export issues
 - Items dropped on the ground aren't saved nor loaded
 - Tile closest to the chunk origin is moved to the origin if the chunk isn't filled when exporting
-- Changing world name puts some files that should be in the root of the zip in a seperate folder inside the zip with the old world name
 
 ### Visual issues
 - Big tiles placed near chunk borders might not render fully

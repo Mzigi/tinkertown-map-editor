@@ -50,6 +50,11 @@ function setTool(tool) {
 }
 
 function changeSetting(settingName) {
+    let originalName = worlds[currentWorld]["name"]
+    for (let key in uneditedFiles) {
+        originalName = key.split("/")[0]
+    }
+
     if (settingName == "seed" || settingName == "timescale") { //numbers
         let num = Number(document.getElementById("world-settings-" + settingName).value)
         if (isNaN(num) || typeof(num) != "number") {
@@ -75,6 +80,29 @@ function changeSetting(settingName) {
     } else {
         worlds[currentWorld][settingName] = document.getElementById("world-settings-" + settingName).value
     }
+
+    if (settingName == "name") {
+        //fix file paths in unedited files
+        for (let key in uneditedFiles) {
+            let buffer = uneditedFiles[key]
+            let newKey = key.replace(originalName, worlds[currentWorld].name)
+            uneditedFiles[newKey] = buffer
+            delete uneditedFiles[key]
+        }
+
+        //fix file paths in world.chunkCache
+        for (let key in worlds[currentWorld].chunkCache) {
+            let buffer = worlds[currentWorld].chunkCache[key]
+            let newKey = key.replace(originalName, worlds[currentWorld].name)
+            worlds[currentWorld].chunkCache[newKey] = buffer
+            delete worlds[currentWorld].chunkCache[key]
+        }
+    }
+}
+
+//are you sure alert
+window.onbeforeunload = function () {
+    return "Are you sure you want to exit the editor?"
 }
 
 function tick() {

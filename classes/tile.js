@@ -44,7 +44,7 @@ class Tile {
     writeToBuffer(writeBuffer, byteOffset) {
         let view = new simpleView(writeBuffer)
         view.viewOffset = byteOffset
-
+        
         view.writeUint8(this.x)
         view.writeUint8(this.y)
         view.writeUint8(this.z)
