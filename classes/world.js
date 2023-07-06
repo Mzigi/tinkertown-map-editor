@@ -25,6 +25,9 @@ class World {
             "AmongUs",
             "TinaIsAFreeFarmer"
         ]
+
+        //editor only
+        this.chunkCache = {}
     }
 
     clearChunks() {
@@ -117,10 +120,15 @@ class World {
         for (let i = 0; i < this.chunks.length; i++) {
             let chunk = this.chunks[i]
 
-            let buffer = new ArrayBuffer(chunk.getByteSize())
-            chunk.writeToBuffer(buffer,0)
-            zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
-            //saveByteArray([buffer], chunk.x + "_" + chunk.y + ".dat")
+            if (chunk.chunkHasBeenEdited || this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"] == null) {
+                let buffer = new ArrayBuffer(chunk.getByteSize())
+                chunk.writeToBuffer(buffer,0)
+                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+                //saveByteArray([buffer], chunk.x + "_" + chunk.y + ".dat")
+            } else {
+                let buffer = this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"]
+                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+            }
         }
 
         //world meta

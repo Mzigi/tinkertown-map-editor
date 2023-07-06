@@ -1,7 +1,7 @@
 # tinkertown-map-editor
  
 **Try the editor at**
-https://mzigi.github.io/tinkertown-map-editor/
+https://mzigi.github.io/tinkertown-map-editor/ (remember to make a backup!)
 
 ## Where are the map folders stored?
 
@@ -21,6 +21,7 @@ C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 
 ### Misc issues
 - Tiles that are unknown (the ones that look like question marks) are ignored by all tools
+- Storage tiles can't be moved
 
 # Permissions
 

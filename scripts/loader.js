@@ -19,6 +19,7 @@ const readBinaryFile = async (file, filePath) => {
         let loadedChunk = new Chunk()
         loadedChunk.fromBuffer(buffer)
         worlds[currentWorld].addChunk(loadedChunk)
+        worlds[currentWorld].chunkCache[filePath] = buffer
     } else if (filePath.endsWith("world.meta")) { //world.meta
         let worldMeta = JSON.parse(file)
         worlds[currentWorld].name = worldMeta.name
@@ -52,7 +53,7 @@ const readBinaryFile = async (file, filePath) => {
 })*/
 
 importInput.addEventListener("change", () => {
-    worlds[currentWorld].clearChunks()
+    worlds[currentWorld] = new World()
     uneditedFiles = {}
     for (let i = 0; i < importInput.files.length; i++) {
         //console.log(importInput.files[i].webkitRelativePath)
