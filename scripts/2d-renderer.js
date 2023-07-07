@@ -140,6 +140,21 @@ function drawTileCache(tile, chunk, cacheCtx) {
         
         if (images["assets/Tilesets/" + tileInfo.tileset + ".png"]) {
             cacheCtx.drawImage(images["assets/Tilesets/" + tileInfo.tileset + ".png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
+        } else {
+            //draw unknown
+            sx = 0
+            sy = 0
+            sWidth = 16
+            sHeight = 16
+
+            dx = (tile.x) * 16 + 32
+            //dx += sWidth / 2
+            dy = (tile.y) * -16 + 32
+            //dy -= sHeight / 2
+            dy -= sHeight
+            dy += 16 * 10
+            
+            cacheCtx.drawImage(images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
         }
     } else {
         //draw unknown
