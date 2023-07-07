@@ -28,6 +28,7 @@ let imagesToLoad = [
     "assets/Tilesets/LunarNewYear.png",
     "assets/Tilesets/MineRails.png",
     "assets/Tilesets/Mines.png",
+    "assets/Tilesets/NPCRewards.png",
     "assets/Tilesets/NPCUpdate.png",
     "assets/Tilesets/Placeables.png",
     "assets/Tilesets/Resources.png",
