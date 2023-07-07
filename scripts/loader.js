@@ -59,22 +59,24 @@ newButton.addEventListener("click", () => {
 })
 
 importInput.addEventListener("change", () => {
-    worlds[currentWorld] = new World()
-    uneditedFiles = {}
-    for (let i = 0; i < importInput.files.length; i++) {
-        //console.log(importInput.files[i].webkitRelativePath)
-        if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
-            readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
-        } else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
-            let fileReader = new FileReader()
+    if (importInput.files.length > 0) {
+        worlds[currentWorld] = new World()
+        uneditedFiles = {}
+        for (let i = 0; i < importInput.files.length; i++) {
+            //console.log(importInput.files[i].webkitRelativePath)
+            if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
+            } else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
+                let fileReader = new FileReader()
 
-            fileReader.onload = function(e) {
-                readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath)
+                fileReader.onload = function(e) {
+                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath)
+                }
+
+                fileReader.readAsText(importInput.files[i])
+            } else {
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
             }
-
-            fileReader.readAsText(importInput.files[i])
-        } else {
-            readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
         }
     }
 })
