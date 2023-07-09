@@ -1,171 +1,142 @@
-class World {
-    constructor() {
-        this.chunks = []
-        this.camera = new Camera()
-
-        this.xMin = 0
-        this.yMin = 0
-        this.xMax = 1
-        this.yMax = 1
-
+"use-strict";
+var World = /** @class */ (function () {
+    function World() {
+        this.chunks = [];
+        this.camera = new Camera();
+        this.xMin = 0;
+        this.yMin = 0;
+        this.xMax = 1;
+        this.yMax = 1;
         //world meta
-        this.name = "world" + Math.floor(Math.random() * 9999)
-        this.seed = 0
-        this.version = {"Major":1,"Minor":0,"Patch":0,"Build":"\u0000"}
-        this.highestUsedVersion = {"Major":0,"Minor":0,"Patch":0,"Build":"\u0000"}
-        this.hasBeenGenerated = true
-
+        this.name = "world" + Math.floor(Math.random() * 9999);
+        this.seed = 0;
+        this.version = { "Major": 1, "Minor": 0, "Patch": 0, "Build": "\u0000" };
+        this.highestUsedVersion = { "Major": 0, "Minor": 0, "Patch": 0, "Build": "\u0000" };
+        this.hasBeenGenerated = true;
         //settings meta
-        this.progression = false
-        this.friendlyFire = true
-        this.forestBarrierBroken = true
-        this.timescale = 72
-        this.NPCsOff = false
+        this.progression = false;
+        this.friendlyFire = true;
+        this.forestBarrierBroken = true;
+        this.timescale = 72;
+        this.NPCsOff = false;
         this.additionalParams = [
             "AmongUs",
             "TinaIsAFreeFarmer"
-        ]
-
+        ];
         //editor only
-        this.chunkCache = {}
+        this.chunkCache = {};
     }
-
-    clearChunks() {
-        this.chunks = []
-    }
-
-    getChunkIndexAt(x,y) {
-        for (let i = 0; i < this.chunks.length; i++) {
+    World.prototype.clearChunks = function () {
+        this.chunks = [];
+    };
+    World.prototype.getChunkIndexAt = function (x, y) {
+        for (var i = 0; i < this.chunks.length; i++) {
             if (this.chunks[i].x === x && this.chunks[i].y === y) {
-                return i
+                return i;
             }
         }
-        return null
-    }
-
-    getChunkAt(x,y) {
-        for (let i = 0; i < this.chunks.length; i++) {
+        return null;
+    };
+    World.prototype.getChunkAt = function (x, y) {
+        for (var i = 0; i < this.chunks.length; i++) {
             if (this.chunks[i].x === x && this.chunks[i].y === y) {
-                return this.chunks[i]
+                return this.chunks[i];
             }
         }
-        return null
-    }
-
-    getChunkPosAtWorldPos(x,y) {
-        let chunkX = Math.floor(x / 160)
-        let chunkY = Math.floor(y / 160) * -1 -1
-
-        return {"x": chunkX, "y": chunkY}
-    }
-
-    getChunkAtWorldPos(x,y) {
-        let chunkWorldPos = this.getChunkPosAtWorldPos(x,y)
-        let chunkX = chunkWorldPos.x
-        let chunkY = chunkWorldPos.y
-
-        for (let i = 0; i < this.chunks.length; i++) {
+        return null;
+    };
+    World.prototype.getChunkPosAtWorldPos = function (x, y) {
+        var chunkX = Math.floor(x / 160);
+        var chunkY = Math.floor(y / 160) * -1 - 1;
+        return { "x": chunkX, "y": chunkY };
+    };
+    World.prototype.getChunkAtWorldPos = function (x, y) {
+        var chunkWorldPos = this.getChunkPosAtWorldPos(x, y);
+        var chunkX = chunkWorldPos.x;
+        var chunkY = chunkWorldPos.y;
+        for (var i = 0; i < this.chunks.length; i++) {
             if (this.chunks[i].x === chunkX && this.chunks[i].y === chunkY) {
-                return this.chunks[i]
+                return this.chunks[i];
             }
         }
-        return null
-    }
-
-    getChunkPosAtScreenPos(canvas, x, y) {
-        let worldPos = this.camera.screenPosToWorldPos(canvas, x,y)
-        let wx = worldPos.x
-        let wy = worldPos.y
-
-        wx = wx / 160
-        wy = wy / 160
-
-        wx = Math.floor(wx)
-        wy = Math.floor(wy)
-
-        wy *= -1
-        wy -= 1
-
-        return {"x": wx, "y": wy}
-    }
-
-    getChunkAtScreenPos(canvas, x, y) {
-        let pos = this.getChunkPosAtScreenPos(canvas, x, y)
-        return this.getChunkAt(pos.x, pos.y)
-    }
-
-    removeChunkAt(x,y) {
-        let chunkIndex = this.getChunkIndexAt(x,y)
+        return null;
+    };
+    World.prototype.getChunkPosAtScreenPos = function (canvas, x, y) {
+        var worldPos = this.camera.screenPosToWorldPos(canvas, x, y);
+        var wx = worldPos.x;
+        var wy = worldPos.y;
+        wx = wx / 160;
+        wy = wy / 160;
+        wx = Math.floor(wx);
+        wy = Math.floor(wy);
+        wy *= -1;
+        wy -= 1;
+        return { "x": wx, "y": wy };
+    };
+    World.prototype.getChunkAtScreenPos = function (canvas, x, y) {
+        var pos = this.getChunkPosAtScreenPos(canvas, x, y);
+        return this.getChunkAt(pos.x, pos.y);
+    };
+    World.prototype.removeChunkAt = function (x, y) {
+        var chunkIndex = this.getChunkIndexAt(x, y);
         if (chunkIndex != null) {
-            this.chunks.splice(chunkIndex,1)
+            this.chunks.splice(chunkIndex, 1);
         }
-    }
-
-    addChunk(chunk) {
-        this.xMin = Math.min(this.xMin, chunk.x)
-        this.xMax = Math.max(this.xMax, chunk.x)
-
-        this.yMin = Math.min(this.yMin, chunk.y)
-        this.yMax = Math.max(this.yMax, chunk.y)
-
-        this.removeChunkAt(chunk.x,chunk.y)
-
-        this.chunks.push(chunk)
-    }
-
-    saveAsFile() {
-        let zip = new JSZip()
-
+    };
+    World.prototype.addChunk = function (chunk) {
+        this.xMin = Math.min(this.xMin, chunk.x);
+        this.xMax = Math.max(this.xMax, chunk.x);
+        this.yMin = Math.min(this.yMin, chunk.y);
+        this.yMax = Math.max(this.yMax, chunk.y);
+        this.removeChunkAt(chunk.x, chunk.y);
+        this.chunks.push(chunk);
+    };
+    World.prototype.saveAsFile = function () {
+        var zip = new JSZip();
         //chunks
-        for (let i = 0; i < this.chunks.length; i++) {
-            let chunk = this.chunks[i]
-
+        for (var i = 0; i < this.chunks.length; i++) {
+            var chunk = this.chunks[i];
             if (chunk.chunkHasBeenEdited || this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"] == null) {
-                let buffer = new ArrayBuffer(chunk.getByteSize())
-                chunk.writeToBuffer(buffer,0)
-                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+                var buffer = new ArrayBuffer(chunk.getByteSize());
+                chunk.writeToBuffer(buffer, 0);
+                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, { "binary": true });
                 //saveByteArray([buffer], chunk.x + "_" + chunk.y + ".dat")
-            } else {
-                let buffer = this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"]
-                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+            }
+            else {
+                var buffer = this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"];
+                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, { "binary": true });
             }
         }
-
         //world meta
-        zip.file("world.meta", JSON.stringify(
-            {
-                "name": this.name,
-                "seed": this.seed,
-                "version": this.version,
-                "highestUsedVersion": this.highestUsedVersion,
-                "hasBeenGenerated": this.hasBeenGenerated,
-            }
-        ))
+        zip.file("world.meta", JSON.stringify({
+            "name": this.name,
+            "seed": this.seed,
+            "version": this.version,
+            "highestUsedVersion": this.highestUsedVersion,
+            "hasBeenGenerated": this.hasBeenGenerated,
+        }));
         //settings meta
-        zip.file("settings.meta", JSON.stringify(
-            {
-                "progression": this.progression,
-                "friendlyFire": this.friendlyFire,
-                "forestBarrierBroken": this.forestBarrierBroken,
-                "timescale": this.timescale,
-                "NPCsOff": this.NPCsOff,
-                "additionalParams": this.additionalParams,
-            }
-        ))
-
+        zip.file("settings.meta", JSON.stringify({
+            "progression": this.progression,
+            "friendlyFire": this.friendlyFire,
+            "forestBarrierBroken": this.forestBarrierBroken,
+            "timescale": this.timescale,
+            "NPCsOff": this.NPCsOff,
+            "additionalParams": this.additionalParams,
+        }));
         //unknown files
-        for (let key in uneditedFiles) {
-            let fileBuffer = uneditedFiles[key]
-            zip.file(key.replace(this.name + "/",""), fileBuffer, {"binary": true})
+        for (var key in uneditedFiles) {
+            var fileBuffer = uneditedFiles[key];
+            zip.file(key.replace(this.name + "/", ""), fileBuffer, { "binary": true });
         }
-
         //save the zip
-        let world = this
-
-        zip.generateAsync({type:"blob"})
-        .then(function(content) {
+        var world = this;
+        zip.generateAsync({ type: "blob" })
+            .then(function (content) {
             // see FileSaver.js
             saveAs(content, world.name + ".zip");
         });
-    }
-}
+    };
+    return World;
+}());
+//# sourceMappingURL=world.js.map

@@ -1,6 +1,7 @@
 "use-strict";
 // @ts-check
-var imagesToLoad = [
+
+let imagesToLoad: Array<string> = [
     "assets/Tilesets/AmongUsFloors.png",
     "assets/Tilesets/AmongUsLighthouseAnimation.png",
     "assets/Tilesets/AmongUsLighthouseCrash.png",
@@ -41,18 +42,20 @@ var imagesToLoad = [
     "assets/Tilesets/unknown.png",
     "assets/Tilesets/VoidDungeon.png",
     "assets/Tilesets/VolcanoMiniDungeons.png"
-];
-var images = {};
-var loadedImages = 0;
+]
+
+var images = {}
+
+let loadedImages: number = 0
+
 //load images
-for (var i = 0; i < imagesToLoad.length; i++) {
-    images[imagesToLoad[i]] = new Image();
-    images[imagesToLoad[i]].addEventListener("load", function (e) {
-        loadedImages += 1;
+for (let i = 0; i < imagesToLoad.length; i++) {
+    images[imagesToLoad[i]] = new Image()
+    images[imagesToLoad[i]].addEventListener("load", function(e) {
+        loadedImages += 1
         if (loadedImages >= imagesToLoad.length) {
-            updateSearch();
+            updateSearch()
         }
-    });
-    images[imagesToLoad[i]].src = imagesToLoad[i];
+    })
+    images[imagesToLoad[i]].src = imagesToLoad[i]
 }
-//# sourceMappingURL=image-loader.js.map
