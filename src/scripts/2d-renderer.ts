@@ -4,18 +4,18 @@
 let canvasElement = <HTMLCanvasElement>document.getElementById("2Dcanvas")
 //let cacheCanvasElement = document.getElementById("2DcacheCanvas")
 
-let ctx = canvasElement.getContext("2d")
+let ctx: CanvasRenderingContext2D = canvasElement.getContext("2d")
 ctx.imageSmoothingEnabled = false
 
-var chunksDrawnThisFrame = 0
-var chunkDrawLimit = 16
-var maxCacheTimeout = 10
+var chunksDrawnThisFrame: number = 0
+var chunkDrawLimit: number = 16
+var maxCacheTimeout: number = 10
 
-var LastTime = Date.now() / 1000
-var TotalTime = 0
-var FPS = 60
-let FPSCounter = 0
-let FPSTimer = 0
+var LastTime: number = Date.now() / 1000
+var TotalTime: number = 0
+var FPS: number = 60
+let FPSCounter: number = 0
+let FPSTimer: number = 0
 
 var RendererSettings = {
     useChunkCache: true,
@@ -74,12 +74,12 @@ for (let i = 0; i < imagesToLoad.length; i++) {
     images[imagesToLoad[i]].src = imagesToLoad[i]
 }*/
 
-function isChunkOnScreen(chunk, camera) {
-    let x1 = (10 + chunk.x * 10) * 16
-    let y1 = (10 + chunk.y * 10) * -16
+function isChunkOnScreen(chunk: Chunk, camera: Camera): boolean {
+    let x1: number = (10 + chunk.x * 10) * 16
+    let y1: number = (10 + chunk.y * 10) * -16
 
-    let x2 = (0 + chunk.x * 10) * 16
-    let y2 = (0 + chunk.y * 10) * -16
+    let x2: number = (0 + chunk.x * 10) * 16
+    let y2: number = (0 + chunk.y * 10) * -16
 
     if (
         camera.isPositionOnScreen(canvasElement, x1, y1)
@@ -92,17 +92,17 @@ function isChunkOnScreen(chunk, camera) {
     return false
 }
 
-function drawTile(tile, chunk, camera) {
+function drawTile(tile: Tile, chunk: Chunk, camera: Camera) {
     let tileInfo = assetInfo[tile.tileAssetId]
     if (tileInfo) {
-        let sx = tileInfo.xMin * 16
-        let sy = tileInfo.yMin * 16
-        let sWidth = (tileInfo.xMax - tileInfo.xMin) * 16
-        let sHeight = (tileInfo.yMax - tileInfo.yMin) * 16
+        let sx: number = tileInfo.xMin * 16
+        let sy: number = tileInfo.yMin * 16
+        let sWidth: number = (tileInfo.xMax - tileInfo.xMin) * 16
+        let sHeight: number = (tileInfo.yMax - tileInfo.yMin) * 16
 
-        let dx = (tile.x + chunk.x * 10) * 16
+        let dx: number = (tile.x + chunk.x * 10) * 16
         dx += sWidth / 2
-        let dy = (tile.y + chunk.y * 10) * -16
+        let dy: number = (tile.y + chunk.y * 10) * -16
         dy -= sHeight / 2
         
 
@@ -111,31 +111,31 @@ function drawTile(tile, chunk, camera) {
         }
     } else {
         //draw unknown
-        let sx = 0
-        let sy = 0
-        let sWidth = 16
-        let sHeight = 16
+        let sx: number = 0
+        let sy: number = 0
+        let sWidth: number = 16
+        let sHeight: number = 16
 
-        let dx = (tile.x + chunk.x * 10) * 16
+        let dx: number = (tile.x + chunk.x * 10) * 16
         dx += sWidth / 2
-        let dy = (tile.y + chunk.y * 10) * -16
+        let dy: number = (tile.y + chunk.y * 10) * -16
         dy -= sHeight / 2
         
         camera.drawImageCropped(canvasElement, ctx, images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
     }
 }
 
-function drawTileCache(tile, chunk, cacheCtx) {
+function drawTileCache(tile: Tile, cacheCtx: CanvasRenderingContext2D) {
     let tileInfo = assetInfo[tile.tileAssetId]
     if (tileInfo) {
-        let sx = tileInfo.xMin * 16
-        let sy = tileInfo.yMin * 16
-        let sWidth = (tileInfo.xMax - tileInfo.xMin) * 16
-        let sHeight = (tileInfo.yMax - tileInfo.yMin) * 16
+        let sx: number = tileInfo.xMin * 16
+        let sy: number = tileInfo.yMin * 16
+        let sWidth: number = (tileInfo.xMax - tileInfo.xMin) * 16
+        let sHeight: number = (tileInfo.yMax - tileInfo.yMin) * 16
 
-        let dx = (tile.x) * 16 + 32
+        let dx: number = (tile.x) * 16 + 32
         //dx += sWidth / 2
-        let dy = (tile.y) * -16 + 32
+        let dy: number = (tile.y) * -16 + 32
         dy -= sHeight
         dy += 16 * 10
         
@@ -159,14 +159,14 @@ function drawTileCache(tile, chunk, cacheCtx) {
         }
     } else {
         //draw unknown
-        let sx = 0
-        let sy = 0
-        let sWidth = 16
-        let sHeight = 16
+        let sx: number = 0
+        let sy: number = 0
+        let sWidth: number = 16
+        let sHeight: number = 16
 
-        let dx = (tile.x) * 16 + 32
+        let dx: number = (tile.x) * 16 + 32
         //dx += sWidth / 2
-        let dy = (tile.y) * -16 + 32
+        let dy: number = (tile.y) * -16 + 32
         //dy -= sHeight / 2
         dy -= sHeight
         dy += 16 * 10
@@ -175,14 +175,14 @@ function drawTileCache(tile, chunk, cacheCtx) {
     }
 }
 
-function drawChunkCache(chunk) {
-    let cacheCanvasElement = <HTMLCanvasElement>document.createElement("canvas")
+function drawChunkCache(chunk: Chunk) {
+    let cacheCanvasElement: HTMLCanvasElement = <HTMLCanvasElement>document.createElement("canvas")
     cacheCanvasElement.setAttribute("style","width:224px; height:224px; image-rendering: pixelated;")
     cacheCanvasElement.hidden = true
     cacheCanvasElement.width = 224
     cacheCanvasElement.height = 224
 
-    let cacheCtx = cacheCanvasElement.getContext("2d")
+    let cacheCtx: CanvasRenderingContext2D = cacheCanvasElement.getContext("2d")
     cacheCtx.imageSmoothingEnabled = false
     cacheCtx.fillStyle = "#000000"
     cacheCtx.clearRect(0,0, 2740,2740)
@@ -190,9 +190,9 @@ function drawChunkCache(chunk) {
     for (let layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
         for (let y = chunk.height; y >= 0; y--) {
             for (let x = 0; x < chunk.width; x++) {
-                let tile = chunk.findTileAt(x,y,layerIndex)
+                let tile: Tile|null = chunk.findTileAt(x,y,layerIndex)
                 if (tile) {
-                    drawTileCache(tile, chunk, cacheCtx)
+                    drawTileCache(tile, cacheCtx)
                 }
             }
         }
@@ -205,7 +205,7 @@ function drawChunkCache(chunk) {
     chunk.cacheImage.src = cacheSource*/
 }
 
-function drawChunk(chunk, camera) {
+function drawChunk(chunk: Chunk, camera: Camera) {
     /*if (!chunk.cacheImage) {
         for (let layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
             for (let y = chunk.height; y >= 0; y--) {
@@ -233,9 +233,9 @@ function drawChunk(chunk, camera) {
             chunksDrawnThisFrame += 1
         }
 
-        let dx = chunk.x * 160
+        let dx: number = chunk.x * 160
         dx += 160 / 2
-        let dy = chunk.y * -160
+        let dy: number = chunk.y * -160
         dy -= 160 / 2
 
         if (chunk.cacheImage) {
@@ -249,15 +249,15 @@ function drawChunk(chunk, camera) {
             /*ctx.font = (160 * camera.zoom) + "px Arial"
             dx += chunk.x * 160
             camera.drawText(canvas, ctx, chunk.x + "_" + chunk.y, dx, dy, 160)*/
-            let tileToDraw = chunk.findTileAt(0,0,0)
+            let tileToDraw: Tile|null = chunk.findTileAt(0,0,0)
             if (tileToDraw) {
                 let tileInfo = assetInfo[tileToDraw.tileAssetId]
                 
                 if (tileInfo) {
-                    let sx = tileInfo.xMin * 16
-                    let sy = tileInfo.yMin * 16
-                    let sWidth = (tileInfo.xMax - tileInfo.xMin) * 16
-                    let sHeight = (tileInfo.yMax - tileInfo.yMin) * 16
+                    let sx: number = tileInfo.xMin * 16
+                    let sy: number = tileInfo.yMin * 16
+                    let sWidth: number = (tileInfo.xMax - tileInfo.xMin) * 16
+                    let sHeight: number = (tileInfo.yMax - tileInfo.yMin) * 16
 
                     camera.drawImageCropped(canvasElement, ctx, images["assets/Tilesets/" + tileInfo.tileset + ".png"], sx, sy, sWidth, sHeight, dx, dy, 160, 160)
                 }
@@ -269,7 +269,7 @@ function drawChunk(chunk, camera) {
         for (let layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
             for (let y = chunk.height; y >= 0; y--) {
                 for (let x = 0; x < chunk.width; x++) {
-                    let tile = chunk.findTileAt(x,y,layerIndex)
+                    let tile: Tile|null = chunk.findTileAt(x,y,layerIndex)
                     if (tile) {
                         drawTile(tile, chunk, camera)
                     }
@@ -280,7 +280,7 @@ function drawChunk(chunk, camera) {
 }
 
 //check a few things before actually drawing chunk
-function drawChunkCheck(chunk, world, ElapsedTime) {
+function drawChunkCheck(chunk: Chunk, world: World) {
     if (chunk) {
         if (isChunkOnScreen(chunk, world.camera)) { //chunk on screen
             chunk.cacheTimeout = Date.now() / 1000
@@ -294,34 +294,34 @@ function drawChunkCheck(chunk, world, ElapsedTime) {
     }
 }
 
-function drawWorld(canvas, world, ElapsedTime) {
+function drawWorld(canvas: HTMLCanvasElement, world: World) {
     if (world.camera.zoom < 0.25) { //if camera is zoomed out a lot
         //old render loop (cheaper but might render chunks in the wrong order)
         for (let i = 0; i < world.chunks.length; i++) {
             let chunk = world.chunks[i]
 
-            drawChunkCheck(chunk, world, ElapsedTime)
+            drawChunkCheck(chunk, world)
         }
     } else {
         //new correct order render loop
-        let topLeftCornerWorldPos = world.camera.screenPosToWorldPos(canvas, 0, 0)
-        let bottomRightCornerWorldPos = world.camera.screenPosToWorldPos(canvas, canvas.width, canvas.height)
+        let topLeftCornerWorldPos: Vector2 = world.camera.screenPosToWorldPos(canvas, 0, 0)
+        let bottomRightCornerWorldPos: Vector2 = world.camera.screenPosToWorldPos(canvas, canvas.width, canvas.height)
 
         topLeftCornerWorldPos = world.getChunkPosAtWorldPos(topLeftCornerWorldPos.x, topLeftCornerWorldPos.y)
         bottomRightCornerWorldPos = world.getChunkPosAtWorldPos(bottomRightCornerWorldPos.x, bottomRightCornerWorldPos.y)
 
-        let xMin = Math.max(world.xMin, topLeftCornerWorldPos.x)
-        let xMax = Math.min(world.xMax, bottomRightCornerWorldPos.x)
+        let xMin: number = Math.max(world.xMin, topLeftCornerWorldPos.x)
+        let xMax: number = Math.min(world.xMax, bottomRightCornerWorldPos.x)
 
         //doing this slightly differently because y is flipped
-        let yMax = Math.max(world.yMin, topLeftCornerWorldPos.y)
-        let yMin = Math.min(world.yMax, bottomRightCornerWorldPos.y)
+        let yMax: number = Math.max(world.yMin, topLeftCornerWorldPos.y)
+        let yMin: number = Math.min(world.yMax, bottomRightCornerWorldPos.y)
 
         for (let x = xMax + 1; x > xMin - 1; x--) {
             for (let y = yMax + 1; y > yMin - 1; y--) {
-                let chunk = world.getChunkAt(x,y)
+                let chunk: Chunk|null = world.getChunkAt(x,y)
                 
-                drawChunkCheck(chunk, world, ElapsedTime)
+                drawChunkCheck(chunk, world)
             }
         }
     }
@@ -329,7 +329,7 @@ function drawWorld(canvas, world, ElapsedTime) {
     //remove old image caches every 5 seconds
     if (TotalTime % 5 === 0) {
         for (let i = 0; i < world.chunks.length; i++) {
-            let chunk = world.chunks[i]
+            let chunk: Chunk|null = world.chunks[i]
 
             if (Date.now() / 1000 - chunk.cacheTimeout > maxCacheTimeout) {
                 chunk.resetCacheImage()
@@ -339,8 +339,8 @@ function drawWorld(canvas, world, ElapsedTime) {
 }
 
 function render() {
-    let CurrentTime = Date.now() / 1000
-    let ElapsedTime = CurrentTime - LastTime
+    let CurrentTime: number = Date.now() / 1000
+    let ElapsedTime: number = CurrentTime - LastTime
     TotalTime += ElapsedTime
     FPSTimer += ElapsedTime
     FPSCounter += 1
@@ -378,7 +378,7 @@ function render() {
 
     if (currentWorld !== null) {
         if (worlds[currentWorld]) {
-            drawWorld(canvasElement, worlds[currentWorld], ElapsedTime)
+            drawWorld(canvasElement, worlds[currentWorld])
         }
     }
 

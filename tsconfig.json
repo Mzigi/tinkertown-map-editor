@@ -3,6 +3,7 @@
       "target": "es5",
       "module": "commonjs",
       "sourceMap": true,
-      "lib": ["ES2023","DOM"]
+      "lib": ["ES2023","DOM"],
+      "outDir": "build"
     }
   }

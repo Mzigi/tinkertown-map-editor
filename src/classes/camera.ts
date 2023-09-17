@@ -117,7 +117,7 @@ class Camera {
         ctx.drawImage(image, sx, sy, sWidth, sHeight, X, Y, W, H)
     }
 
-    drawImage(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement, dx: number, dy: number, dWidth: number, dHeight: number) {
+    drawImage(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement|HTMLCanvasElement, dx: number, dy: number, dWidth: number, dHeight: number) {
         ctx.imageSmoothingEnabled = false
 
         let W: number = dWidth * this.zoom

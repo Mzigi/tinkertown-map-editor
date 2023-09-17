@@ -1,7 +1,7 @@
 "use-strict";
 // @ts-check
 
-var slotSize = 64
+var slotSize: number = 64
 
 let alertElement = document.getElementById("alert")
 

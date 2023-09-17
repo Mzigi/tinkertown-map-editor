@@ -107,7 +107,7 @@ function drawTile(tile, chunk, camera) {
         camera.drawImageCropped(canvasElement, ctx, images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight);
     }
 }
-function drawTileCache(tile, chunk, cacheCtx) {
+function drawTileCache(tile, cacheCtx) {
     var tileInfo = assetInfo[tile.tileAssetId];
     if (tileInfo) {
         var sx = tileInfo.xMin * 16;
@@ -167,7 +167,7 @@ function drawChunkCache(chunk) {
             for (var x = 0; x < chunk.width; x++) {
                 var tile = chunk.findTileAt(x, y, layerIndex);
                 if (tile) {
-                    drawTileCache(tile, chunk, cacheCtx);
+                    drawTileCache(tile, cacheCtx);
                 }
             }
         }
@@ -250,7 +250,7 @@ function drawChunk(chunk, camera) {
     }
 }
 //check a few things before actually drawing chunk
-function drawChunkCheck(chunk, world, ElapsedTime) {
+function drawChunkCheck(chunk, world) {
     if (chunk) {
         if (isChunkOnScreen(chunk, world.camera)) { //chunk on screen
             chunk.cacheTimeout = Date.now() / 1000;
@@ -264,12 +264,12 @@ function drawChunkCheck(chunk, world, ElapsedTime) {
         }
     }
 }
-function drawWorld(canvas, world, ElapsedTime) {
+function drawWorld(canvas, world) {
     if (world.camera.zoom < 0.25) { //if camera is zoomed out a lot
         //old render loop (cheaper but might render chunks in the wrong order)
         for (var i = 0; i < world.chunks.length; i++) {
             var chunk = world.chunks[i];
-            drawChunkCheck(chunk, world, ElapsedTime);
+            drawChunkCheck(chunk, world);
         }
     }
     else {
@@ -286,7 +286,7 @@ function drawWorld(canvas, world, ElapsedTime) {
         for (var x = xMax + 1; x > xMin - 1; x--) {
             for (var y = yMax + 1; y > yMin - 1; y--) {
                 var chunk = world.getChunkAt(x, y);
-                drawChunkCheck(chunk, world, ElapsedTime);
+                drawChunkCheck(chunk, world);
             }
         }
     }
@@ -337,7 +337,7 @@ function render() {
     }*/
     if (currentWorld !== null) {
         if (worlds[currentWorld]) {
-            drawWorld(canvasElement, worlds[currentWorld], ElapsedTime);
+            drawWorld(canvasElement, worlds[currentWorld]);
         }
     }
     //fps counter
