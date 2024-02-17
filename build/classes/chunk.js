@@ -1,5 +1,3 @@
-"use-strict";
-// @ts-check
 var saveByteArray = (function () {
     var a = document.createElement("a");
     document.body.appendChild(a);

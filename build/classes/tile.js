@@ -1,5 +1,3 @@
-"use-strict";
-// @ts-check
 var Tile = /** @class */ (function () {
     function Tile() {
         this.x = 0;

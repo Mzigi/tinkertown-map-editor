@@ -66,24 +66,45 @@ var examples = [
         "file": "IslandSurvival",
         "name": "Large Island Survival",
     },
+    /*{
+        "file": "earlytown6",
+        "name": "Earlytown - 6",
+    },
+    {
+        "file": "earlytown4",
+        "name": "Earlytown - 4",
+    },
+    {
+        "file": "earlytown3",
+        "name": "Earlytown - 3",
+    },
+    {
+        "file": "earlytown1",
+        "name": "Earlytown - 1",
+    },*/
 ];
+function loadFromExampleLink(exampleLink) {
+    worlds[currentWorld] = new World();
+    var hrefWithoutHtml = window.location.href.replace("index.html", "");
+    var fetchUrl = hrefWithoutHtml + "assets/Worlds/" + exampleLink.file + ".ttworld";
+    console.log("Fetching example world from " + fetchUrl);
+    document.getElementById("dialog-examples").close();
+    document.getElementById("dialog-loading").showModal();
+    fetch("./assets/Worlds/" + exampleLink.file + ".ttworld").then(function (response) {
+        response.arrayBuffer().then(function (worldBuffer) {
+            currentWorld = 0;
+            worlds[currentWorld].fromBuffer(worldBuffer, 0);
+            document.getElementById("dialog-loading").close();
+        });
+    });
+}
 var _loop_1 = function (i) {
     var listElement = document.createElement("li");
     var buttonElement = document.createElement("button");
     buttonElement.innerText = examples[i].name;
     listElement.appendChild(buttonElement);
     buttonElement.addEventListener("click", function () {
-        worlds[currentWorld] = new World();
-        var hrefWithoutHtml = window.location.href.replace("index.html", "");
-        var fetchUrl = hrefWithoutHtml + "assets/Worlds/" + examples[i].file + ".ttworld";
-        console.log("Fetching example world from " + fetchUrl);
-        fetch("./assets/Worlds/" + examples[i].file + ".ttworld").then(function (response) {
-            response.arrayBuffer().then(function (worldBuffer) {
-                currentWorld = 0;
-                worlds[currentWorld].fromBuffer(worldBuffer, 0);
-                document.getElementById("dialog-examples").close();
-            });
-        });
+        loadFromExampleLink(examples[i]);
     });
     document.getElementById("examples-list").appendChild(listElement);
 };

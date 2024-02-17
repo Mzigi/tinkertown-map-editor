@@ -16,7 +16,12 @@ let closeDialogButton: any = document.getElementById("close-dialog-help")
 let closeExamplesDialogButton: any = document.getElementById("close-dialog-examples")
 let closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-world-settings")
 
-let examples = [
+interface worldLink {
+    file: string,
+    name: string
+}
+
+let examples: Array<worldLink> = [
     {
         "file": "OneChunkChallenge",
         "name": "10x10 Forest and House Cutout",
@@ -33,7 +38,42 @@ let examples = [
         "file": "IslandSurvival",
         "name": "Large Island Survival",
     },
+    /*{
+        "file": "earlytown6",
+        "name": "Earlytown - 6",
+    },
+    {
+        "file": "earlytown4",
+        "name": "Earlytown - 4",
+    },
+    {
+        "file": "earlytown3",
+        "name": "Earlytown - 3",
+    },
+    {
+        "file": "earlytown1",
+        "name": "Earlytown - 1",
+    },*/
 ]
+
+function loadFromExampleLink(exampleLink: worldLink) {
+    worlds[currentWorld] = new World()
+
+    let hrefWithoutHtml = window.location.href.replace("index.html","")
+    let fetchUrl = hrefWithoutHtml + "assets/Worlds/" + exampleLink.file + ".ttworld"
+    console.log("Fetching example world from " + fetchUrl);
+
+    (<HTMLDialogElement>document.getElementById("dialog-examples")).close();
+    (<HTMLDialogElement>document.getElementById("dialog-loading")).showModal();
+
+    fetch("./assets/Worlds/" + exampleLink.file + ".ttworld").then(response => {
+        response.arrayBuffer().then(worldBuffer => {
+            currentWorld = 0;
+            worlds[currentWorld].fromBuffer(worldBuffer, 0);
+            (<HTMLDialogElement>document.getElementById("dialog-loading")).close();
+        })
+    })
+}
 
 for (let i = 0; i < examples.length; i++) {
     let listElement = document.createElement("li")
@@ -44,20 +84,7 @@ for (let i = 0; i < examples.length; i++) {
     listElement.appendChild(buttonElement)
 
     buttonElement.addEventListener("click", () => {
-        worlds[currentWorld] = new World()
-
-        let hrefWithoutHtml = window.location.href.replace("index.html","")
-        let fetchUrl = hrefWithoutHtml + "assets/Worlds/" + examples[i].file + ".ttworld"
-        console.log("Fetching example world from " + fetchUrl)
-
-        fetch("./assets/Worlds/" + examples[i].file + ".ttworld").then(response => {
-            response.arrayBuffer().then(worldBuffer => {
-                currentWorld = 0
-                worlds[currentWorld].fromBuffer(worldBuffer, 0);
-
-                (<HTMLDialogElement>document.getElementById("dialog-examples")).close()
-            })
-        })
+        loadFromExampleLink(examples[i])
     })
 
     document.getElementById("examples-list").appendChild(listElement)

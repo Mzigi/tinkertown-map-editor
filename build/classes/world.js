@@ -194,16 +194,16 @@ var World = /** @class */ (function () {
     };
     World.prototype.getByteSize = function () {
         //versions
-        var versionByteSize = 12;
+        var versionByteSize = 16;
         if (this.version.Build) {
-            versionByteSize += 4 + this.version.Build.length;
+            versionByteSize += this.version.Build.length;
         }
-        var highestUsedVersionByteSize = 12;
+        var highestUsedVersionByteSize = 16;
         if (this.highestUsedVersion.Build) {
-            highestUsedVersionByteSize += 4 + this.highestUsedVersion.Build.length;
+            highestUsedVersionByteSize += this.highestUsedVersion.Build.length;
         }
         //additional params
-        var additionalParamsByteSize = this.additionalParams.length * 4;
+        var additionalParamsByteSize = 2 + this.additionalParams.length * 4;
         for (var i = 0; i < this.additionalParams.length; i++) {
             additionalParamsByteSize += this.additionalParams[i].length;
         }

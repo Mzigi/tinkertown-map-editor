@@ -1,6 +1,3 @@
-"use-strict";
-// @ts-check
-
 function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent): Vector2 {
     var rect = canvas.getBoundingClientRect();
     return {

@@ -268,18 +268,18 @@ class World {
 
     getByteSize(): number {
         //versions
-        let versionByteSize: number = 12
+        let versionByteSize: number = 16
         if (this.version.Build) {
-            versionByteSize += 4 + this.version.Build.length
+            versionByteSize += this.version.Build.length
         }
 
-        let highestUsedVersionByteSize: number = 12
+        let highestUsedVersionByteSize: number = 16
         if (this.highestUsedVersion.Build) {
-            highestUsedVersionByteSize += 4 + this.highestUsedVersion.Build.length
+            highestUsedVersionByteSize += this.highestUsedVersion.Build.length
         }
 
         //additional params
-        let additionalParamsByteSize: number = this.additionalParams.length * 4
+        let additionalParamsByteSize: number = 2 + this.additionalParams.length * 4
         for (let i = 0; i < this.additionalParams.length; i++) {
             additionalParamsByteSize += this.additionalParams[i].length
         }

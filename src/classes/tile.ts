@@ -1,6 +1,3 @@
-"use-strict";
-// @ts-check
-
 class Tile {
     x: number
     y: number
