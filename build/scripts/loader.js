@@ -45,8 +45,48 @@ var importInput = document.getElementById("navbar-import");
 var exportButton = document.getElementById("navbar-export");
 var helpButton = document.getElementById("navbar-help");
 var worldSettingsButton = document.getElementById("navbar-world-settings");
+var examplesButton = document.getElementById("navbar-examples");
 var closeDialogButton = document.getElementById("close-dialog-help");
+var closeExamplesDialogButton = document.getElementById("close-dialog-examples");
 var closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
+var examples = [
+    {
+        "file": "OneChunkChallenge",
+        "name": "10x10 Forest and House Cutout",
+    },
+    {
+        "file": "10x10 Lake",
+        "name": "10x10 Lake in Forest",
+    },
+    {
+        "file": "Small House",
+        "name": "Small House",
+    },
+    {
+        "file": "IslandSurvival",
+        "name": "Large Island Survival",
+    },
+];
+var _loop_1 = function (i) {
+    var listElement = document.createElement("li");
+    var buttonElement = document.createElement("button");
+    buttonElement.innerText = examples[i].name;
+    listElement.appendChild(buttonElement);
+    buttonElement.addEventListener("click", function () {
+        worlds[currentWorld] = new World();
+        fetch("/assets/Worlds/" + examples[i].file + ".ttworld").then(function (response) {
+            response.arrayBuffer().then(function (worldBuffer) {
+                currentWorld = 0;
+                worlds[currentWorld].fromBuffer(worldBuffer, 0);
+                document.getElementById("dialog-examples").close();
+            });
+        });
+    });
+    document.getElementById("examples-list").appendChild(listElement);
+};
+for (var i = 0; i < examples.length; i++) {
+    _loop_1(i);
+}
 var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0, void 0, function () {
     var buffer, loadedChunk, worldMeta, settingsMeta, buffer;
     return __generator(this, function (_a) {
@@ -68,6 +108,9 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                 worlds[currentWorld].seed = worldMeta.seed;
                 worlds[currentWorld].version = worldMeta.version;
                 worlds[currentWorld].highestUsedVersion = worldMeta.highestUsedVersion;
+                if (!worlds[currentWorld].highestUsedVersion) {
+                    worlds[currentWorld].highestUsedVersion = worldMeta.version;
+                }
                 worlds[currentWorld].hasBeenGenerated = worldMeta.hasBeenGenerated;
                 return [3 /*break*/, 6];
             case 3:
@@ -106,7 +149,7 @@ importInput.addEventListener("change", function () {
     if (importInput.files.length > 0) {
         worlds[currentWorld] = new World();
         uneditedFiles = {};
-        var _loop_1 = function (i) {
+        var _loop_2 = function (i) {
             //console.log(importInput.files[i].webkitRelativePath)
             if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
                 readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath);
@@ -123,7 +166,7 @@ importInput.addEventListener("change", function () {
             }
         };
         for (var i = 0; i < importInput.files.length; i++) {
-            _loop_1(i);
+            _loop_2(i);
         }
     }
 });
@@ -151,5 +194,11 @@ worldSettingsButton.addEventListener("click", function () {
 });
 closeWorldSettingsDialogButton.addEventListener("click", function () {
     document.getElementById("dialog-world-settings").close();
+});
+examplesButton.addEventListener("click", function () {
+    document.getElementById("dialog-examples").showModal();
+});
+closeExamplesDialogButton.addEventListener("click", function () {
+    document.getElementById("dialog-examples").close();
 });
 //# sourceMappingURL=loader.js.map

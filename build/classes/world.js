@@ -1,6 +1,45 @@
 "use-strict";
+var saveByteArray = (function () {
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.setAttribute("style", "display: none;");
+    return function (data, name) {
+        var blob = new Blob(data, { type: "octet/stream" }), url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = name;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+}());
+function readWorldVersion(view) {
+    var version = {
+        "Major": 0,
+        "Minor": 0,
+        "Patch": 0,
+        "Build": "",
+    };
+    version.Major = view.readInt32();
+    version.Minor = view.readInt32();
+    version.Patch = view.readInt32();
+    version.Build = view.readUtf8String();
+    return version;
+}
+function writeWorldVersion(view, version) {
+    view.writeInt32(version.Major);
+    view.writeInt32(version.Minor);
+    view.writeInt32(version.Patch);
+    if (version.Build) {
+        view.writeUtf8String(version.Build);
+    }
+    else {
+        view.writeUint32(0);
+    }
+}
 var World = /** @class */ (function () {
     function World() {
+        this.reset();
+    }
+    World.prototype.reset = function () {
         this.chunks = [];
         this.camera = new Camera();
         this.xMin = 0;
@@ -25,7 +64,7 @@ var World = /** @class */ (function () {
         ];
         //editor only
         this.chunkCache = {};
-    }
+    };
     World.prototype.clearChunks = function () {
         this.chunks = [];
     };
@@ -91,6 +130,90 @@ var World = /** @class */ (function () {
         this.removeChunkAt(chunk.x, chunk.y);
         this.chunks.push(chunk);
     };
+    World.prototype.fromBuffer = function (worldBuffer, byteOffset) {
+        this.reset();
+        var view = new simpleView(worldBuffer);
+        view.viewOffset = byteOffset;
+        //world meta
+        this.name = view.readUtf8String();
+        this.seed = view.readInt32();
+        this.version = readWorldVersion(view);
+        this.highestUsedVersion = readWorldVersion(view);
+        this.hasBeenGenerated = view.readByteBool();
+        //settings meta
+        this.progression = view.readByteBool();
+        this.friendlyFire = view.readByteBool();
+        this.forestBarrierBroken = view.readByteBool();
+        this.timescale = view.readInt32();
+        this.NPCsOff = view.readByteBool();
+        this.additionalParams = [];
+        var additionalParamsLength = view.readUint16();
+        for (var i = 0; i < additionalParamsLength; i++) {
+            this.additionalParams.push(view.readUtf8String());
+        }
+        //chunks
+        var chunksLength = view.readUint32();
+        var chunkByteOffset = 0;
+        for (var i = 0; i < chunksLength; i++) {
+            var chunk = new Chunk();
+            chunk.fromBuffer(view.buffer.slice(view.viewOffset + chunkByteOffset));
+            chunkByteOffset += chunk.getByteSize();
+            this.xMin = Math.min(this.xMin, chunk.x);
+            this.yMin = Math.min(this.yMin, chunk.y);
+            this.xMax = Math.max(this.xMax, chunk.x);
+            this.yMax = Math.max(this.yMax, chunk.y);
+            this.chunks.push(chunk);
+        }
+    };
+    World.prototype.writeToBuffer = function (writeBuffer, byteOffset) {
+        var view = new simpleView(writeBuffer);
+        view.viewOffset = byteOffset;
+        //world meta
+        view.writeUtf8String(this.name);
+        view.writeInt32(this.seed);
+        writeWorldVersion(view, this.version);
+        writeWorldVersion(view, this.highestUsedVersion);
+        view.writeByteBool(this.hasBeenGenerated);
+        //settings meta
+        view.writeByteBool(this.progression);
+        view.writeByteBool(this.friendlyFire);
+        view.writeByteBool(this.forestBarrierBroken);
+        view.writeInt32(this.timescale);
+        view.writeByteBool(this.NPCsOff);
+        view.writeUint16(this.additionalParams.length);
+        for (var i = 0; i < this.additionalParams.length; i++) {
+            view.writeUtf8String(this.additionalParams[i]);
+        }
+        //chunks
+        var chunkByteOffset = 0;
+        view.writeUint32(this.chunks.length);
+        for (var i = 0; i < this.chunks.length; i++) {
+            this.chunks[i].writeToBuffer(view.buffer, view.viewOffset + chunkByteOffset);
+            chunkByteOffset += this.chunks[i].getByteSize();
+        }
+    };
+    World.prototype.getByteSize = function () {
+        //versions
+        var versionByteSize = 12;
+        if (this.version.Build) {
+            versionByteSize += 4 + this.version.Build.length;
+        }
+        var highestUsedVersionByteSize = 12;
+        if (this.highestUsedVersion.Build) {
+            highestUsedVersionByteSize += 4 + this.highestUsedVersion.Build.length;
+        }
+        //additional params
+        var additionalParamsByteSize = this.additionalParams.length * 4;
+        for (var i = 0; i < this.additionalParams.length; i++) {
+            additionalParamsByteSize += this.additionalParams[i].length;
+        }
+        //chunks
+        var chunksByteSize = 0;
+        for (var i = 0; i < this.chunks.length; i++) {
+            chunksByteSize += this.chunks[i].getByteSize();
+        }
+        return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize;
+    };
     World.prototype.saveAsFile = function () {
         var zip = new JSZip();
         //chunks
@@ -136,6 +259,11 @@ var World = /** @class */ (function () {
             // see FileSaver.js
             saveAs(content, world.name + ".zip");
         });
+    };
+    World.prototype.saveAsBufferFile = function () {
+        var worldBuffer = new ArrayBuffer(this.getByteSize());
+        this.writeToBuffer(worldBuffer, 0);
+        saveByteArray([worldBuffer], this.name + ".ttworld");
     };
     return World;
 }());

@@ -46,6 +46,7 @@
                 <label for="navbar-import" class="navbar-button">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import">
                 <button id="navbar-export" class="navbar-button">Export</button>
                 <button id="navbar-world-settings" class="navbar-button">World Settings</button>
+                <button id="navbar-examples" class="navbar-button">Examples</button>
                 <button id="navbar-help" class="navbar-button" style="float: right;">Help</button>
             </div>
 
@@ -57,6 +58,14 @@
                     <li>The "Auto" layer automatically erases/places on/picks the tile on the top layer</li>
                 </ul>
                 <button id="close-dialog-help" class="dialog-close">Close</button>
+            </dialog>
+
+            <dialog id="dialog-examples">
+                <span class="title">Choose an example</span>
+                <ul id="examples-list">
+                    
+                </ul>
+                <button id="close-dialog-examples" class="dialog-close">Cancel</button>
             </dialog>
 
             <dialog id="dialog-world-settings">

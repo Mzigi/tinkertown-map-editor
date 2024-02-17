@@ -10,9 +10,54 @@ let importInput: any = document.getElementById("navbar-import")
 let exportButton: any = document.getElementById("navbar-export")
 let helpButton: any = document.getElementById("navbar-help")
 let worldSettingsButton: any = document.getElementById("navbar-world-settings")
+let examplesButton: any = document.getElementById("navbar-examples")
 
 let closeDialogButton: any = document.getElementById("close-dialog-help")
+let closeExamplesDialogButton: any = document.getElementById("close-dialog-examples")
 let closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-world-settings")
+
+let examples = [
+    {
+        "file": "OneChunkChallenge",
+        "name": "10x10 Forest and House Cutout",
+    },
+    {
+        "file": "10x10 Lake",
+        "name": "10x10 Lake in Forest",
+    },
+    {
+        "file": "Small House",
+        "name": "Small House",
+    },
+    {
+        "file": "IslandSurvival",
+        "name": "Large Island Survival",
+    },
+]
+
+for (let i = 0; i < examples.length; i++) {
+    let listElement = document.createElement("li")
+
+    let buttonElement = document.createElement("button")
+    buttonElement.innerText = examples[i].name
+
+    listElement.appendChild(buttonElement)
+
+    buttonElement.addEventListener("click", () => {
+        worlds[currentWorld] = new World()
+
+        fetch("/assets/Worlds/" + examples[i].file + ".ttworld").then(response => {
+            response.arrayBuffer().then(worldBuffer => {
+                currentWorld = 0
+                worlds[currentWorld].fromBuffer(worldBuffer, 0);
+
+                (<HTMLDialogElement>document.getElementById("dialog-examples")).close()
+            })
+        })
+    })
+
+    document.getElementById("examples-list").appendChild(listElement)
+}
 
 const readBinaryFile = async (file: any, filePath: string) => {
     if (filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3) { //chunk
@@ -28,6 +73,9 @@ const readBinaryFile = async (file: any, filePath: string) => {
         worlds[currentWorld].seed = worldMeta.seed
         worlds[currentWorld].version = worldMeta.version
         worlds[currentWorld].highestUsedVersion = worldMeta.highestUsedVersion
+        if (!worlds[currentWorld].highestUsedVersion) {
+            worlds[currentWorld].highestUsedVersion = worldMeta.version
+        }
         worlds[currentWorld].hasBeenGenerated = worldMeta.hasBeenGenerated
     } else if (filePath.endsWith("settings.meta")) { //settings.meta
         let settingsMeta: any = JSON.parse(file)
@@ -109,6 +157,14 @@ worldSettingsButton.addEventListener("click", () => {
 
 closeWorldSettingsDialogButton.addEventListener("click", () => {
     (<HTMLDialogElement>document.getElementById("dialog-world-settings")).close()
+})
+
+examplesButton.addEventListener("click", () => {
+    (<HTMLDialogElement>document.getElementById("dialog-examples")).showModal()
+})
+
+closeExamplesDialogButton.addEventListener("click", () => {
+    (<HTMLDialogElement>document.getElementById("dialog-examples")).close()
 })
 
 /*
