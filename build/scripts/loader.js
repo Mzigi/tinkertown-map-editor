@@ -77,7 +77,7 @@ var _loop_1 = function (i) {
         var hrefWithoutHtml = window.location.href.replace("index.html", "");
         var fetchUrl = hrefWithoutHtml + "assets/Worlds/" + examples[i].file + ".ttworld";
         console.log("Fetching example world from " + fetchUrl);
-        fetch("assets/Worlds/" + examples[i].file + ".ttworld").then(function (response) {
+        fetch("./assets/Worlds/" + examples[i].file + ".ttworld").then(function (response) {
             response.arrayBuffer().then(function (worldBuffer) {
                 currentWorld = 0;
                 worlds[currentWorld].fromBuffer(worldBuffer, 0);
