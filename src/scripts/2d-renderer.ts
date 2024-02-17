@@ -8,8 +8,8 @@ let ctx: CanvasRenderingContext2D = canvasElement.getContext("2d")
 ctx.imageSmoothingEnabled = false
 
 var chunksDrawnThisFrame: number = 0
-var chunkDrawLimit: number = 16
-var maxCacheTimeout: number = 10
+var chunkDrawLimit: number = 128
+var maxCacheTimeout: number = 30
 
 var LastTime: number = Date.now() / 1000
 var TotalTime: number = 0
@@ -352,7 +352,7 @@ function render() {
     }
 
     chunksDrawnThisFrame = 0
-    if (currentWorld !== null) {
+    /*if (currentWorld !== null) {
         if (worlds[currentWorld].camera.zoom > 1) {
             chunkDrawLimit = 24
         } else if (worlds[currentWorld].camera.zoom > 0.5) {
@@ -362,7 +362,7 @@ function render() {
         }
     } else {
         chunkDrawLimit = 4
-    }
+    }*/
 
     canvasElement.width = window.innerWidth
     canvasElement.height = window.innerHeight

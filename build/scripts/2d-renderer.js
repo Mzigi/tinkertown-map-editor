@@ -5,8 +5,8 @@ var canvasElement = document.getElementById("2Dcanvas");
 var ctx = canvasElement.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 var chunksDrawnThisFrame = 0;
-var chunkDrawLimit = 16;
-var maxCacheTimeout = 10;
+var chunkDrawLimit = 128;
+var maxCacheTimeout = 30;
 var LastTime = Date.now() / 1000;
 var TotalTime = 0;
 var FPS = 60;
@@ -312,20 +312,17 @@ function render() {
         FPSTimer = 0;
     }
     chunksDrawnThisFrame = 0;
-    if (currentWorld !== null) {
+    /*if (currentWorld !== null) {
         if (worlds[currentWorld].camera.zoom > 1) {
-            chunkDrawLimit = 24;
+            chunkDrawLimit = 24
+        } else if (worlds[currentWorld].camera.zoom > 0.5) {
+            chunkDrawLimit = 16
+        } else {
+            chunkDrawLimit = 8
         }
-        else if (worlds[currentWorld].camera.zoom > 0.5) {
-            chunkDrawLimit = 16;
-        }
-        else {
-            chunkDrawLimit = 8;
-        }
-    }
-    else {
-        chunkDrawLimit = 4;
-    }
+    } else {
+        chunkDrawLimit = 4
+    }*/
     canvasElement.width = window.innerWidth;
     canvasElement.height = window.innerHeight;
     ctx.clearRect(0, 0, 10000, 10000);

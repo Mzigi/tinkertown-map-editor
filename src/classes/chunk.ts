@@ -5,7 +5,7 @@ var saveByteArray = (function () {
     var a = document.createElement("a");
     document.body.appendChild(a);
     a.setAttribute("style","display: none;")
-    return function (data, name) {
+    return function (data: BlobPart[], name: string) {
         var blob = new Blob(data, {type: "octet/stream"}),
             url = window.URL.createObjectURL(blob);
         a.href = url;
@@ -66,7 +66,7 @@ class Chunk {
         this.resetCacheImage()
     }
 
-    findTileIndexAt(x,y,z) {
+    findTileIndexAt(x: number,y: number,z: number) {
         for (let i = 0; i < this.tileDataList.length; i++) {
             let currentTile = this.tileDataList[i]
             if (currentTile.x == x && currentTile.y == y && currentTile.z == z) {
@@ -77,7 +77,7 @@ class Chunk {
         return null
     }
 
-    findTileAt(x,y,z) {
+    findTileAt(x: number,y: number,z: number) {
         let index = this.findTileIndexAt(x,y,z)
         if (index !== null) {
             return this.tileDataList[index]
@@ -86,7 +86,7 @@ class Chunk {
         return null
     }
 
-    removeTileAt(x,y,z) {
+    removeTileAt(x: number,y: number,z: number) {
         let tileIndex = this.findTileIndexAt(x,y,z)
         
         if (tileIndex != null) {
@@ -96,7 +96,7 @@ class Chunk {
         }
     }
 
-    getTilePosAtWorldPos(x, y) {
+    getTilePosAtWorldPos(x: number, y: number) {
         let tileX = Math.floor(x / 16) % 10
         if (this.x < 0) {
             tileX = (9 + (Math.floor(x / 16) % 10 + 1)) % 10
@@ -109,7 +109,7 @@ class Chunk {
         return {"x":tileX, "y":tileY}
     }
 
-    getTileAtWorldPos(x,y,z) {
+    getTileAtWorldPos(x: number,y: number,z: number) {
         let tileWorldPos = this.getTilePosAtWorldPos(x,y)
         let tileX = tileWorldPos.x
         let tileY = tileWorldPos.y
@@ -117,7 +117,7 @@ class Chunk {
         return this.findTileAt(tileX,tileY,z)
     }
 
-    setTile(tile) {
+    setTile(tile: { x: number; y: number; z: number; }) {
         this.removeTileAt(tile.x,tile.y,tile.z)
         this.tileDataList.push(tile)
         if (tile.z + 1 > this.layers) {
@@ -128,7 +128,7 @@ class Chunk {
         this.resetCacheImage()
     }
 
-    fromBuffer(chunkBuffer) {
+    fromBuffer(chunkBuffer: ArrayBuffer) {
         //clear array/lists
         this.tileDataList = []
         this.itemDataList = []
@@ -159,7 +159,7 @@ class Chunk {
         this.resetCacheImage()
     }
 
-    writeToBuffer(writeBuffer, byteOffset) {
+    writeToBuffer(writeBuffer: ArrayBuffer, byteOffset: number) {
         let view: simpleView = new simpleView(writeBuffer)
         view.viewOffset = byteOffset
 
@@ -203,7 +203,7 @@ class Chunk {
         saveByteArray([buffer], this.x + "_" + this.y + ".dat")
     }
 
-    fillWithIdsBetween(startId,endId) {
+    fillWithIdsBetween(startId: number,endId: number) {
         this.clearTiles()
 
         let currentId = startId
