@@ -46,7 +46,7 @@ for (let i = 0; i < examples.length; i++) {
     buttonElement.addEventListener("click", () => {
         worlds[currentWorld] = new World()
 
-        fetch("/assets/Worlds/" + examples[i].file + ".ttworld").then(response => {
+        fetch("./assets/Worlds/" + examples[i].file + ".ttworld").then(response => {
             response.arrayBuffer().then(worldBuffer => {
                 currentWorld = 0
                 worlds[currentWorld].fromBuffer(worldBuffer, 0);
