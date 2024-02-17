@@ -1,0 +1,1 @@
+//Type "tsc.cmd -w" to compile all files
