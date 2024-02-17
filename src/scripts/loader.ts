@@ -47,7 +47,7 @@ for (let i = 0; i < examples.length; i++) {
         worlds[currentWorld] = new World()
 
         let hrefWithoutHtml = window.location.href.replace("index.html","")
-        let fetchUrl = hrefWithoutHtml + "/assets/Worlds/" + examples[i].file + ".ttworld"
+        let fetchUrl = hrefWithoutHtml + "assets/Worlds/" + examples[i].file + ".ttworld"
 
         fetch(fetchUrl).then(response => {
             response.arrayBuffer().then(worldBuffer => {
