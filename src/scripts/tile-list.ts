@@ -5,12 +5,10 @@ var slotSize: number = 64
 
 let alertElement = document.getElementById("alert")
 
-let inventoryWidthElement = document.getElementById("inventory-width")
-let inventoryHeightElement = document.getElementById("inventory-height")
-
 let itemListCategory = document.getElementById("item-list-category")
 let itemListResultCount = document.getElementById("item-list-result-count")
 let itemList = document.getElementById("item-list")
+let smallItemList = document.getElementById("small-item-list")
 
 //add categories
 let categories = assetInfoHelper.getExistingCategories()
@@ -135,6 +133,113 @@ function updateSearch() {
 }
 
 updateSearch()
+
+
+function updateItemSearch() {
+    setTimeout(function() {
+        let search: string = (<HTMLInputElement>document.getElementById("small-item-list-searchbar")).value || ""
+        let category: string = ""
+    
+        let searchItems = item_assetInfoHelper.findInfosBySearch(search)
+    
+        let resultItems = JSON.parse(JSON.stringify(searchItems))
+    
+        /*if (search === "") {
+            resultItems = JSON.parse(JSON.stringify(assetInfo))
+        }*/
+    
+        if (category !== "") {
+            let newResultItems = []
+            for (let i in resultItems) {
+                if (resultItems[i].category === category) {
+                    newResultItems.push(resultItems[i])
+                }
+            }
+            resultItems = JSON.parse(JSON.stringify(newResultItems))
+        }
+    
+        //clear item list
+        smallItemList.innerHTML = ""
+    
+        //add items
+        for (let i in resultItems) {
+            let itemInfo = resultItems[i]
+    
+            if (itemInfo) {
+                //the slot
+                let slot = document.createElement("div")
+                slot.classList.add("list-slot")
+                slot.setAttribute("id","item-list-slot-" + itemInfo.uniqueID)
+                slot.draggable = true
+    
+                slot.ondragstart = function(evt) {
+                    evt.dataTransfer.setData("uniqueID", itemInfo.uniqueID)
+                }
+
+                slot.setAttribute("currentItemId",itemInfo.uniqueID)
+
+                //add image
+                let itemImage = document.createElement("img")
+                itemImage.classList.add("inventory-item-image")
+                itemImage.src = "assets/transparent.png"
+                itemImage.draggable = false
+
+                //title for when hovering over image
+                let itemTitle = (itemInfo.name || itemInfo.localizedName) + "#" + itemInfo.uniqueID
+                if (itemInfo.category != "") {
+                    itemTitle = itemTitle + " (" + itemInfo.category + ")"
+                }
+                slot.title = itemTitle
+
+                //loading image
+                if (itemInfo.tileset != "" && itemInfo.tileset != undefined && images[`assets/Tilesets/${itemInfo.tileset}.png`]) {
+                    let image = images[`assets/Tilesets/${itemInfo.tileset}.png`]
+    
+                    //calculate spritesheet size and position
+                    let backgroundSizeX = (image.naturalWidth / itemInfo.rectW) * slotSize
+                    let backgroundSizeY = (image.naturalHeight / itemInfo.rectH) * slotSize
+    
+                    let backgroundPosX = (backgroundSizeX / image.naturalWidth) * itemInfo.rectX
+                    let backgroundPosY = (backgroundSizeY / image.naturalHeight) * (image.naturalHeight - itemInfo.rectY - itemInfo.rectH)
+    
+                    //bruh
+                    itemImage.setAttribute("style",`background-image: url(assets/Tilesets/${itemInfo.tileset}.png); background-position: -${backgroundPosX}px -${backgroundPosY}px; background-size: ${backgroundSizeX}px ${backgroundSizeY}px;`)
+                } else { //set it to unknown image
+                    itemImage.src = "assets/unknown.png"
+                }
+    
+                let itemText = document.createElement("span")
+                itemText.classList.add("item-name")
+                itemText.innerText = itemInfo.localizedName || itemInfo.name
+    
+                slot.appendChild(itemImage)
+                slot.appendChild(itemText)
+                smallItemList.appendChild(slot)
+            }
+        }
+    },10)
+}
+
+updateItemSearch()
+
+smallItemList.ondragover = function(evt) {
+    evt.preventDefault()
+}
+smallItemList.ondrop = function(evt) {
+    let originalSlot: any = evt.dataTransfer.getData("originalSlot")
+    
+    if (originalSlot != "") {
+        originalSlot = Number(originalSlot)
+
+        if (openedStorage) {
+            openedStorage.removeItemAtSlot(originalSlot)
+            openedStorage.visualize()
+        } else if (openedItemStorage) {
+            openedItemStorage.removeItemAtSlot(originalSlot)
+            openedItemStorage.visualize()
+        }
+    }
+}
 
 function update() {
     let rootElement = (<HTMLElement>document.querySelector(":root"))

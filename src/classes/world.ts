@@ -47,6 +47,7 @@ function writeWorldVersion(view: simpleView, version: worldVersion) {
 }
 
 class World {
+    containers: Array<Inventory>
     chunks: Array<Chunk>
     camera: Camera
 
@@ -70,12 +71,14 @@ class World {
     additionalParams: Array<string>
 
     chunkCache: Object
+    toolHistory: any
 
     constructor() {
         this.reset()
     }
 
     reset() {
+        this.containers = []
         this.chunks = []
         this.camera = new Camera()
 
@@ -85,8 +88,8 @@ class World {
         this.yMax = 1
 
         //world meta
-        this.name = "world" + Math.floor(Math.random() * 9999)
-        this.seed = 0
+        this.seed = Math.floor(Math.random() * 9999)
+        this.name = "world" + this.seed
         this.version = {"Major":1,"Minor":0,"Patch":0,"Build":"\u0000"}
         this.highestUsedVersion = {"Major":0,"Minor":0,"Patch":0,"Build":"\u0000"}
         this.hasBeenGenerated = true
@@ -104,6 +107,9 @@ class World {
 
         //editor only
         this.chunkCache = {}
+        this.toolHistory = [
+            {"chunks": []},
+        ]
     }
 
     clearChunks() {
@@ -311,6 +317,15 @@ class World {
             }
         }
 
+        //storage
+        for (let i = 0; i < this.containers.length; i++) {
+            let container = this.containers[i]
+
+            let buffer = new ArrayBuffer(container.getByteSize())
+            container.writeToBuffer(buffer, 0)
+            zip.file(container.getFileName() + "inventory.dat", buffer, {"binary":true})
+        }
+
         //world meta
         zip.file("world.meta", JSON.stringify(
             {
@@ -354,5 +369,18 @@ class World {
         this.writeToBuffer(worldBuffer, 0)
 
         saveByteArray([worldBuffer], this.name + ".ttworld")
+    }
+
+    undoOnce() {
+        for (let i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
+            let chunk = this.toolHistory[this.toolHistory.length - 2].chunks[i]
+            console.log(chunk)
+            this.addChunk(chunk.clone())
+        }
+
+        this.toolHistory.pop()
+        this.toolHistory.pop()
+
+        this.toolHistory.push({"chunks":[]})
     }
 }

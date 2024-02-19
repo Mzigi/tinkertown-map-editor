@@ -73,6 +73,15 @@ var Camera = /** @class */ (function () {
         var Y = (dy + this.y * this.zoom - canvas.height / 2) / this.zoom;
         return { "x": X, "y": Y };
     };
+    Camera.prototype.worldPosToScreenPos = function (canvas, dx, dy) {
+        var X = dx - this.x;
+        X = X * this.zoom;
+        X = X + canvas.width / 2;
+        var Y = dy - this.y;
+        Y = Y * this.zoom;
+        Y = Y + canvas.height / 2;
+        return { "x": X, "y": Y };
+    };
     Camera.prototype.drawImageCropped = function (canvas, ctx, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
         ctx.imageSmoothingEnabled = false;
         var W = dWidth * this.zoom;

@@ -2,6 +2,7 @@
 // @ts-check
 
 let imagesToLoad: Array<string> = [
+    //Tiles
     "assets/Tilesets/AmongUsFloors.png",
     "assets/Tilesets/AmongUsLighthouseAnimation.png",
     "assets/Tilesets/AmongUsLighthouseCrash.png",
@@ -41,7 +42,43 @@ let imagesToLoad: Array<string> = [
     "assets/Tilesets/Traps.png",
     "assets/Tilesets/unknown.png",
     "assets/Tilesets/VoidDungeon.png",
-    "assets/Tilesets/VolcanoMiniDungeons.png"
+    "assets/Tilesets/VolcanoMiniDungeons.png",
+
+    //Items
+    "assets/Tilesets/Actor_Blank.png",
+    "assets/Tilesets/BuffIcons_3.png",
+    "assets/Tilesets/Item_Among_Us.png",
+    "assets/Tilesets/Item_Classes_And_Combat.png",
+    "assets/Tilesets/Item_Dungeon_Desert.png",
+    "assets/Tilesets/Item_Dungeon_Forest.png",
+    "assets/Tilesets/Item_Dungeon_Ice.png",
+    "assets/Tilesets/Item_Ice.png",
+    "assets/Tilesets/Item_Lava_Biome.png",
+    "assets/Tilesets/Item_Lava_Dungeon.png",
+    "assets/Tilesets/Item_NPC_Update.png",
+    "assets/Tilesets/Item_Shovel_Update.png",
+    "assets/Tilesets/Item_Upgrade_Materials.png",
+    "assets/Tilesets/Item_Void_Dungeon.png",
+    "assets/Tilesets/Item_Volcano_Mini_Dungeons.png",
+    "assets/Tilesets/Items_Desert.png",
+    "assets/Tilesets/Items_Farming.png",
+    "assets/Tilesets/Items_Fishing.png",
+    "assets/Tilesets/Items_Forest.png",
+    "assets/Tilesets/Items_Halloween.png",
+    "assets/Tilesets/Items_Housing.png",
+    "assets/Tilesets/Items_Lunar_New_Year.png",
+    "assets/Tilesets/Items_Summer.png",
+    "assets/Tilesets/Items.png",
+    "assets/Tilesets/Items2.png",
+    "assets/Tilesets/Skeleton.png",
+    "assets/Tilesets/Tileset_Forest.png",
+    "assets/Tilesets/Tileset_Mines.png",
+    "assets/Tilesets/Tileset_Transportation_Items.png",
+    "assets/Tilesets/Item_Rewards.png",
+
+    //Other
+    "assets/storage.png",
+    "assets/storage-small.png",
 ]
 
 var images = {}

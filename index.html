@@ -18,12 +18,19 @@
         <script src="build/libraries/assetInfoToJson.js" defer></script>
         <script src="build/libraries/assetInfoHelper.js" defer></script>
 
+        <script src="build/libraries/item-assetInfoToJson.js" defer></script>
+        <script src="build/libraries/item-assetInfoHelper.js" defer></script>
+
         <!--classes-->
         <script src="build/classes/simpleView.js" defer></script>
         
 
         <script src="build/classes/camera.js" defer></script>
 
+        <script src="build/classes/inventoryItem.js" defer></script>
+        <script src="build/classes/inventory.js" defer></script>
+
+        <script src="build/classes/item.js" defer></script>
         <script src="build/classes/tile.js" defer></script>
         <script src="build/classes/chunk.js" defer></script>
         <script src="build/classes/world.js" defer></script>
@@ -125,6 +132,33 @@
                 <button id="tool-0" class="layer selected-slot" onclick="setTool(0)">Draw Tool</button>
                 <button id="tool-1" class="layer" onclick="setTool(1)">Erase Tool</button>
                 <button id="tool-2" class="layer" onclick="setTool(2)">Pick Tool</button>
+                <!--<button id="tool-3" class="layer" onclick="setTool(3)">Fill Tool</button>
+                <br>
+                <span class="small-title">Brush Size</span>
+                <input id="tool-size" type="number" placeholder="1" class="layer">-->
+                <button id="tool-4" class="layer" onclick="setTool(4)">Add Storage</button>
+                <button id="tool-5" class="layer" onclick="setTool(5)">Add Item</button>
+            </div>
+
+            <div id="slot-prefab" class="slot" currentItemId="0" hidden>
+                <input class="item-amount" type="number" placeholder="0" onkeypress='validateNumberInput(event)' ondrop="preventDrop(event)">
+                <img draggable="true" class="inventory-item-image" src="assets/transparent.png" style="background-image: url(assets/Tilesets/Item_Among_Us.png); background-position: 0px 0px; background-size: 640px 640px;" hidden>
+            </div>
+
+            <div id="inventory-container" style="display: none;">
+                <div id="inventory">
+                    
+                </div>
+                <span class="title">Size:</span>
+                <input id="inventory-width" class="inventory-size-input" type="number" onchange="validateSizeNumberInput(event)" onkeyup="validateSizeNumberInput(event)" ondrop="preventDrop(event)">
+                <span class="inventory-size-x">X</span>
+                <input id="inventory-height" class="inventory-size-input" type="number" onchange="validateSizeNumberInput(event)" onkeyup="validateSizeNumberInput(event)" ondrop="preventDrop(event)">
+            </div>
+
+            <div id="small-item-list-container" style="left: 500px; top: 500px; display: none;">
+                <span class="title">Items</span>
+                <input id="small-item-list-searchbar" type="search" placeholder="Search" onkeydown="updateItemSearch()" onemptied="updateItemSearch()" onchange="updateItemSearch()">
+                <div id="small-item-list"></div>
             </div>
     
             <canvas id="renderCanvas" hidden></canvas>

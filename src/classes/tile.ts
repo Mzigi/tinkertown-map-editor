@@ -70,4 +70,20 @@ class Tile {
     getByteSize() {
         return 10
     }
+
+    clone(): Tile {
+        let newTile = new Tile()
+        newTile.x = this.x
+        newTile.y = this.y
+        newTile.z = this.z
+        
+        newTile.health = this.health
+        newTile.tileAssetId = this.tileAssetId
+        newTile.rotation = this.rotation
+        
+        newTile.memoryA = this.memoryA
+        newTile.memoryB = this.memoryB
+
+        return newTile
+    }
 }

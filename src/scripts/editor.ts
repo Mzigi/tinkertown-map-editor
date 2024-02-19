@@ -143,6 +143,171 @@ function pickToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any
     }
 }
 
+function listIncludesTilePos(arr: Array<any>, x: number, y: number) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i][0] == x && arr[i][1] == y) {
+            return true
+        }
+    }
+
+    return false
+}
+
+function fillToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any, lastTileAtMouse: any, worldMousePos: Vector2, lastMouseButtonPressed: any, selectedLayer: number, selectedTile: number) {
+    //create new chunk if there is none
+    if (chunkAtMouse == null) {
+        let chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y)
+        chunkAtMouse = new Chunk()
+        chunkAtMouse.x = chunkPos.x
+        chunkAtMouse.y = chunkPos.y
+        chunkAtMouse.fillWithId(selectedTile)
+        worlds[currentWorld].addChunk(chunkAtMouse)
+    } else {
+        tileAtMouse = chunkAtMouse.getTilePosAtWorldPos(worldMousePos.x, worldMousePos.y)
+
+        let tileIdToFlood = -1
+        let layerIdToFlood = 0
+
+        let highestTile = null
+
+        if (selectedLayer > -1) {
+            layerIdToFlood = selectedLayer
+        } else { //get highest layer if auto layer is on
+            let highestZ = 0
+            for (let i = 0; i < chunkAtMouse.layers; i++) {
+                let testTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)
+                if (chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)) {
+                    highestZ = i
+                    highestTile = testTile
+                }
+            }
+
+            if (highestTile) {
+                highestZ += 1
+            }
+            highestZ = Math.min(highestZ, chunkAtMouse.layers)
+            layerIdToFlood = highestZ - 1
+        }
+
+        if (!highestTile) {
+            highestTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, layerIdToFlood)
+        }
+        tileIdToFlood = highestTile.id
+
+        console.log(tileIdToFlood)
+        console.log(layerIdToFlood)
+
+        let openTiles = [highestTile]
+        let closedTiles = []
+
+        while (openTiles.length > 0) {
+            let newOpenTiles = []
+
+            for (let i = 0; i < openTiles.length; i++) {
+                let currentTile = openTiles[i]
+                if (currentTile.id == tileIdToFlood && currentTile.z == layerIdToFlood) {
+                    let replacementTile = new Tile()
+                    replacementTile.x = currentTile.x
+                    replacementTile.y = currentTile.y
+                    replacementTile.tileAssetId = selectedTile
+
+                    chunkAtMouse.setTile(replacementTile)
+
+                    closedTiles.push([currentTile.x, currentTile.y])
+
+                    //west
+                    let westTile = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z)
+                    if (westTile) {
+                        if (!listIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
+                            newOpenTiles.push(westTile)
+                        }
+                    }
+
+                    //east
+                    let eastTile = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z)
+                    if (eastTile) {
+                        if (!listIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
+                            newOpenTiles.push(eastTile)
+                        }
+                    }
+
+                    //north
+                    let northTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z)
+                    if (northTile) {
+                        if (!listIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
+                            newOpenTiles.push(northTile)
+                        }
+                    }
+
+                    //south
+                    let southTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z)
+                    if (southTile) {
+                        if (!listIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
+                            newOpenTiles.push(southTile)
+                        }
+                    }
+                }
+            }
+
+            openTiles = newOpenTiles
+        }
+    }
+}
+
+function addContainerToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any, lastTileAtMouse: any, worldMousePos: Vector2, lastMouseButtonPressed: any, selectedLayer: number, selectedTile: number) {
+    if (chunkAtMouse) {
+        if (tileAtMouse) {
+            let alreadyPlaced = false
+
+            for (let i = 0; i < worlds[currentWorld].containers.length; i++) {
+                let container = worlds[currentWorld].containers[i]
+                if (container.x == tileAtMouse.x && container.y == tileAtMouse.y && container.chunkX == chunkAtMouse.x && container.chunkY == chunkAtMouse.y) {
+                    alreadyPlaced = true
+                }
+            }
+
+            if (!alreadyPlaced) {
+                let newContainer = new Inventory()
+                newContainer.chunkX = chunkAtMouse.x
+                newContainer.chunkY = chunkAtMouse.y
+                newContainer.x = tileAtMouse.x
+                newContainer.y = tileAtMouse.y
+
+                worlds[currentWorld].containers.push(newContainer)
+            }
+        }
+    }
+}
+
+function addItemToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any, lastTileAtMouse: any, worldMousePos: Vector2, lastMouseButtonPressed: any, selectedLayer: number, selectedTile: number) {
+    if (chunkAtMouse) {
+        if (tileAtMouse) {
+            let alreadyPlaced = false
+
+            for (let i = 0; i < chunkAtMouse.itemDataList.length; i++) {
+                let item = chunkAtMouse.itemDataList[i]
+                if (Math.floor(item.x) == tileAtMouse.x && Math.floor(item.y) == tileAtMouse.y && item.chunkX == chunkAtMouse.x && item.chunkY == chunkAtMouse.y) {
+                    alreadyPlaced = true
+                }
+            }
+
+            if (!alreadyPlaced) {
+                let newItem = new Item()
+                newItem.chunkX = chunkAtMouse.x
+                newItem.chunkY = chunkAtMouse.y
+                newItem.x = tileAtMouse.x
+                newItem.y = tileAtMouse.y
+
+                chunkAtMouse.itemDataList.push(newItem)
+
+                chunkAtMouse.chunkHasBeenEdited = true
+                chunkAtMouse.undoEdited = true
+                chunkAtMouse.resetCacheImage()
+            }
+        }
+    }
+}
+
 var selectedTile: number
 var selectedTool: number
 var selectedLayer: number //-1 == auto layer
@@ -156,11 +321,115 @@ var lastWorldMousePos: Vector2 = {"x": null, "y": null}
 let mouseButtonPressed = {}
 let lastMouseButtonPressed = {}
 
+let hoveredItem: Item = null
+let hoveredStorage: Inventory = null
+
+let openedStorage: Inventory = null
+
+let openedItem: Item = null
+let openedItemStorage: Inventory = null
+
 document.getElementById("2Dcanvas").addEventListener('mousedown', function(e) {
     mouseButtonPressed[e.button] = true
+    openedStorage = null
+
+    //set item properties
+    if (openedItem && openedItemStorage) {
+        let chunkAtItem = worlds[currentWorld].getChunkAt(openedItem.chunkX, openedItem.chunkY)
+
+        let shouldDelete = false
+
+        if (openedItemStorage.itemDataList.length > 0) {
+            if (openedItemStorage.itemDataList[0].count <= 0) {
+                shouldDelete = true
+            }
+        } else {
+            shouldDelete = true
+        }
+
+        if (!shouldDelete) {
+            openedItem.id = openedItemStorage.itemDataList[0].id
+            openedItem.count = openedItemStorage.itemDataList[0].count
+        } else {
+            if (chunkAtItem) {
+                for (let i = 0; i < chunkAtItem.itemDataList.length; i++) {
+                    if (chunkAtItem.itemDataList[i] == openedItem) {
+                        chunkAtItem.itemDataList.splice(i,1)
+                        chunkAtItem.chunkHasBeenEdited = true
+                        chunkAtItem.undoEdited = true
+                        chunkAtItem.resetCacheImage()
+                        break
+                    }
+                }
+            }
+        }
+
+        if (chunkAtItem) {
+            chunkAtItem.chunkHasBeenEdited = true
+            chunkAtItem.undoEdited = true
+            chunkAtItem.resetCacheImage()
+        }
+    }
+    openedItem = null
+
+    document.getElementById("inventory-container").style.display = "none"
+    document.getElementById("small-item-list-container").style.display = "none"
 })
+
+function positionInventory() {
+    let worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos((<HTMLCanvasElement>document.getElementById("2Dcanvas")), worlds[currentWorld].camera.lastPosition.x,worlds[currentWorld].camera.lastPosition.y)
+            
+    worldMousePos.x = Math.floor(worldMousePos.x / 16) * 16 + 16
+    worldMousePos.y = Math.floor(worldMousePos.y / 16) * 16 + 16
+
+    let mouseTileScreenPos = worlds[currentWorld].camera.worldPosToScreenPos((<HTMLCanvasElement>document.getElementById("2Dcanvas")), worldMousePos.x, worldMousePos.y)
+
+    document.getElementById("inventory-container").style.display = "block"
+
+    let inventoryY = Math.min(window.innerHeight - document.getElementById("inventory-container").clientHeight, mouseTileScreenPos.y)
+
+    document.getElementById("inventory-container").style.left = mouseTileScreenPos.x + "px"
+    document.getElementById("inventory-container").style.top = inventoryY + "px"
+
+    document.getElementById("small-item-list-container").style.display = ""
+    document.getElementById("small-item-list-container").style.left = (mouseTileScreenPos.x + document.getElementById("inventory-container").clientWidth) + "px"
+    document.getElementById("small-item-list-container").style.top = inventoryY + "px"
+}
+
 document.getElementById("2Dcanvas").addEventListener('mouseup', function(e) {
     mouseButtonPressed[e.button] = false
+    if (e.button === 0) {
+        if (hoveredStorage) {
+            openedStorage = hoveredStorage
+            hoveredStorage.visualize()
+
+            positionInventory()
+        } else if (hoveredItem) {
+            openedItem = hoveredItem
+
+            openedItemStorage = new Inventory()
+            openedItemStorage.width = 1
+            openedItemStorage.height = 1
+
+            openedItemStorage.setIdAtSlot(0, openedItem.id)
+            openedItemStorage.setCountAtSlot(0, openedItem.count)
+
+            openedItemStorage.visualize()
+
+            positionInventory()
+        }
+    }
+    /*if (e.button === 0) {
+        for (let i = 0; i < worlds[currentWorld].chunks.length; i++) {
+            if (worlds[currentWorld].chunks[i].undoEdited) {
+                worlds[currentWorld].chunks[i].undoEdited = false
+                worlds[currentWorld].toolHistory[worlds[currentWorld].toolHistory.length - 1].chunks.push(worlds[currentWorld].chunks[i].clone())
+            }
+        }
+
+        worlds[currentWorld].toolHistory.push({"chunks":[]})
+        console.log(worlds[currentWorld].toolHistory)
+    }*/
 })
 
 function alertText(text: string, isError: boolean, time: number) {
@@ -282,15 +551,79 @@ function tick() {
         chunkAtMouse.setTile(replacementTile)*/
     }
 
-    if (mouseButtonPressed[0] && selectedTool === 0) { // draw tool
-        drawToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
-    } else if (mouseButtonPressed[0] && selectedTool === 1) { // erase tool
-        eraseToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
-    } else if (mouseButtonPressed[0] && selectedTool === 2) { // pick tool
-        let tileToSet = pickToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
-        if (tileToSet) {
-            console.log(tileToSet)
-            selectedTile = tileToSet
+    //Items and containers
+    let isHoveringOverObject = false
+    hoveredStorage = null
+    hoveredItem = null
+
+    //containers
+    if (tileAtMouse) {
+        for (let i = 0; i < worlds[currentWorld].containers.length; i++) {
+            let container = worlds[currentWorld].containers[i]
+            if (tileAtMouse.x == container.x && tileAtMouse.y == container.y && chunkAtMouse.x == container.chunkX && chunkAtMouse.y == container.chunkY) {
+                isHoveringOverObject = true
+                hoveredStorage = container
+            }
+        }
+    }
+
+    //items
+    if (chunkAtMouse) {
+        for (let i = 0; i < chunkAtMouse.itemDataList.length; i++) {
+            let item = chunkAtMouse.itemDataList[i]
+            let mouseTilePosOffGrid = chunkAtMouse.getOffGridTilePosAtWorldPos(worldMousePos.x, worldMousePos.y)
+            mouseTilePosOffGrid.x -= 0.5
+            mouseTilePosOffGrid.y += 0.5
+
+            if (chunkAtMouse.x == item.chunkX && chunkAtMouse.y == item.chunkY && mouseTilePosOffGrid.x > item.x - 0.5 && mouseTilePosOffGrid.x < item.x + 0.5 && mouseTilePosOffGrid.y > item.y - 0.5 && mouseTilePosOffGrid.y < item.y + 0.5) {
+                isHoveringOverObject = true
+                hoveredItem = item
+            }
+        }
+    }
+
+    //Change cursor
+    if (isHoveringOverObject) {
+        document.getElementById("2Dcanvas").style.cursor = "pointer"
+    } else {
+        document.getElementById("2Dcanvas").style.cursor = ""
+    }
+
+    //Tools
+    if (!isHoveringOverObject) {
+        if (mouseButtonPressed[0] && selectedTool === 0) { // draw tool
+            drawToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+        } else if (mouseButtonPressed[0] && selectedTool === 1) { // erase tool
+            eraseToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+        } else if (mouseButtonPressed[0] && selectedTool === 2) { // pick tool
+            let tileToSet = pickToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+            if (tileToSet) {
+                console.log(tileToSet)
+                selectedTile = tileToSet
+            }
+        } else if (mouseButtonPressed[0] && selectedTool === 3) {
+            fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+        } else if (mouseButtonPressed[0] && selectedTool === 4) {
+            addContainerToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+        } else if (mouseButtonPressed[0] && selectedTool === 5) {
+            addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile)
+        }
+    } else if (hoveredStorage && mouseButtonPressed[0] && selectedTool === 1) { //erase storage
+        for (let i = 0; i < worlds[currentWorld].containers.length; i++) {
+            if (worlds[currentWorld].containers[i] == hoveredStorage) {
+                worlds[currentWorld].containers.splice(i,1)
+                break
+            }
+        }
+    } else if (hoveredItem && mouseButtonPressed[0] && selectedTool === 1 && chunkAtMouse) { //erase item
+        for (let i = 0; i < chunkAtMouse.itemDataList.length; i++) {
+            if (chunkAtMouse.itemDataList[i] == hoveredItem) {
+                chunkAtMouse.itemDataList.splice(i,1)
+                chunkAtMouse.chunkHasBeenEdited = true
+                chunkAtMouse.undoEdited = true
+                chunkAtMouse.resetCacheImage()
+                break
+            }
         }
     }
 

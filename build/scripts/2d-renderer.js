@@ -66,6 +66,10 @@ for (let i = 0; i < imagesToLoad.length; i++) {
     images[imagesToLoad[i]] = new Image()
     images[imagesToLoad[i]].src = imagesToLoad[i]
 }*/
+function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+}
 function isChunkOnScreen(chunk, camera) {
     var x1 = (10 + chunk.x * 10) * 16;
     var y1 = (10 + chunk.y * 10) * -16;
@@ -106,6 +110,37 @@ function drawTile(tile, chunk, camera) {
         dy -= sHeight / 2;
         camera.drawImageCropped(canvasElement, ctx, images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight);
     }
+}
+function drawItemCache(item, cacheCtx) {
+    var itemInfo = item_assetInfo[item.id];
+    if (itemInfo) {
+        var sx = itemInfo.rectX;
+        var sy = itemInfo.rectY;
+        var sWidth = itemInfo.rectW;
+        var sHeight = itemInfo.rectH;
+        var dx = (item.x) * 16 + 32;
+        var dy = (item.y) * -16 + 32;
+        dy -= sHeight;
+        dy += 16 * 10;
+        var image = images["assets/Tilesets/" + itemInfo.tileset + ".png"];
+        if (image) {
+            cacheCtx.drawImage(image, sx, image.naturalHeight - sy - sHeight, sWidth, sHeight, dx, dy, sWidth, sHeight);
+        }
+        else {
+            dy = (item.y) * -16 + 32;
+            dy += 16 * 10 - 16;
+            cacheCtx.drawImage(images["assets/Tilesets/unknown.png"], 0, 0, 16, 16, dx, dy, sWidth, sHeight);
+        }
+        cacheCtx.fillStyle = "#ffffff";
+        cacheCtx.fillText(String(item.count), dx, dy + 20);
+    }
+}
+function drawStorage(inventory, camera) {
+    var dx = (inventory.x + inventory.chunkX * 10) * 16;
+    dx += 8;
+    var dy = (inventory.y + inventory.chunkY * 10) * -16;
+    dy -= 8;
+    camera.drawImage(canvasElement, ctx, images["assets/storage-small.png"], dx, dy, 16, 16);
 }
 function drawTileCache(tile, cacheCtx) {
     var tileInfo = assetInfo[tile.tileAssetId];
@@ -162,6 +197,7 @@ function drawChunkCache(chunk) {
     cacheCtx.imageSmoothingEnabled = false;
     cacheCtx.fillStyle = "#000000";
     cacheCtx.clearRect(0, 0, 2740, 2740);
+    //Tiles
     for (var layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
         for (var y = chunk.height; y >= 0; y--) {
             for (var x = 0; x < chunk.width; x++) {
@@ -171,6 +207,10 @@ function drawChunkCache(chunk) {
                 }
             }
         }
+    }
+    //Items
+    for (var i = 0; i < chunk.itemDataList.length; i++) {
+        drawItemCache(chunk.itemDataList[i], cacheCtx);
     }
     chunk.cacheImage = cacheCanvasElement;
     /*let cacheSource = cacheCanvasElement.toDataURL("image/png")
@@ -283,11 +323,26 @@ function drawWorld(canvas, world) {
         //doing this slightly differently because y is flipped
         var yMax = Math.max(world.yMin, topLeftCornerWorldPos.y);
         var yMin = Math.min(world.yMax, bottomRightCornerWorldPos.y);
+        //draw chunk grid
+        for (var x = topLeftCornerWorldPos.x; x < bottomRightCornerWorldPos.x + 2; x++) {
+            for (var y = bottomRightCornerWorldPos.y; y < topLeftCornerWorldPos.y + 1; y++) {
+                if ((x + y % 2) % 2 == 0) {
+                    var alpha = Math.min(world.camera.zoom * 1.5 - 0.25, 1);
+                    ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")";
+                    world.camera.drawRect(canvasElement, ctx, x * 160 - 80, y * -160 - 80, 160, 160);
+                }
+            }
+        }
+        //draw chunks
         for (var x = xMax + 1; x > xMin - 1; x--) {
             for (var y = yMax + 1; y > yMin - 1; y--) {
                 var chunk = world.getChunkAt(x, y);
                 drawChunkCheck(chunk, world);
             }
+        }
+        //draw storage icons
+        for (var i = 0; i < world.containers.length; i++) {
+            drawStorage(world.containers[i], worlds[currentWorld].camera);
         }
     }
     //remove old image caches every 5 seconds
@@ -340,12 +395,16 @@ function render() {
     //fps counter
     ctx.fillStyle = "#ffffff";
     ctx.font = "32px pixellari";
-    ctx.fillText("FPS: " + FPS.toString(), 0, canvasElement.height);
+    ctx.fillText("FPS: " + FPS.toString(), 0, canvasElement.height - 32);
+    var worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos(document.getElementById("2Dcanvas"), worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y);
+    var chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
+    ctx.fillText("CHUNK: [" + chunkPos.x + ", " + chunkPos.y + "]", 0, canvasElement.height);
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)
     ctx.fillStyle = "#000000"
     ctx.fillRect(0,0, 100, 100)*/
     LastTime = CurrentTime;
     window.requestAnimationFrame(render);
+    document.getElementsByTagName("title")[0].innerText = worlds[currentWorld].name + " - Tinkertown Map Editor";
 }
 render();
 //# sourceMappingURL=2d-renderer.js.map

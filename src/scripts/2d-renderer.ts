@@ -74,6 +74,11 @@ for (let i = 0; i < imagesToLoad.length; i++) {
     images[imagesToLoad[i]].src = imagesToLoad[i]
 }*/
 
+function componentToHex(c: number) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+}
+
 function isChunkOnScreen(chunk: Chunk, camera: Camera): boolean {
     let x1: number = (10 + chunk.x * 10) * 16
     let y1: number = (10 + chunk.y * 10) * -16
@@ -123,6 +128,44 @@ function drawTile(tile: Tile, chunk: Chunk, camera: Camera) {
         
         camera.drawImageCropped(canvasElement, ctx, images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
     }
+}
+
+function drawItemCache(item: Item, cacheCtx: CanvasRenderingContext2D) {
+    let itemInfo = item_assetInfo[item.id]
+    if (itemInfo) {
+        let sx: number = itemInfo.rectX
+        let sy: number = itemInfo.rectY
+        let sWidth: number = itemInfo.rectW
+        let sHeight: number = itemInfo.rectH
+
+        let dx: number = (item.x) * 16 + 32
+        let dy: number = (item.y) * -16 + 32
+        dy -= sHeight
+        dy += 16 * 10
+
+        let image = images["assets/Tilesets/" + itemInfo.tileset + ".png"]
+
+        if (image) {
+            cacheCtx.drawImage(image, sx, image.naturalHeight - sy - sHeight, sWidth, sHeight, dx, dy, sWidth, sHeight)
+        } else {
+            dy = (item.y) * -16 + 32
+            dy += 16 * 10 - 16
+            
+            cacheCtx.drawImage(images["assets/Tilesets/unknown.png"], 0, 0, 16, 16, dx, dy, sWidth, sHeight)
+        }
+
+        cacheCtx.fillStyle = "#ffffff"
+        cacheCtx.fillText(String(item.count), dx, dy + 20)
+    }
+}
+
+function drawStorage(inventory: Inventory, camera: Camera) {
+    let dx: number = (inventory.x + inventory.chunkX * 10) * 16
+    dx += 8
+    let dy: number = (inventory.y + inventory.chunkY * 10) * -16
+    dy -= 8
+
+    camera.drawImage(canvasElement, ctx, images["assets/storage-small.png"], dx, dy, 16, 16)
 }
 
 function drawTileCache(tile: Tile, cacheCtx: CanvasRenderingContext2D) {
@@ -187,6 +230,7 @@ function drawChunkCache(chunk: Chunk) {
     cacheCtx.fillStyle = "#000000"
     cacheCtx.clearRect(0,0, 2740,2740)
 
+    //Tiles
     for (let layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
         for (let y = chunk.height; y >= 0; y--) {
             for (let x = 0; x < chunk.width; x++) {
@@ -196,6 +240,11 @@ function drawChunkCache(chunk: Chunk) {
                 }
             }
         }
+    }
+
+    //Items
+    for (let i = 0; i < chunk.itemDataList.length; i++) {
+        drawItemCache(chunk.itemDataList[i], cacheCtx)
     }
 
     chunk.cacheImage = cacheCanvasElement
@@ -317,12 +366,29 @@ function drawWorld(canvas: HTMLCanvasElement, world: World) {
         let yMax: number = Math.max(world.yMin, topLeftCornerWorldPos.y)
         let yMin: number = Math.min(world.yMax, bottomRightCornerWorldPos.y)
 
+        //draw chunk grid
+        for (let x = topLeftCornerWorldPos.x; x < bottomRightCornerWorldPos.x + 2; x++) {
+            for (let y = bottomRightCornerWorldPos.y; y < topLeftCornerWorldPos.y + 1; y++) {
+                if ((x + y%2) % 2 == 0) {
+                    let alpha = Math.min(world.camera.zoom*1.5 - 0.25, 1)
+                    ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")"
+                    world.camera.drawRect(canvasElement, ctx, x * 160 - 80, y * -160 - 80, 160, 160)
+                }
+            }
+        }
+
+        //draw chunks
         for (let x = xMax + 1; x > xMin - 1; x--) {
             for (let y = yMax + 1; y > yMin - 1; y--) {
                 let chunk: Chunk|null = world.getChunkAt(x,y)
                 
                 drawChunkCheck(chunk, world)
             }
+        }
+
+        //draw storage icons
+        for (let i = 0; i < world.containers.length; i++) {
+            drawStorage(world.containers[i], worlds[currentWorld].camera)
         }
     }
 
@@ -385,7 +451,12 @@ function render() {
     //fps counter
     ctx.fillStyle = "#ffffff"
     ctx.font = "32px pixellari"
-    ctx.fillText("FPS: " +FPS.toString(), 0, canvasElement.height)
+    ctx.fillText("FPS: " +FPS.toString(), 0, canvasElement.height - 32)
+
+    let worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos((<HTMLCanvasElement>document.getElementById("2Dcanvas")), worlds[currentWorld].camera.lastPosition.x,worlds[currentWorld].camera.lastPosition.y)
+    let chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y)
+
+    ctx.fillText("CHUNK: [" + chunkPos.x + ", " + chunkPos.y + "]", 0, canvasElement.height)
 
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)
     ctx.fillStyle = "#000000"
@@ -393,6 +464,8 @@ function render() {
 
     LastTime = CurrentTime
     window.requestAnimationFrame(render)
+
+    document.getElementsByTagName("title")[0].innerText = worlds[currentWorld].name + " - Tinkertown Map Editor"
 }
 
 render()

@@ -22,12 +22,13 @@ class Chunk {
     layers: number
     biomeID: number
 
-    private tileDataList = []
-    private itemDataList = []
+    private tileDataList: Array<Tile> = []
+    itemDataList: Array<Item> = []
 
     cacheImage: HTMLCanvasElement
     cacheTimeout: number
     chunkHasBeenEdited: boolean
+    undoEdited: boolean
 
     constructor () {
         this.x = 0
@@ -46,6 +47,7 @@ class Chunk {
         this.cacheImage = null
         this.cacheTimeout = 0
         this.chunkHasBeenEdited = true
+        this.undoEdited = false
     }
 
     resetCacheImage() {
@@ -60,6 +62,7 @@ class Chunk {
         this.tileDataList = []
         this.cacheImage = null
         this.chunkHasBeenEdited = true
+        this.undoEdited = true
         this.resetCacheImage()
     }
 
@@ -89,6 +92,7 @@ class Chunk {
         if (tileIndex != null) {
             this.tileDataList.splice(tileIndex,1)
             this.chunkHasBeenEdited = true
+            this.undoEdited = true
             this.resetCacheImage()
         }
     }
@@ -106,6 +110,19 @@ class Chunk {
         return {"x":tileX, "y":tileY}
     }
 
+    getOffGridTilePosAtWorldPos(x: number, y: number) {
+        let tileX = (x / 16) % 10
+        if (this.x < 0) {
+            tileX = (9 + ((x / 16) % 10 + 1)) % 10
+        }
+        let tileY = (((y / 16) * -1 -1) % 10)
+        if (this.y < 0) {
+            tileY = (9 + (((y / 16) * -1 -1) % 10 + 1)) % 10
+        }
+        
+        return {"x":tileX, "y":tileY}
+    }
+
     getTileAtWorldPos(x: number,y: number,z: number) {
         let tileWorldPos = this.getTilePosAtWorldPos(x,y)
         let tileX = tileWorldPos.x
@@ -114,7 +131,7 @@ class Chunk {
         return this.findTileAt(tileX,tileY,z)
     }
 
-    setTile(tile: { x: number; y: number; z: number; }) {
+    setTile(tile: Tile) {
         this.removeTileAt(tile.x,tile.y,tile.z)
         this.tileDataList.push(tile)
         if (tile.z + 1 > this.layers) {
@@ -122,6 +139,7 @@ class Chunk {
         }
 
         this.chunkHasBeenEdited = true
+        this.undoEdited = true
         this.resetCacheImage()
     }
 
@@ -151,7 +169,24 @@ class Chunk {
             this.tileDataList.push(tileData)
         }
 
+        //item data list
+        view.viewOffset += tileDataListLength * 10
+
+        let itemDataListLength = view.readInt16()
+
+        let itemDataListByteSize = 0
+
+        for (let i = 0; i < itemDataListLength; i++) {
+            let itemData = new Item()
+            itemData.fromBuffer(chunkBuffer.slice(view.viewOffset + itemDataListByteSize,view.viewOffset + itemDataListByteSize + 24))
+
+            this.itemDataList.push(itemData)
+
+            itemDataListByteSize += itemData.getByteSize()
+        }
+
         this.chunkHasBeenEdited = false
+        this.undoEdited = true
 
         this.resetCacheImage()
     }
@@ -185,13 +220,19 @@ class Chunk {
             }
         }
 
-        //item data list (not yet implemented)
+        //item data list
         view.viewOffset = listOffset
-        view.writeInt16(0)
+        view.writeInt16(this.itemDataList.length)
+
+        for (let i = 0; i < this.itemDataList.length; i++) {
+            let item = this.itemDataList[i]
+            item.writeToBuffer(writeBuffer, view.viewOffset, i)
+            view.viewOffset += item.getByteSize()
+        }
     }
 
     getByteSize() {
-        return 12 + 10 * this.tileDataList.length
+        return 12 + 10 * this.tileDataList.length + 24 * this.itemDataList.length
     }
 
     saveAsFile() {
@@ -225,6 +266,7 @@ class Chunk {
         } 
 
         this.chunkHasBeenEdited = true
+        this.undoEdited = true
         this.resetCacheImage()
     }
 
@@ -243,6 +285,26 @@ class Chunk {
         } 
 
         this.chunkHasBeenEdited = true
+        this.undoEdited = true
         this.resetCacheImage()
+    }
+
+    clone(): Chunk {
+        let newChunk = new Chunk()
+
+        newChunk.x = this.x
+        newChunk.y = this.y
+
+        newChunk.width = this.width
+        newChunk.height = this.height
+
+        newChunk.layers = this.layers
+        newChunk.biomeID = this.biomeID
+
+        for (let i = 0; i < this.tileDataList.length; i++) {
+            newChunk.tileDataList.push(this.tileDataList[i].clone())
+        }
+
+        return newChunk
     }
 }

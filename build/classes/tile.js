@@ -46,6 +46,18 @@ var Tile = /** @class */ (function () {
     Tile.prototype.getByteSize = function () {
         return 10;
     };
+    Tile.prototype.clone = function () {
+        var newTile = new Tile();
+        newTile.x = this.x;
+        newTile.y = this.y;
+        newTile.z = this.z;
+        newTile.health = this.health;
+        newTile.tileAssetId = this.tileAssetId;
+        newTile.rotation = this.rotation;
+        newTile.memoryA = this.memoryA;
+        newTile.memoryB = this.memoryB;
+        return newTile;
+    };
     return Tile;
 }());
 //# sourceMappingURL=tile.js.map

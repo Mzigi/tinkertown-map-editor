@@ -40,6 +40,7 @@ var World = /** @class */ (function () {
         this.reset();
     }
     World.prototype.reset = function () {
+        this.containers = [];
         this.chunks = [];
         this.camera = new Camera();
         this.xMin = 0;
@@ -47,8 +48,8 @@ var World = /** @class */ (function () {
         this.xMax = 1;
         this.yMax = 1;
         //world meta
-        this.name = "world" + Math.floor(Math.random() * 9999);
-        this.seed = 0;
+        this.seed = Math.floor(Math.random() * 9999);
+        this.name = "world" + this.seed;
         this.version = { "Major": 1, "Minor": 0, "Patch": 0, "Build": "\u0000" };
         this.highestUsedVersion = { "Major": 0, "Minor": 0, "Patch": 0, "Build": "\u0000" };
         this.hasBeenGenerated = true;
@@ -64,6 +65,9 @@ var World = /** @class */ (function () {
         ];
         //editor only
         this.chunkCache = {};
+        this.toolHistory = [
+            { "chunks": [] },
+        ];
     };
     World.prototype.clearChunks = function () {
         this.chunks = [];
@@ -230,6 +234,13 @@ var World = /** @class */ (function () {
                 zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, { "binary": true });
             }
         }
+        //storage
+        for (var i = 0; i < this.containers.length; i++) {
+            var container = this.containers[i];
+            var buffer = new ArrayBuffer(container.getByteSize());
+            container.writeToBuffer(buffer, 0);
+            zip.file(container.getFileName() + "inventory.dat", buffer, { "binary": true });
+        }
         //world meta
         zip.file("world.meta", JSON.stringify({
             "name": this.name,
@@ -264,6 +275,16 @@ var World = /** @class */ (function () {
         var worldBuffer = new ArrayBuffer(this.getByteSize());
         this.writeToBuffer(worldBuffer, 0);
         saveByteArray([worldBuffer], this.name + ".ttworld");
+    };
+    World.prototype.undoOnce = function () {
+        for (var i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
+            var chunk = this.toolHistory[this.toolHistory.length - 2].chunks[i];
+            console.log(chunk);
+            this.addChunk(chunk.clone());
+        }
+        this.toolHistory.pop();
+        this.toolHistory.pop();
+        this.toolHistory.push({ "chunks": [] });
     };
     return World;
 }());

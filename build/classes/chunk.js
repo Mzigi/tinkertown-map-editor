@@ -26,6 +26,7 @@ var Chunk = /** @class */ (function () {
         this.cacheImage = null;
         this.cacheTimeout = 0;
         this.chunkHasBeenEdited = true;
+        this.undoEdited = false;
     }
     Chunk.prototype.resetCacheImage = function () {
         if (this.cacheImage) {
@@ -38,6 +39,7 @@ var Chunk = /** @class */ (function () {
         this.tileDataList = [];
         this.cacheImage = null;
         this.chunkHasBeenEdited = true;
+        this.undoEdited = true;
         this.resetCacheImage();
     };
     Chunk.prototype.findTileIndexAt = function (x, y, z) {
@@ -61,6 +63,7 @@ var Chunk = /** @class */ (function () {
         if (tileIndex != null) {
             this.tileDataList.splice(tileIndex, 1);
             this.chunkHasBeenEdited = true;
+            this.undoEdited = true;
             this.resetCacheImage();
         }
     };
@@ -72,6 +75,17 @@ var Chunk = /** @class */ (function () {
         var tileY = ((Math.floor(y / 16) * -1 - 1) % 10);
         if (this.y < 0) {
             tileY = (9 + ((Math.floor(y / 16) * -1 - 1) % 10 + 1)) % 10;
+        }
+        return { "x": tileX, "y": tileY };
+    };
+    Chunk.prototype.getOffGridTilePosAtWorldPos = function (x, y) {
+        var tileX = (x / 16) % 10;
+        if (this.x < 0) {
+            tileX = (9 + ((x / 16) % 10 + 1)) % 10;
+        }
+        var tileY = (((y / 16) * -1 - 1) % 10);
+        if (this.y < 0) {
+            tileY = (9 + (((y / 16) * -1 - 1) % 10 + 1)) % 10;
         }
         return { "x": tileX, "y": tileY };
     };
@@ -88,6 +102,7 @@ var Chunk = /** @class */ (function () {
             this.layers = tile.z + 1;
         }
         this.chunkHasBeenEdited = true;
+        this.undoEdited = true;
         this.resetCacheImage();
     };
     Chunk.prototype.fromBuffer = function (chunkBuffer) {
@@ -111,7 +126,18 @@ var Chunk = /** @class */ (function () {
             tileData.fromBuffer(chunkBuffer.slice(begin, end));
             this.tileDataList.push(tileData);
         }
+        //item data list
+        view.viewOffset += tileDataListLength * 10;
+        var itemDataListLength = view.readInt16();
+        var itemDataListByteSize = 0;
+        for (var i = 0; i < itemDataListLength; i++) {
+            var itemData = new Item();
+            itemData.fromBuffer(chunkBuffer.slice(view.viewOffset + itemDataListByteSize, view.viewOffset + itemDataListByteSize + 24));
+            this.itemDataList.push(itemData);
+            itemDataListByteSize += itemData.getByteSize();
+        }
         this.chunkHasBeenEdited = false;
+        this.undoEdited = true;
         this.resetCacheImage();
     };
     Chunk.prototype.writeToBuffer = function (writeBuffer, byteOffset) {
@@ -138,12 +164,17 @@ var Chunk = /** @class */ (function () {
                 }
             }
         }
-        //item data list (not yet implemented)
+        //item data list
         view.viewOffset = listOffset;
-        view.writeInt16(0);
+        view.writeInt16(this.itemDataList.length);
+        for (var i = 0; i < this.itemDataList.length; i++) {
+            var item = this.itemDataList[i];
+            item.writeToBuffer(writeBuffer, view.viewOffset, i);
+            view.viewOffset += item.getByteSize();
+        }
     };
     Chunk.prototype.getByteSize = function () {
-        return 12 + 10 * this.tileDataList.length;
+        return 12 + 10 * this.tileDataList.length + 24 * this.itemDataList.length;
     };
     Chunk.prototype.saveAsFile = function () {
         var buffer = new ArrayBuffer(this.getByteSize());
@@ -169,6 +200,7 @@ var Chunk = /** @class */ (function () {
             }
         }
         this.chunkHasBeenEdited = true;
+        this.undoEdited = true;
         this.resetCacheImage();
     };
     Chunk.prototype.fillWithId = function (Id) {
@@ -183,7 +215,21 @@ var Chunk = /** @class */ (function () {
             }
         }
         this.chunkHasBeenEdited = true;
+        this.undoEdited = true;
         this.resetCacheImage();
+    };
+    Chunk.prototype.clone = function () {
+        var newChunk = new Chunk();
+        newChunk.x = this.x;
+        newChunk.y = this.y;
+        newChunk.width = this.width;
+        newChunk.height = this.height;
+        newChunk.layers = this.layers;
+        newChunk.biomeID = this.biomeID;
+        for (var i = 0; i < this.tileDataList.length; i++) {
+            newChunk.tileDataList.push(this.tileDataList[i].clone());
+        }
+        return newChunk;
     };
     return Chunk;
 }());

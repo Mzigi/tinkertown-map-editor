@@ -112,7 +112,7 @@ for (var i = 0; i < examples.length; i++) {
     _loop_1(i);
 }
 var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0, void 0, function () {
-    var buffer, loadedChunk, worldMeta, settingsMeta, buffer;
+    var buffer, loadedChunk, worldMeta, settingsMeta, buffer, loadedInventory, buffer;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -124,7 +124,7 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                 loadedChunk.fromBuffer(buffer);
                 worlds[currentWorld].addChunk(loadedChunk);
                 worlds[currentWorld].chunkCache[filePath] = buffer;
-                return [3 /*break*/, 6];
+                return [3 /*break*/, 8];
             case 2:
                 if (!filePath.endsWith("world.meta")) return [3 /*break*/, 3];
                 worldMeta = JSON.parse(file);
@@ -136,7 +136,7 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                     worlds[currentWorld].highestUsedVersion = worldMeta.version;
                 }
                 worlds[currentWorld].hasBeenGenerated = worldMeta.hasBeenGenerated;
-                return [3 /*break*/, 6];
+                return [3 /*break*/, 8];
             case 3:
                 if (!filePath.endsWith("settings.meta")) return [3 /*break*/, 4];
                 settingsMeta = JSON.parse(file);
@@ -146,14 +146,24 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                 worlds[currentWorld].timescale = settingsMeta.timescale;
                 worlds[currentWorld].NPCsOff = settingsMeta.NPCsOff;
                 worlds[currentWorld].additionalParams = settingsMeta.additionalParams;
-                return [3 /*break*/, 6];
-            case 4: return [4 /*yield*/, file.arrayBuffer()];
+                return [3 /*break*/, 8];
+            case 4:
+                if (!filePath.endsWith("inventory.dat")) return [3 /*break*/, 6];
+                return [4 /*yield*/, file.arrayBuffer()];
             case 5:
+                buffer = _a.sent();
+                loadedInventory = new Inventory();
+                loadedInventory.fromBuffer(buffer);
+                loadedInventory.filePath = filePath;
+                worlds[currentWorld].containers.push(loadedInventory);
+                return [3 /*break*/, 8];
+            case 6: return [4 /*yield*/, file.arrayBuffer()];
+            case 7:
                 buffer = _a.sent();
                 console.log("Editor doesn't know how to read " + filePath);
                 uneditedFiles[filePath] = buffer;
-                _a.label = 6;
-            case 6: return [2 /*return*/];
+                _a.label = 8;
+            case 8: return [2 /*return*/];
         }
     });
 }); };

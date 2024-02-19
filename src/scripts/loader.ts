@@ -116,6 +116,14 @@ const readBinaryFile = async (file: any, filePath: string) => {
         worlds[currentWorld].timescale = settingsMeta.timescale
         worlds[currentWorld].NPCsOff = settingsMeta.NPCsOff
         worlds[currentWorld].additionalParams = settingsMeta.additionalParams
+    } else if (filePath.endsWith("inventory.dat")) { //container
+        const buffer: ArrayBuffer = await file.arrayBuffer()
+
+        let loadedInventory: Inventory = new Inventory()
+        loadedInventory.fromBuffer(buffer)
+        loadedInventory.filePath = filePath
+        
+        worlds[currentWorld].containers.push(loadedInventory)
     } else {
         const buffer: ArrayBuffer = await file.arrayBuffer()
 

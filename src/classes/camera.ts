@@ -95,6 +95,18 @@ class Camera {
         return {"x":X, "y":Y}
     }
 
+    worldPosToScreenPos(canvas: HTMLCanvasElement, dx: number, dy: number): Vector2 {
+        let X: number = dx - this.x
+        X = X * this.zoom
+        X = X + canvas.width / 2
+
+        let Y: number = dy - this.y
+        Y = Y * this.zoom
+        Y = Y + canvas.height / 2
+
+        return {"x":X, "y":Y}
+    }
+
     drawImageCropped(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement, sx: number, sy: number, sWidth: number, sHeight: number, dx: number, dy: number, dWidth: number, dHeight: number) {
         ctx.imageSmoothingEnabled = false
 
