@@ -496,7 +496,7 @@ function changeSetting(settingName: string) {
         } else if (worldSettingValue === "false") {
             worlds[currentWorld][settingName] = false
         } else {
-            alertText(`(${settingName}) ` + worldSettingValue + ' is not a valid bool. "true" or "false" expected', true, 5)
+            alertText(`(${settingName}) ` + worldSettingValue + ' is not a valid boolean. "true" or "false" expected', true, 5)
         }
     } else {
         worlds[currentWorld][settingName] = worldSettingValue

@@ -431,7 +431,7 @@ function changeSetting(settingName) {
             worlds[currentWorld][settingName] = false;
         }
         else {
-            alertText("(".concat(settingName, ") ") + worldSettingValue + ' is not a valid bool. "true" or "false" expected', true, 5);
+            alertText("(".concat(settingName, ") ") + worldSettingValue + ' is not a valid boolean. "true" or "false" expected', true, 5);
         }
     }
     else {
