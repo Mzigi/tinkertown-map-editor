@@ -7,6 +7,11 @@ https://mzigi.github.io/tinkertown-map-editor/ (remember to make a backup!)
 
 C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 
+## Controls
+- Hold down right click to move the camera
+- Use the scroll wheel to zoom in and out
+- Left click to use the tool you have selected or edit a container or an item
+
 ## Known Issues
 
 ### Visual issues
@@ -15,6 +20,6 @@ C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 - Tiles larger than 1x1 are always drawn with the bottom left corner as the origin
 - Tiles in the tile list are sometimes stretched
 
-# Permissions
+## Permissions
 
 Read the LICENSE file for info on what you're allowed to do with the software.
