@@ -7,6 +7,10 @@ https://mzigi.github.io/tinkertown-map-editor/ (remember to make a backup!)
 
 C:\Users\YOUR_USER\AppData\LocalLow\Headup\Tinkertown\map\YOUR_MAP
 
+or use this shortcut:
+
+%userprofile%\appdata\locallow\Headup\Tinkertown\map
+
 ## Controls
 - Hold down right click to move the camera
 - Use the scroll wheel to zoom in and out
