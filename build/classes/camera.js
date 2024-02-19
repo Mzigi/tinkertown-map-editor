@@ -144,6 +144,10 @@ var Camera = /** @class */ (function () {
         }
         return true;
     };
+    Camera.prototype.setPosition = function (vector2) {
+        this.x = vector2.x;
+        this.y = vector2.y;
+    };
     return Camera;
 }());
 //# sourceMappingURL=camera.js.map

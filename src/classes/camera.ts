@@ -189,4 +189,9 @@ class Camera {
 
         return true
     }
+
+    setPosition(vector2: Vector2) {
+        this.x = vector2.x
+        this.y = vector2.y
+    }
 }

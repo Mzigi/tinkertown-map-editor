@@ -51,6 +51,10 @@ var closeExamplesDialogButton = document.getElementById("close-dialog-examples")
 var closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
 var examples = [
     {
+        "file": "House in Forest",
+        "name": "House in Forest",
+    },
+    {
         "file": "OneChunkChallenge",
         "name": "10x10 Forest and House Cutout",
     },
@@ -66,7 +70,12 @@ var examples = [
         "file": "IslandSurvival",
         "name": "Large Island Survival",
     },
-    /*{
+    {
+        "file": "test storage",
+        "name": "test storage",
+        "hidden": true,
+    },
+    {
         "file": "earlytown6",
         "name": "Earlytown - 6",
     },
@@ -81,7 +90,7 @@ var examples = [
     {
         "file": "earlytown1",
         "name": "Earlytown - 1",
-    },*/
+    },
 ];
 function loadFromExampleLink(exampleLink) {
     worlds[currentWorld] = new World();
@@ -99,14 +108,16 @@ function loadFromExampleLink(exampleLink) {
     });
 }
 var _loop_1 = function (i) {
-    var listElement = document.createElement("li");
-    var buttonElement = document.createElement("button");
-    buttonElement.innerText = examples[i].name;
-    listElement.appendChild(buttonElement);
-    buttonElement.addEventListener("click", function () {
-        loadFromExampleLink(examples[i]);
-    });
-    document.getElementById("examples-list").appendChild(listElement);
+    if (!examples[i].hidden) {
+        var listElement = document.createElement("li");
+        var buttonElement = document.createElement("button");
+        buttonElement.innerText = examples[i].name;
+        listElement.appendChild(buttonElement);
+        buttonElement.addEventListener("click", function () {
+            loadFromExampleLink(examples[i]);
+        });
+        document.getElementById("examples-list").appendChild(listElement);
+    }
 };
 for (var i = 0; i < examples.length; i++) {
     _loop_1(i);

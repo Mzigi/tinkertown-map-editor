@@ -134,11 +134,22 @@ class World {
         return null
     }
 
-    getChunkPosAtWorldPos(x: number,y: number): Vector2 {
+    getChunkPosAtWorldPos(x: number, y: number): Vector2 {
         let chunkX: number = Math.floor(x / 160)
         let chunkY: number = Math.floor(y / 160) * -1 -1
 
         return {"x": chunkX, "y": chunkY}
+    }
+
+    getWorldPosAtChunkPos(x: number, y: number): Vector2 {
+        let worldX: number = x * 160
+        let worldY: number = y * 160 * -1 -1
+
+        return {"x": worldX, "y": worldY}
+    }
+
+    getWorldPosAtChunk(chunk: Chunk): Vector2 {
+        return this.getWorldPosAtChunkPos(chunk.x, chunk.y)
     }
 
     getChunkAtWorldPos(x: number,y: number): Chunk | null {
@@ -238,6 +249,20 @@ class World {
 
             this.chunks.push(chunk)
         }
+
+        view.viewOffset += chunkByteOffset
+
+        if (view.viewOffset - view.buffer.byteLength != 0) {
+            //storage
+            let containersLength = view.readUint16()
+            for (let i = 0; i < containersLength; i++) {
+                let container = new Inventory()
+                container.fromBuffer(view.buffer.slice(view.viewOffset))
+                view.viewOffset += container.getByteSize()
+
+                this.containers.push(container)
+            }
+        }
     }
 
     writeToBuffer(writeBuffer: ArrayBuffer, byteOffset: number) {
@@ -270,6 +295,14 @@ class World {
             this.chunks[i].writeToBuffer(view.buffer, view.viewOffset + chunkByteOffset)
             chunkByteOffset += this.chunks[i].getByteSize()
         }
+
+        //containers
+        view.viewOffset += chunkByteOffset
+        view.writeUint16(this.containers.length)
+        for (let i = 0; i < this.containers.length; i++) {
+            this.containers[i].writeToBuffer(view.buffer, view.viewOffset)
+            view.viewOffset += this.containers[i].getByteSize()
+        }
     }
 
     getByteSize(): number {
@@ -296,7 +329,13 @@ class World {
             chunksByteSize += this.chunks[i].getByteSize()
         }
 
-        return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize
+        //containers
+        let containersByteSize: number = 0
+        for (let i = 0; i < this.containers.length; i++) {
+            containersByteSize += this.containers[i].getByteSize()
+        }
+
+        return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize + 2 + containersByteSize
     }
 
     saveAsFile() {

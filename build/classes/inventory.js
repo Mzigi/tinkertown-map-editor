@@ -148,9 +148,9 @@ var Inventory = /** @class */ (function () {
         this.totalSlots = this.itemDataList.length;
         view.writeInt16(this.totalSlots);
         for (var i = 0; i < this.totalSlots; i++) {
-            var itemByteOffset = 7 + i * 5;
+            var itemByteOffset = view.viewOffset + i * 5;
             if (this.target == InventoryFormat.Container) {
-                itemByteOffset = 12 + i * 5;
+                itemByteOffset = view.viewOffset + i * 5;
             }
             this.itemDataList[i].writeToBuffer(writeBuffer, itemByteOffset);
         }

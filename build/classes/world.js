@@ -93,6 +93,14 @@ var World = /** @class */ (function () {
         var chunkY = Math.floor(y / 160) * -1 - 1;
         return { "x": chunkX, "y": chunkY };
     };
+    World.prototype.getWorldPosAtChunkPos = function (x, y) {
+        var worldX = x * 160;
+        var worldY = y * 160 * -1 - 1;
+        return { "x": worldX, "y": worldY };
+    };
+    World.prototype.getWorldPosAtChunk = function (chunk) {
+        return this.getWorldPosAtChunkPos(chunk.x, chunk.y);
+    };
     World.prototype.getChunkAtWorldPos = function (x, y) {
         var chunkWorldPos = this.getChunkPosAtWorldPos(x, y);
         var chunkX = chunkWorldPos.x;
@@ -168,6 +176,17 @@ var World = /** @class */ (function () {
             this.yMax = Math.max(this.yMax, chunk.y);
             this.chunks.push(chunk);
         }
+        view.viewOffset += chunkByteOffset;
+        if (view.viewOffset - view.buffer.byteLength != 0) {
+            //storage
+            var containersLength = view.readUint16();
+            for (var i = 0; i < containersLength; i++) {
+                var container = new Inventory();
+                container.fromBuffer(view.buffer.slice(view.viewOffset));
+                view.viewOffset += container.getByteSize();
+                this.containers.push(container);
+            }
+        }
     };
     World.prototype.writeToBuffer = function (writeBuffer, byteOffset) {
         var view = new simpleView(writeBuffer);
@@ -195,6 +214,13 @@ var World = /** @class */ (function () {
             this.chunks[i].writeToBuffer(view.buffer, view.viewOffset + chunkByteOffset);
             chunkByteOffset += this.chunks[i].getByteSize();
         }
+        //containers
+        view.viewOffset += chunkByteOffset;
+        view.writeUint16(this.containers.length);
+        for (var i = 0; i < this.containers.length; i++) {
+            this.containers[i].writeToBuffer(view.buffer, view.viewOffset);
+            view.viewOffset += this.containers[i].getByteSize();
+        }
     };
     World.prototype.getByteSize = function () {
         //versions
@@ -216,7 +242,12 @@ var World = /** @class */ (function () {
         for (var i = 0; i < this.chunks.length; i++) {
             chunksByteSize += this.chunks[i].getByteSize();
         }
-        return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize;
+        //containers
+        var containersByteSize = 0;
+        for (var i = 0; i < this.containers.length; i++) {
+            containersByteSize += this.containers[i].getByteSize();
+        }
+        return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize + 2 + containersByteSize;
     };
     World.prototype.saveAsFile = function () {
         var zip = new JSZip();

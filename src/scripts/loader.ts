@@ -18,10 +18,15 @@ let closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-
 
 interface worldLink {
     file: string,
-    name: string
+    name: string,
+    hidden?: boolean,
 }
 
 let examples: Array<worldLink> = [
+    {
+        "file": "House in Forest",
+        "name": "House in Forest",
+    },
     {
         "file": "OneChunkChallenge",
         "name": "10x10 Forest and House Cutout",
@@ -38,7 +43,12 @@ let examples: Array<worldLink> = [
         "file": "IslandSurvival",
         "name": "Large Island Survival",
     },
-    /*{
+    {
+        "file": "test storage",
+        "name": "test storage",
+        "hidden": true,
+    },
+    {
         "file": "earlytown6",
         "name": "Earlytown - 6",
     },
@@ -53,7 +63,7 @@ let examples: Array<worldLink> = [
     {
         "file": "earlytown1",
         "name": "Earlytown - 1",
-    },*/
+    },
 ]
 
 function loadFromExampleLink(exampleLink: worldLink) {
@@ -76,18 +86,20 @@ function loadFromExampleLink(exampleLink: worldLink) {
 }
 
 for (let i = 0; i < examples.length; i++) {
-    let listElement = document.createElement("li")
+    if (!examples[i].hidden) {
+        let listElement = document.createElement("li")
 
-    let buttonElement = document.createElement("button")
-    buttonElement.innerText = examples[i].name
+        let buttonElement = document.createElement("button")
+        buttonElement.innerText = examples[i].name
 
-    listElement.appendChild(buttonElement)
+        listElement.appendChild(buttonElement)
 
-    buttonElement.addEventListener("click", () => {
-        loadFromExampleLink(examples[i])
-    })
+        buttonElement.addEventListener("click", () => {
+            loadFromExampleLink(examples[i])
+        })
 
-    document.getElementById("examples-list").appendChild(listElement)
+        document.getElementById("examples-list").appendChild(listElement)
+    }
 }
 
 const readBinaryFile = async (file: any, filePath: string) => {
