@@ -367,12 +367,12 @@ if (NEWUI) {
             case "dark":
                 document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
                 document.getElementById("navbar-themes-light").innerHTML = 'Light';
-                cssThemeElement_1.setAttribute("href", "/assets/css/themes/dark.css");
+                cssThemeElement_1.setAttribute("href", "assets/css/themes/dark.css");
                 break;
             case "light":
                 document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
                 document.getElementById("navbar-themes-dark").innerHTML = 'Dark';
-                cssThemeElement_1.setAttribute("href", "/assets/css/themes/light.css");
+                cssThemeElement_1.setAttribute("href", "assets/css/themes/light.css");
                 break;
         }
     }

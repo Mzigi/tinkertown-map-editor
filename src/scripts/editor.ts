@@ -437,12 +437,12 @@ if (NEWUI) {
             case "dark":
                 document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
                 document.getElementById("navbar-themes-light").innerHTML = 'Light'
-                cssThemeElement.setAttribute("href", "/assets/css/themes/dark.css")
+                cssThemeElement.setAttribute("href", "assets/css/themes/dark.css")
                 break;
             case "light":
                 document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
                 document.getElementById("navbar-themes-dark").innerHTML = 'Dark'
-                cssThemeElement.setAttribute("href", "/assets/css/themes/light.css")
+                cssThemeElement.setAttribute("href", "assets/css/themes/light.css")
                 break;
         }
     }
