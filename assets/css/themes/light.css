@@ -1,0 +1,17 @@
+:root {
+    --white: #ffffff;
+
+    --lightgray: #e2e2e2;
+    --lightgray-hovered: #dddddd;
+    --lightgray-almost-border: #d1d1d1;
+    --lightgray-border: #cacaca;
+
+    --shadow-color: rgba(0, 0, 0, 0.9);
+    --weak-shadow-color: rgba(0, 0, 0, 0.2);
+
+    --title-color: #000000;
+    --sub-text-color: rgb(17, 22, 26);
+    --text-weak: #464646;
+
+    --body-color: var(--lightgray);
+}

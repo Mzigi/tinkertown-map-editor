@@ -13,11 +13,13 @@ let smallItemList = document.getElementById("small-item-list")
 //add categories
 let categories = assetInfoHelper.getExistingCategories()
 for (let i = 0; i < categories.length; i++) {
-    let option = document.createElement("option")
-    option.value = categories[i]
-    option.innerText = categories[i]
+    if (categories[i] != "") {
+        let option = document.createElement("option")
+        option.value = categories[i]
+        option.innerText = categories[i]
 
-    itemListCategory.appendChild(option)
+        itemListCategory.appendChild(option)
+    }
 }
 
 function updateSearch() {

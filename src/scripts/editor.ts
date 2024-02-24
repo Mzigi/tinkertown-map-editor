@@ -295,6 +295,8 @@ function addItemToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: 
                 let newItem = new Item()
                 newItem.chunkX = chunkAtMouse.x
                 newItem.chunkY = chunkAtMouse.y
+
+                let exactTileAtMouse = chunkAtMouse.getExactTilePosAtWorldPos(worldMousePos.x, worldMousePos.y)
                 newItem.x = tileAtMouse.x
                 newItem.y = tileAtMouse.y
 
@@ -303,6 +305,8 @@ function addItemToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: 
                 chunkAtMouse.chunkHasBeenEdited = true
                 chunkAtMouse.undoEdited = true
                 chunkAtMouse.resetCacheImage()
+
+                console.log(chunkAtMouse)
             }
         }
     }
@@ -328,6 +332,190 @@ let openedStorage: Inventory = null
 
 let openedItem: Item = null
 let openedItemStorage: Inventory = null
+
+if (NEWUI) {
+    let navbarButtons = document.getElementsByClassName("navbar-button")
+    
+    let hoveredButton = null
+
+    let navButtonClicked = false
+
+    for (let i = 0; i < navbarButtons.length; i++) {
+        //BUTTON EVENT
+        navbarButtons[i].addEventListener("click", () => {
+            navButtonClicked = true
+            let dropdownList = document.getElementById(navbarButtons[i].id + "-buttons")
+
+            if (dropdownList) {
+                dropdownList.classList.add("navbar-dropdown-active")
+            }
+        })
+
+        //DOCUMENT HOVEROVER
+        document.addEventListener("mouseover", (e) => {
+            //find hovered button
+            let target = e.target || document
+
+            let newHoveredButton = null
+            let lastCheckedElement: HTMLElement = target as HTMLElement
+            
+            while (lastCheckedElement != null) {
+                if ((lastCheckedElement as HTMLElement).classList.contains("navbar-button")) {
+                    newHoveredButton = lastCheckedElement.id
+                    lastCheckedElement = null
+                } else {
+                    lastCheckedElement = lastCheckedElement.parentElement
+
+                    if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
+                        lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons",""))
+                    }
+                }
+            }
+
+            hoveredButton = newHoveredButton
+
+            //remove dropdowns
+            for (let i = 0; i < navbarButtons.length; i++) {
+                let dropdownList = document.getElementById(navbarButtons[i].id + "-buttons")
+
+                if (dropdownList) {
+                    document.getElementById(navbarButtons[i].id + "-buttons").classList.remove("navbar-dropdown-active")
+                }
+            }
+
+            //stop click if no hovered button
+            if (!hoveredButton) {
+                navButtonClicked = false
+            }
+
+            //show correct dropdown
+            if (hoveredButton && navButtonClicked) {
+                let hoveredButtonElement = document.getElementById(hoveredButton)
+                let dropdownList = document.getElementById(hoveredButton + "-buttons")
+                let parentNav = hoveredButtonElement.getAttribute("parentnav")
+
+                if (dropdownList) {
+                    dropdownList.classList.add("navbar-dropdown-active")
+                    if (dropdownList.classList.contains("navbar-dropdown-parented")) {
+                        dropdownList.style.left = hoveredButtonElement.clientWidth + "px"
+                    }
+                }
+
+                let lastParentNav = parentNav
+                
+                while (lastParentNav) {
+                    document.getElementById(lastParentNav + "-buttons").classList.add("navbar-dropdown-active")
+
+                    if (document.getElementById(lastParentNav).getAttribute("parentnav")) {
+                        lastParentNav = document.getElementById(lastParentNav).getAttribute("parentnav")
+                    } else {
+                        lastParentNav = null
+                    }
+                }
+
+                if (dropdownList) {
+                    if (dropdownList.classList.contains("navbar-dropdown-parented")) {
+                        dropdownList.style.left = hoveredButtonElement.clientWidth + "px"
+                    }
+                }
+            }
+        })
+    }
+
+    //preferences ui
+    let cssThemeElement: HTMLLinkElement = <HTMLLinkElement>document.getElementById("css-theme")
+
+    let cssTheme = getPreference("theme")
+    if (!cssTheme) {
+        cssTheme = "dark"
+    }
+
+    function updateTheme(cssTheme: string) {
+        setPreference("theme", cssTheme)
+
+        switch (cssTheme) {
+            case "dark":
+                document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+                document.getElementById("navbar-themes-light").innerHTML = 'Light'
+                cssThemeElement.setAttribute("href", "/assets/css/themes/dark.css")
+                break;
+            case "light":
+                document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+                document.getElementById("navbar-themes-dark").innerHTML = 'Dark'
+                cssThemeElement.setAttribute("href", "/assets/css/themes/light.css")
+                break;
+        }
+    }
+
+    document.getElementById("navbar-themes-dark").addEventListener("click", () => {
+        updateTheme("dark")
+    })
+
+    document.getElementById("navbar-themes-light").addEventListener("click", () => {
+        updateTheme("light")
+    })
+
+    updateTheme(cssTheme)
+
+    //tile list view
+    let tileListVisible: string = getPreference("tile-list-visible")
+    if (!tileListVisible) {
+        tileListVisible = "true"
+    }
+
+    function setTileListDisplay(visible: string) {
+        setPreference("tile-list-visible", visible)
+
+        if (visible === "true") {
+            document.getElementById("item-list-side").style.display = ""
+            document.getElementById("layer-list-side").style.display = ""
+            document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)'
+            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+        } else {
+            document.getElementById("item-list-side").style.display = "none"
+            document.getElementById("layer-list-side").style.display = "none"
+            document.getElementById("2Dcanvas").style.width = '100%'
+            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List'
+        }
+    }
+
+    document.getElementById("navbar-view-tilelist").addEventListener("click", () => {
+        if (getPreference("tile-list-visible") === "true") {
+            setTileListDisplay("false")
+        } else {
+            setTileListDisplay("true")
+        }
+    })
+
+    setTileListDisplay(tileListVisible)
+
+    //debug text in 2d renderer
+
+    let canvasDebugText: string = getPreference("canvas-debug-text")
+    if (!canvasDebugText) {
+        canvasDebugText = "true"
+    }
+
+    function setCanvasDebugText(visible: string) {
+        setPreference("canvas-debug-text", visible)
+
+        if (visible === "true") {
+            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+        } else {
+            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug'
+        }
+    }
+
+    document.getElementById("navbar-view-canvasdebug").addEventListener("click",() => {
+        if (getPreference("canvas-debug-text") === "true") {
+            setCanvasDebugText("false")
+        } else {
+            setCanvasDebugText("true")
+        }
+    })
+
+    setCanvasDebugText(canvasDebugText)
+}
 
 document.getElementById("2Dcanvas").addEventListener('mousedown', function(e) {
     mouseButtonPressed[e.button] = true
@@ -375,6 +563,111 @@ document.getElementById("2Dcanvas").addEventListener('mousedown', function(e) {
     document.getElementById("inventory-container").style.display = "none"
     document.getElementById("small-item-list-container").style.display = "none"
 })
+
+function findFirstVisibleWorld() {
+    let visibleWorld = null
+    let index = 0
+
+    for (let i = 0; i < worlds.length; i++) {
+        if (!worlds[i].hidden) {
+            visibleWorld = worlds[i]
+            index = i
+        }
+    }
+
+    if (visibleWorld == null) {
+        let visibleWorld = new World()
+        worlds.push(visibleWorld)
+
+        index = worlds.length - 1
+    }
+
+    currentWorld = index
+}
+
+function createWorldElement(worldId: number): HTMLButtonElement {
+    let thisWorld = worlds[worldId]
+
+    let worldButton = document.createElement("button")
+    worldButton.classList.add("world")
+    worldButton.setAttribute("world-id", String(worldId))
+
+    let worldTitle = document.createElement("span")
+    worldTitle.classList.add("world-name")
+    worldTitle.innerText = thisWorld.name
+
+    worldButton.appendChild(worldTitle)
+
+    let closeButton = document.createElement("button")
+    closeButton.classList.add("material-symbols-outlined")
+    closeButton.classList.add("world-close")
+    closeButton.innerText = "close"
+
+    worldButton.appendChild(closeButton)
+
+    closeButton.addEventListener("click", () => {
+        document.getElementById("remove-world-title").innerText = "Remove " + thisWorld.name + "?";
+        (<HTMLDialogElement>document.getElementById("dialog-confirm-close")).showModal()
+
+        function RemoveWorld() {
+            thisWorld.reset()
+            thisWorld.hidden = true
+            
+            if (worldId == currentWorld) {
+                findFirstVisibleWorld()
+            }
+            updateWorldList();
+
+            (<HTMLDialogElement>document.getElementById("dialog-confirm-close")).close()
+
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", RemoveWorld)
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", CancelRemove)
+        }
+
+        function CancelRemove() {
+            (<HTMLDialogElement>document.getElementById("dialog-confirm-close")).close()
+
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", RemoveWorld)
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", CancelRemove)
+        }
+
+        document.getElementById("dialog-confirm-close-confirm").addEventListener("click", RemoveWorld)
+        document.getElementById("dialog-confirm-close-cancel").addEventListener("click", CancelRemove)
+    })
+
+    if (worldId != currentWorld) {
+        worldButton.classList.add("world-unloaded")
+    }
+
+    worldButton.addEventListener("click", () => {
+        if (!worlds[worldId].hidden) {
+            currentWorld = worldId
+            updateWorldList()
+        }
+    })
+
+    return worldButton
+}
+
+function updateWorldList() {
+    if (NEWUI) {
+        //remove all elements
+        document.getElementById("worldlist").innerHTML = ""
+
+        //add new ones
+        //let currentWorldElement = createWorldElement(currentWorld)
+
+        //document.getElementById("worldlist").appendChild(currentWorldElement)
+
+        for (let i = 0; i < worlds.length; i++) {
+            if (!worlds[i].hidden) {
+                document.getElementById("worldlist").appendChild(createWorldElement(i))
+            }
+        }
+    }
+}
+
+updateWorldList()
 
 function positionInventory() {
     let worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos((<HTMLCanvasElement>document.getElementById("2Dcanvas")), worlds[currentWorld].camera.lastPosition.x,worlds[currentWorld].camera.lastPosition.y)
@@ -462,9 +755,9 @@ function setLayer(layer: number) {
 }
 
 function setTool(tool: number) {
-    document.getElementById("tool-" + selectedTool).classList.remove("selected-slot")
+    document.getElementById("tool-" + selectedTool).classList.remove("tool-selected")
     selectedTool = tool
-    document.getElementById("tool-" + selectedTool).classList.add("selected-slot")
+    document.getElementById("tool-" + selectedTool).classList.add("tool-selected")
 }
 
 //world settings
@@ -518,6 +811,8 @@ function changeSetting(settingName: string) {
             worlds[currentWorld].chunkCache[newKey] = buffer
             delete worlds[currentWorld].chunkCache[key]
         }
+
+        updateWorldList()
     }
 }
 

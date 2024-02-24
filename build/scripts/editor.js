@@ -254,12 +254,14 @@ function addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAt
                 var newItem = new Item();
                 newItem.chunkX = chunkAtMouse.x;
                 newItem.chunkY = chunkAtMouse.y;
+                var exactTileAtMouse = chunkAtMouse.getExactTilePosAtWorldPos(worldMousePos.x, worldMousePos.y);
                 newItem.x = tileAtMouse.x;
                 newItem.y = tileAtMouse.y;
                 chunkAtMouse.itemDataList.push(newItem);
                 chunkAtMouse.chunkHasBeenEdited = true;
                 chunkAtMouse.undoEdited = true;
                 chunkAtMouse.resetCacheImage();
+                console.log(chunkAtMouse);
             }
         }
     }
@@ -278,6 +280,162 @@ var hoveredStorage = null;
 var openedStorage = null;
 var openedItem = null;
 var openedItemStorage = null;
+if (NEWUI) {
+    var navbarButtons_1 = document.getElementsByClassName("navbar-button");
+    var hoveredButton_1 = null;
+    var navButtonClicked_1 = false;
+    var _loop_1 = function (i) {
+        //BUTTON EVENT
+        navbarButtons_1[i].addEventListener("click", function () {
+            navButtonClicked_1 = true;
+            var dropdownList = document.getElementById(navbarButtons_1[i].id + "-buttons");
+            if (dropdownList) {
+                dropdownList.classList.add("navbar-dropdown-active");
+            }
+        });
+        //DOCUMENT HOVEROVER
+        document.addEventListener("mouseover", function (e) {
+            //find hovered button
+            var target = e.target || document;
+            var newHoveredButton = null;
+            var lastCheckedElement = target;
+            while (lastCheckedElement != null) {
+                if (lastCheckedElement.classList.contains("navbar-button")) {
+                    newHoveredButton = lastCheckedElement.id;
+                    lastCheckedElement = null;
+                }
+                else {
+                    lastCheckedElement = lastCheckedElement.parentElement;
+                    if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
+                        lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons", ""));
+                    }
+                }
+            }
+            hoveredButton_1 = newHoveredButton;
+            //remove dropdowns
+            for (var i_1 = 0; i_1 < navbarButtons_1.length; i_1++) {
+                var dropdownList = document.getElementById(navbarButtons_1[i_1].id + "-buttons");
+                if (dropdownList) {
+                    document.getElementById(navbarButtons_1[i_1].id + "-buttons").classList.remove("navbar-dropdown-active");
+                }
+            }
+            //stop click if no hovered button
+            if (!hoveredButton_1) {
+                navButtonClicked_1 = false;
+            }
+            //show correct dropdown
+            if (hoveredButton_1 && navButtonClicked_1) {
+                var hoveredButtonElement = document.getElementById(hoveredButton_1);
+                var dropdownList = document.getElementById(hoveredButton_1 + "-buttons");
+                var parentNav = hoveredButtonElement.getAttribute("parentnav");
+                if (dropdownList) {
+                    dropdownList.classList.add("navbar-dropdown-active");
+                    if (dropdownList.classList.contains("navbar-dropdown-parented")) {
+                        dropdownList.style.left = hoveredButtonElement.clientWidth + "px";
+                    }
+                }
+                var lastParentNav = parentNav;
+                while (lastParentNav) {
+                    document.getElementById(lastParentNav + "-buttons").classList.add("navbar-dropdown-active");
+                    if (document.getElementById(lastParentNav).getAttribute("parentnav")) {
+                        lastParentNav = document.getElementById(lastParentNav).getAttribute("parentnav");
+                    }
+                    else {
+                        lastParentNav = null;
+                    }
+                }
+                if (dropdownList) {
+                    if (dropdownList.classList.contains("navbar-dropdown-parented")) {
+                        dropdownList.style.left = hoveredButtonElement.clientWidth + "px";
+                    }
+                }
+            }
+        });
+    };
+    for (var i = 0; i < navbarButtons_1.length; i++) {
+        _loop_1(i);
+    }
+    //preferences ui
+    var cssThemeElement_1 = document.getElementById("css-theme");
+    var cssTheme = getPreference("theme");
+    if (!cssTheme) {
+        cssTheme = "dark";
+    }
+    function updateTheme(cssTheme) {
+        setPreference("theme", cssTheme);
+        switch (cssTheme) {
+            case "dark":
+                document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+                document.getElementById("navbar-themes-light").innerHTML = 'Light';
+                cssThemeElement_1.setAttribute("href", "/assets/css/themes/dark.css");
+                break;
+            case "light":
+                document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+                document.getElementById("navbar-themes-dark").innerHTML = 'Dark';
+                cssThemeElement_1.setAttribute("href", "/assets/css/themes/light.css");
+                break;
+        }
+    }
+    document.getElementById("navbar-themes-dark").addEventListener("click", function () {
+        updateTheme("dark");
+    });
+    document.getElementById("navbar-themes-light").addEventListener("click", function () {
+        updateTheme("light");
+    });
+    updateTheme(cssTheme);
+    //tile list view
+    var tileListVisible = getPreference("tile-list-visible");
+    if (!tileListVisible) {
+        tileListVisible = "true";
+    }
+    function setTileListDisplay(visible) {
+        setPreference("tile-list-visible", visible);
+        if (visible === "true") {
+            document.getElementById("item-list-side").style.display = "";
+            document.getElementById("layer-list-side").style.display = "";
+            document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)';
+            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+        }
+        else {
+            document.getElementById("item-list-side").style.display = "none";
+            document.getElementById("layer-list-side").style.display = "none";
+            document.getElementById("2Dcanvas").style.width = '100%';
+            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List';
+        }
+    }
+    document.getElementById("navbar-view-tilelist").addEventListener("click", function () {
+        if (getPreference("tile-list-visible") === "true") {
+            setTileListDisplay("false");
+        }
+        else {
+            setTileListDisplay("true");
+        }
+    });
+    setTileListDisplay(tileListVisible);
+    //debug text in 2d renderer
+    var canvasDebugText = getPreference("canvas-debug-text");
+    if (!canvasDebugText) {
+        canvasDebugText = "true";
+    }
+    function setCanvasDebugText(visible) {
+        setPreference("canvas-debug-text", visible);
+        if (visible === "true") {
+            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+        }
+        else {
+            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug';
+        }
+    }
+    document.getElementById("navbar-view-canvasdebug").addEventListener("click", function () {
+        if (getPreference("canvas-debug-text") === "true") {
+            setCanvasDebugText("false");
+        }
+        else {
+            setCanvasDebugText("true");
+        }
+    });
+    setCanvasDebugText(canvasDebugText);
+}
 document.getElementById("2Dcanvas").addEventListener('mousedown', function (e) {
     mouseButtonPressed[e.button] = true;
     openedStorage = null;
@@ -320,6 +478,84 @@ document.getElementById("2Dcanvas").addEventListener('mousedown', function (e) {
     document.getElementById("inventory-container").style.display = "none";
     document.getElementById("small-item-list-container").style.display = "none";
 });
+function findFirstVisibleWorld() {
+    var visibleWorld = null;
+    var index = 0;
+    for (var i = 0; i < worlds.length; i++) {
+        if (!worlds[i].hidden) {
+            visibleWorld = worlds[i];
+            index = i;
+        }
+    }
+    if (visibleWorld == null) {
+        var visibleWorld_1 = new World();
+        worlds.push(visibleWorld_1);
+        index = worlds.length - 1;
+    }
+    currentWorld = index;
+}
+function createWorldElement(worldId) {
+    var thisWorld = worlds[worldId];
+    var worldButton = document.createElement("button");
+    worldButton.classList.add("world");
+    worldButton.setAttribute("world-id", String(worldId));
+    var worldTitle = document.createElement("span");
+    worldTitle.classList.add("world-name");
+    worldTitle.innerText = thisWorld.name;
+    worldButton.appendChild(worldTitle);
+    var closeButton = document.createElement("button");
+    closeButton.classList.add("material-symbols-outlined");
+    closeButton.classList.add("world-close");
+    closeButton.innerText = "close";
+    worldButton.appendChild(closeButton);
+    closeButton.addEventListener("click", function () {
+        document.getElementById("remove-world-title").innerText = "Remove " + thisWorld.name + "?";
+        document.getElementById("dialog-confirm-close").showModal();
+        function RemoveWorld() {
+            thisWorld.reset();
+            thisWorld.hidden = true;
+            if (worldId == currentWorld) {
+                findFirstVisibleWorld();
+            }
+            updateWorldList();
+            document.getElementById("dialog-confirm-close").close();
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", RemoveWorld);
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", CancelRemove);
+        }
+        function CancelRemove() {
+            document.getElementById("dialog-confirm-close").close();
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", RemoveWorld);
+            document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", CancelRemove);
+        }
+        document.getElementById("dialog-confirm-close-confirm").addEventListener("click", RemoveWorld);
+        document.getElementById("dialog-confirm-close-cancel").addEventListener("click", CancelRemove);
+    });
+    if (worldId != currentWorld) {
+        worldButton.classList.add("world-unloaded");
+    }
+    worldButton.addEventListener("click", function () {
+        if (!worlds[worldId].hidden) {
+            currentWorld = worldId;
+            updateWorldList();
+        }
+    });
+    return worldButton;
+}
+function updateWorldList() {
+    if (NEWUI) {
+        //remove all elements
+        document.getElementById("worldlist").innerHTML = "";
+        //add new ones
+        //let currentWorldElement = createWorldElement(currentWorld)
+        //document.getElementById("worldlist").appendChild(currentWorldElement)
+        for (var i = 0; i < worlds.length; i++) {
+            if (!worlds[i].hidden) {
+                document.getElementById("worldlist").appendChild(createWorldElement(i));
+            }
+        }
+    }
+}
+updateWorldList();
 function positionInventory() {
     var worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos(document.getElementById("2Dcanvas"), worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y);
     worldMousePos.x = Math.floor(worldMousePos.x / 16) * 16 + 16;
@@ -394,9 +630,9 @@ function setLayer(layer) {
     }
 }
 function setTool(tool) {
-    document.getElementById("tool-" + selectedTool).classList.remove("selected-slot");
+    document.getElementById("tool-" + selectedTool).classList.remove("tool-selected");
     selectedTool = tool;
-    document.getElementById("tool-" + selectedTool).classList.add("selected-slot");
+    document.getElementById("tool-" + selectedTool).classList.add("tool-selected");
 }
 //world settings
 function changeSetting(settingName) {
@@ -452,6 +688,7 @@ function changeSetting(settingName) {
             worlds[currentWorld].chunkCache[newKey] = buffer;
             delete worlds[currentWorld].chunkCache[key];
         }
+        updateWorldList();
     }
 }
 //are you sure alert

@@ -71,14 +71,18 @@ function componentToHex(c) {
     return hex.length == 1 ? "0" + hex : hex;
 }
 function isChunkOnScreen(chunk, camera) {
-    var x1 = (10 + chunk.x * 10) * 16;
-    var y1 = (10 + chunk.y * 10) * -16;
+    var x1 = (12 + chunk.x * 10) * 16;
+    var y1 = (12 + chunk.y * 10) * -16;
     var x2 = (0 + chunk.x * 10) * 16;
     var y2 = (0 + chunk.y * 10) * -16;
+    var x3 = (5 + chunk.x * 10) * 16;
+    var y3 = (5 + chunk.y * 10) * -16;
     if (camera.isPositionOnScreen(canvasElement, x1, y1)
         || camera.isPositionOnScreen(canvasElement, x2, y2)
         || camera.isPositionOnScreen(canvasElement, x1, y2)
-        || camera.isPositionOnScreen(canvasElement, x2, y1)) {
+        || camera.isPositionOnScreen(canvasElement, x2, y1)
+        || camera.isPositionOnScreen(canvasElement, x3, y3)
+        || camera.isPositionOnScreen(canvasElement, x1, y3)) {
         return true;
     }
     return false;
@@ -328,14 +332,19 @@ function drawWorld(canvas, world) {
             for (var y = bottomRightCornerWorldPos.y; y < topLeftCornerWorldPos.y + 1; y++) {
                 if ((x + y % 2) % 2 == 0) {
                     var alpha = Math.min(world.camera.zoom * 1.5 - 0.25, 1);
-                    ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")";
+                    if (getPreference("theme") === "dark") {
+                        ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")";
+                    }
+                    else {
+                        ctx.fillStyle = "#cacaca";
+                    }
                     world.camera.drawRect(canvasElement, ctx, x * 160 - 80, y * -160 - 80, 160, 160);
                 }
             }
         }
         //draw chunks
-        for (var x = xMax + 1; x > xMin - 1; x--) {
-            for (var y = yMax + 1; y > yMin - 1; y--) {
+        for (var x = xMax + 1; x > xMin - 2; x--) {
+            for (var y = yMax + 1; y > yMin - 2; y--) {
                 var chunk = world.getChunkAt(x, y);
                 drawChunkCheck(chunk, world);
             }
@@ -378,8 +387,8 @@ function render() {
     } else {
         chunkDrawLimit = 4
     }*/
-    canvasElement.width = window.innerWidth;
-    canvasElement.height = window.innerHeight;
+    canvasElement.width = canvasElement.clientWidth;
+    canvasElement.height = canvasElement.clientHeight;
     ctx.clearRect(0, 0, 10000, 10000);
     /*let placeToDrawCorner = worlds[currentWorld].camera.screenPosToWorldPos(canvasElement, worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y)
     let chunkAtMouse = worlds[currentWorld].getChunkAtWorldPos(placeToDrawCorner.x, placeToDrawCorner.y)
@@ -393,12 +402,14 @@ function render() {
         }
     }
     //fps counter
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "32px pixellari";
-    ctx.fillText("FPS: " + FPS.toString(), 0, canvasElement.height - 32);
-    var worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos(document.getElementById("2Dcanvas"), worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y);
-    var chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
-    ctx.fillText("CHUNK: [" + chunkPos.x + ", " + chunkPos.y + "]", 0, canvasElement.height);
+    if (getPreference("canvas-debug-text") === "true") {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "32px pixellari";
+        ctx.fillText("FPS: " + FPS.toString(), 0, canvasElement.height - 32);
+        var worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos(document.getElementById("2Dcanvas"), worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y);
+        var chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
+        ctx.fillText("CHUNK: [" + chunkPos.x + ", " + chunkPos.y + "]", 0, canvasElement.height);
+    }
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)
     ctx.fillStyle = "#000000"
     ctx.fillRect(0,0, 100, 100)*/

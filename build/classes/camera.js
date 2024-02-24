@@ -24,6 +24,9 @@ var Camera = /** @class */ (function () {
         var canvas = document.getElementById("2Dcanvas");
         var camera = this;
         window.addEventListener('mousemove', function (e) {
+            if (camera.world.getId() != currentWorld) {
+                return;
+            }
             var MousePosition = getMousePos(canvas, e);
             var MouseDiff = {
                 x: MousePosition.x - camera.lastPosition.x,
@@ -44,6 +47,9 @@ var Camera = /** @class */ (function () {
             MouseY = MousePosition.y*/
         }, false);
         canvas.addEventListener("wheel", function (e) {
+            if (camera.world.getId() != currentWorld) {
+                return;
+            }
             var newZoom = camera.zoom + camera.zoom / (-e.deltaY / 32); //e.wheelDeltaY
             newZoom = Math.floor(newZoom * 100) / 100;
             newZoom = Math.max(0.075, newZoom);

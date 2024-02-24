@@ -16,6 +16,8 @@ let closeDialogButton: any = document.getElementById("close-dialog-help")
 let closeExamplesDialogButton: any = document.getElementById("close-dialog-examples")
 let closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-world-settings")
 
+const NEWUI = !(window.location.href.endsWith("old-index.html"))
+
 interface worldLink {
     file: string,
     name: string,
@@ -34,6 +36,10 @@ let examples: Array<worldLink> = [
     {
         "file": "10x10 Lake",
         "name": "10x10 Lake in Forest",
+    },
+    {
+        "file": "Statue Structure",
+        "name": "Statue Structure",
     },
     {
         "file": "Small House",
@@ -66,8 +72,38 @@ let examples: Array<worldLink> = [
     },
 ]
 
+var savedPrefereneces = null
+
+function getPreference(key: string): string {
+    if (savedPrefereneces == null) {
+        savedPrefereneces = JSON.parse(localStorage.getItem("preferences"))
+    }
+
+    if (!savedPrefereneces) {
+        savedPrefereneces = {}
+    }
+
+    return savedPrefereneces[key]
+}
+
+function setPreference(key: string, value: string | number | boolean) {
+    if (savedPrefereneces == null) {
+        savedPrefereneces = JSON.parse(localStorage.getItem("preferences"))
+    }
+
+    if (!savedPrefereneces) {
+        savedPrefereneces = {}
+    }
+
+    savedPrefereneces[key] = value
+    
+    localStorage.setItem("preferences", JSON.stringify(savedPrefereneces))
+}
+
 function loadFromExampleLink(exampleLink: worldLink) {
-    worlds[currentWorld] = new World()
+    let loadingWorld = new World()
+    worlds[worlds.length] = loadingWorld
+    currentWorld = worlds.length - 1
 
     let hrefWithoutHtml = window.location.href.replace("index.html","")
     let fetchUrl = hrefWithoutHtml + "assets/Worlds/" + exampleLink.file + ".ttworld"
@@ -78,8 +114,7 @@ function loadFromExampleLink(exampleLink: worldLink) {
 
     fetch("./assets/Worlds/" + exampleLink.file + ".ttworld").then(response => {
         response.arrayBuffer().then(worldBuffer => {
-            currentWorld = 0;
-            worlds[currentWorld].fromBuffer(worldBuffer, 0);
+            loadingWorld.fromBuffer(worldBuffer, 0);
             (<HTMLDialogElement>document.getElementById("dialog-loading")).close();
         })
     })
@@ -87,47 +122,60 @@ function loadFromExampleLink(exampleLink: worldLink) {
 
 for (let i = 0; i < examples.length; i++) {
     if (!examples[i].hidden) {
-        let listElement = document.createElement("li")
+            let listElement = document.createElement("li")
 
-        let buttonElement = document.createElement("button")
-        buttonElement.innerText = examples[i].name
+            let buttonElement = document.createElement("button")
+            buttonElement.innerText = examples[i].name
 
-        listElement.appendChild(buttonElement)
+            listElement.appendChild(buttonElement)
 
-        buttonElement.addEventListener("click", () => {
-            loadFromExampleLink(examples[i])
-        })
+            buttonElement.addEventListener("click", () => {
+                loadFromExampleLink(examples[i])
+            })
 
-        document.getElementById("examples-list").appendChild(listElement)
+            document.getElementById("examples-list").appendChild(listElement)
+        if (NEWUI) {
+            let buttonElement = document.createElement("button")
+            buttonElement.innerText = examples[i].name
+            buttonElement.classList.add("navbar-li")
+
+            buttonElement.addEventListener("click", () => {
+                loadFromExampleLink(examples[i])
+            })
+
+            document.getElementById("navbar-examples-buttons").appendChild(buttonElement)
+        }
     }
 }
 
-const readBinaryFile = async (file: any, filePath: string) => {
+const readBinaryFile = async (file: any, filePath: string, worldId: number) => {
     if (filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3) { //chunk
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
         let loadedChunk: Chunk = new Chunk()
         loadedChunk.fromBuffer(buffer)
-        worlds[currentWorld].addChunk(loadedChunk)
-        worlds[currentWorld].chunkCache[filePath] = buffer
+        worlds[worldId].addChunk(loadedChunk)
+        worlds[worldId].chunkCache[filePath] = buffer
     } else if (filePath.endsWith("world.meta")) { //world.meta
         let worldMeta: any = JSON.parse(file)
-        worlds[currentWorld].name = worldMeta.name
-        worlds[currentWorld].seed = worldMeta.seed
-        worlds[currentWorld].version = worldMeta.version
-        worlds[currentWorld].highestUsedVersion = worldMeta.highestUsedVersion
-        if (!worlds[currentWorld].highestUsedVersion) {
-            worlds[currentWorld].highestUsedVersion = worldMeta.version
+        worlds[worldId].name = worldMeta.name
+        worlds[worldId].seed = worldMeta.seed
+        worlds[worldId].version = worldMeta.version
+        worlds[worldId].highestUsedVersion = worldMeta.highestUsedVersion
+        if (!worlds[worldId].highestUsedVersion) {
+            worlds[worldId].highestUsedVersion = worldMeta.version
         }
-        worlds[currentWorld].hasBeenGenerated = worldMeta.hasBeenGenerated
+        worlds[worldId].hasBeenGenerated = worldMeta.hasBeenGenerated
+
+        updateWorldList()
     } else if (filePath.endsWith("settings.meta")) { //settings.meta
         let settingsMeta: any = JSON.parse(file)
-        worlds[currentWorld].progression = settingsMeta.progression
-        worlds[currentWorld].friendlyFire = settingsMeta.friendlyFire
-        worlds[currentWorld].forestBarrierBroken = settingsMeta.forestBarrierBroken
-        worlds[currentWorld].timescale = settingsMeta.timescale
-        worlds[currentWorld].NPCsOff = settingsMeta.NPCsOff
-        worlds[currentWorld].additionalParams = settingsMeta.additionalParams
+        worlds[worldId].progression = settingsMeta.progression
+        worlds[worldId].friendlyFire = settingsMeta.friendlyFire
+        worlds[worldId].forestBarrierBroken = settingsMeta.forestBarrierBroken
+        worlds[worldId].timescale = settingsMeta.timescale
+        worlds[worldId].NPCsOff = settingsMeta.NPCsOff
+        worlds[worldId].additionalParams = settingsMeta.additionalParams
     } else if (filePath.endsWith("inventory.dat")) { //container
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
@@ -135,7 +183,7 @@ const readBinaryFile = async (file: any, filePath: string) => {
         loadedInventory.fromBuffer(buffer)
         loadedInventory.filePath = filePath
         
-        worlds[currentWorld].containers.push(loadedInventory)
+        worlds[worldId].containers.push(loadedInventory)
     } else {
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
@@ -154,31 +202,39 @@ const readBinaryFile = async (file: any, filePath: string) => {
 })*/
 
 newButton.addEventListener("click", () => {
+    currentWorld = worlds.length
     worlds[currentWorld] = new World()
+    updateWorldList()
     uneditedFiles = {}
 })
 
 importInput.addEventListener("change", () => {
     if (importInput.files.length > 0) {
-        worlds[currentWorld] = new World()
+        let thisWorldId = worlds.length
+        worlds[thisWorldId] = new World()
+
+        currentWorld = thisWorldId
+        
         uneditedFiles = {}
         for (let i = 0; i < importInput.files.length; i++) {
             //console.log(importInput.files[i].webkitRelativePath)
             if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
             } else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
                 let fileReader = new FileReader()
 
                 fileReader.onload = function(e) {
-                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath)
+                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId)
                 }
 
                 fileReader.readAsText(importInput.files[i])
             } else {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath)
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
             }
         }
     }
+
+    updateWorldList()
 })
 
 exportButton.addEventListener("click", () => {

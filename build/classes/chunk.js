@@ -78,6 +78,17 @@ var Chunk = /** @class */ (function () {
         }
         return { "x": tileX, "y": tileY };
     };
+    Chunk.prototype.getExactTilePosAtWorldPos = function (x, y) {
+        var tileX = (x / 16) % 10;
+        if (this.x < 0) {
+            tileX = (9 + ((x / 16) % 10 + 1)) % 10;
+        }
+        var tileY = (((y / 16) * -1 - 1) % 10);
+        if (this.y < 0) {
+            tileY = (9 + (((y / 16) * -1 - 1) % 10 + 1)) % 10;
+        }
+        return { "x": tileX, "y": tileY };
+    };
     Chunk.prototype.getOffGridTilePosAtWorldPos = function (x, y) {
         var tileX = (x / 16) % 10;
         if (this.x < 0) {

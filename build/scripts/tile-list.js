@@ -9,10 +9,12 @@ var smallItemList = document.getElementById("small-item-list");
 //add categories
 var categories = assetInfoHelper.getExistingCategories();
 for (var i = 0; i < categories.length; i++) {
-    var option = document.createElement("option");
-    option.value = categories[i];
-    option.innerText = categories[i];
-    itemListCategory.appendChild(option);
+    if (categories[i] != "") {
+        var option = document.createElement("option");
+        option.value = categories[i];
+        option.innerText = categories[i];
+        itemListCategory.appendChild(option);
+    }
 }
 function updateSearch() {
     setTimeout(function () {

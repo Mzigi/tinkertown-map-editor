@@ -110,6 +110,19 @@ class Chunk {
         return {"x":tileX, "y":tileY}
     }
 
+    getExactTilePosAtWorldPos(x: number, y: number) {
+        let tileX = (x / 16) % 10
+        if (this.x < 0) {
+            tileX = (9 + ((x / 16) % 10 + 1)) % 10
+        }
+        let tileY = (((y / 16) * -1 -1) % 10)
+        if (this.y < 0) {
+            tileY = (9 + (((y / 16) * -1 -1) % 10 + 1)) % 10
+        }
+        
+        return {"x":tileX, "y":tileY}
+    }
+
     getOffGridTilePosAtWorldPos(x: number, y: number) {
         let tileX = (x / 16) % 10
         if (this.x < 0) {

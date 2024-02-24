@@ -1,17 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <link id="css-theme" rel="stylesheet" href="assets/css/themes/dark.css">
-        <link rel="stylesheet" href="assets/css/new-main.css">
+        <link rel="stylesheet" href="assets/css/main.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>Tinkertown Map Editor</title>
         <link rel="icon" type="image/x-icon" href="assets/favicon.png">
-
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
         <!--Third Party Libraries-->
         <script src="src/libraries/jszip.min.js" defer></script>
@@ -54,84 +48,13 @@
                 Successfully wore outfit
             </div>
 
-            <div id="worldlist">
-                <button class="world" world-id="0">
-                    <span class="world-name">world0</span>
-                    <button class="material-symbols-outlined world-close">
-                        close
-                    </button>
-                </button>
-            </div>
-
             <div id="navbar">
-                <div class="navbar-section">
-                    <button id="navbar-file" class="navbar-button">File</button>
-                    <ul id="navbar-file-buttons" class="navbar-dropdown">
-                        <button id="navbar-new" class="navbar-li">New</button>
-                        <label for="navbar-import" class="navbar-li" style="width: -webkit-fill-available; height: 1.2em;">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import">
-                        <button id="navbar-export" class="navbar-li">Export</button>
-                        <button id="navbar-examples" class="navbar-li navbar-button" parentnav="navbar-file">Examples<span class="material-symbols-outlined">chevron_right</span></button>
-                        <ul id="navbar-examples-buttons" class="navbar-dropdown navbar-dropdown-parented">
-
-                        </ul>
-                    </ul>
-                </div>
-                <div class="navbar-section">
-                    <button id="navbar-map" class="navbar-button">World</button>
-                    <ul id="navbar-map-buttons" class="navbar-dropdown">
-                        <button id="navbar-world-settings" class="navbar-li">World Settings</button>
-                    </ul>
-                </div>
-                <div class="navbar-section">
-                    <button id="navbar-preferences" class="navbar-button">Preferences</button>
-                    <ul id="navbar-preferences-buttons" class="navbar-dropdown">
-                        <div class="navbar-section">
-                            <button id="navbar-themes" class="navbar-li navbar-button" parentnav="navbar-preferences">Themes<span class="material-symbols-outlined">chevron_right</span></button>
-                            <ul id="navbar-themes-buttons" class="navbar-dropdown navbar-dropdown-parented">
-                                <button id="navbar-themes-dark" class="navbar-li">Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
-                                <button id="navbar-themes-light" class="navbar-li">Light</button>
-                            </ul>
-                            <button id="navbar-view" class="navbar-li navbar-button" parentnav="navbar-preferences">View<span class="material-symbols-outlined">chevron_right</span></button>
-                            <ul id="navbar-view-buttons" class="navbar-dropdown navbar-dropdown-parented">
-                                <button id="navbar-view-tilelist" class="navbar-li">Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
-                                <button id="navbar-view-canvasdebug" class="navbar-li">Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
-                            </ul>
-                        </div>
-                    </ul>
-                </div>
-                <div class="navbar-section">
-                    <button id="navbar-help" class="navbar-button">Help</button>
-                </div>
-                
-                <!--<button id="navbar-examples" class="navbar-button">Examples</button>
-                <button id="navbar-help" class="navbar-button" style="float: right;">Help</button>-->
-            </div>
-
-            <div id="tool-list">
-                <button id="tool-0" onclick="setTool(0)" class="tool-container tool-selected">
-                    <img class="tool-img" src="assets/tool-draw.png">
-                    <span class="tool-name">Draw</span>
-                </button>
-
-                <button id="tool-1" onclick="setTool(1)" class="tool-container">
-                    <img class="tool-img" src="assets/tool-erase0.png">
-                    <span class="tool-name">Erase</span>
-                </button>
-
-                <button id="tool-2" onclick="setTool(2)" class="tool-container">
-                    <img class="tool-img" src="assets/tool-pick1.png">
-                    <span class="tool-name">Pick</span>
-                </button>
-
-                <button id="tool-4" onclick="setTool(4)" class="tool-container">
-                    <img class="tool-img" src="assets/tool-storage1.png">
-                    <span class="tool-name">Storage</span>
-                </button>
-
-                <button id="tool-5" onclick="setTool(5)" class="tool-container">
-                    <img class="tool-img" src="assets/tool-item1.png">
-                    <span class="tool-name">Item</span>
-                </button>
+                <button id="navbar-new" class="navbar-button">New</button>
+                <label for="navbar-import" class="navbar-button">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import">
+                <button id="navbar-export" class="navbar-button">Export</button>
+                <button id="navbar-world-settings" class="navbar-button">World Settings</button>
+                <button id="navbar-examples" class="navbar-button">Examples</button>
+                <button id="navbar-help" class="navbar-button" style="float: right;">Help</button>
             </div>
 
             <dialog id="dialog-help">
@@ -150,17 +73,6 @@
                     
                 </ul>
                 <button id="close-dialog-examples" class="dialog-close">Cancel</button>
-            </dialog>
-
-            <dialog id="dialog-confirm-close">
-                <div class="dialog-wrapper">
-                    <span id="remove-world-title" class="title">Remove world?</span>
-                    <span class="weak-title">This cannot be undone.</span>
-                    <div class="dialog-buttons">
-                        <button id="dialog-confirm-close-confirm" class="dialog-close">Yes</button>
-                        <button id="dialog-confirm-close-cancel" class="dialog-close">No</button>
-                    </div>
-                </div>
             </dialog>
 
             <dialog id="dialog-loading">
@@ -192,7 +104,7 @@
             </dialog>
     
             <div id="item-list-side">
-                <span class="title window-title">Tiles</span>
+                <span class="title">Tiles</span>
                 <input id="item-list-searchbar" type="search" placeholder="Search" onkeydown="updateSearch()" onemptied="updateSearch()" onchange="updateSearch()">
                 <select id="item-list-category" title="Categories" onchange="updateSearch()">
                     <option value="">All</option>
@@ -216,17 +128,17 @@
                 <button id="layer-9" class="layer" onclick="setLayer(9)">Layer 9</button>
                 <input id="layer-input" class="layer" placeholder="Layer" onchange="setLayer()">
             </div>
-            <!--<div id="tool-list-side" style="display: none;">
+            <div id="tool-list-side">
                 <button id="tool-0" class="layer selected-slot" onclick="setTool(0)">Draw Tool</button>
                 <button id="tool-1" class="layer" onclick="setTool(1)">Erase Tool</button>
                 <button id="tool-2" class="layer" onclick="setTool(2)">Pick Tool</button>
-                <button id="tool-3" class="layer" onclick="setTool(3)">Fill Tool</button>
+                <!--<button id="tool-3" class="layer" onclick="setTool(3)">Fill Tool</button>
                 <br>
                 <span class="small-title">Brush Size</span>
-                <input id="tool-size" type="number" placeholder="1" class="layer">
+                <input id="tool-size" type="number" placeholder="1" class="layer">-->
                 <button id="tool-4" class="layer" onclick="setTool(4)">Add Storage</button>
                 <button id="tool-5" class="layer" onclick="setTool(5)">Add Item</button>
-            </div>-->
+            </div>
 
             <div id="slot-prefab" class="slot" currentItemId="0" hidden>
                 <input class="item-amount" type="number" placeholder="0" onkeypress='validateNumberInput(event)' ondrop="preventDrop(event)">
@@ -245,12 +157,12 @@
 
             <div id="small-item-list-container" style="left: 500px; top: 500px; display: none;">
                 <span class="title">Items</span>
-                <input id="small-item-list-searchbar" type="search" placeholder="Search" style="margin: 0 0 0.4em 0; width: 100%;" onkeydown="updateItemSearch()" onemptied="updateItemSearch()" onchange="updateItemSearch()">
+                <input id="small-item-list-searchbar" type="search" placeholder="Search" onkeydown="updateItemSearch()" onemptied="updateItemSearch()" onchange="updateItemSearch()">
                 <div id="small-item-list"></div>
             </div>
     
             <canvas id="renderCanvas" hidden></canvas>
-            <canvas id="2Dcanvas" style="width: calc(100% - 550px); height: calc(100% - 6.6em - 5px); bottom: 0; image-rendering: pixelated; position: absolute; z-index: -100;" oncontextmenu="return false;"></canvas>
+            <canvas id="2Dcanvas" style="width:100%; height:100%; image-rendering: pixelated; position: absolute; z-index: -100;" oncontextmenu="return false;"></canvas>
         </div>
     </body>
 </html>

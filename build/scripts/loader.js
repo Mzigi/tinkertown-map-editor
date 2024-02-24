@@ -49,6 +49,7 @@ var examplesButton = document.getElementById("navbar-examples");
 var closeDialogButton = document.getElementById("close-dialog-help");
 var closeExamplesDialogButton = document.getElementById("close-dialog-examples");
 var closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
+var NEWUI = !(window.location.href.endsWith("old-index.html"));
 var examples = [
     {
         "file": "House in Forest",
@@ -61,6 +62,10 @@ var examples = [
     {
         "file": "10x10 Lake",
         "name": "10x10 Lake in Forest",
+    },
+    {
+        "file": "Statue Structure",
+        "name": "Statue Structure",
     },
     {
         "file": "Small House",
@@ -92,8 +97,30 @@ var examples = [
         "name": "Earlytown - 1",
     },
 ];
+var savedPrefereneces = null;
+function getPreference(key) {
+    if (savedPrefereneces == null) {
+        savedPrefereneces = JSON.parse(localStorage.getItem("preferences"));
+    }
+    if (!savedPrefereneces) {
+        savedPrefereneces = {};
+    }
+    return savedPrefereneces[key];
+}
+function setPreference(key, value) {
+    if (savedPrefereneces == null) {
+        savedPrefereneces = JSON.parse(localStorage.getItem("preferences"));
+    }
+    if (!savedPrefereneces) {
+        savedPrefereneces = {};
+    }
+    savedPrefereneces[key] = value;
+    localStorage.setItem("preferences", JSON.stringify(savedPrefereneces));
+}
 function loadFromExampleLink(exampleLink) {
-    worlds[currentWorld] = new World();
+    var loadingWorld = new World();
+    worlds[worlds.length] = loadingWorld;
+    currentWorld = worlds.length - 1;
     var hrefWithoutHtml = window.location.href.replace("index.html", "");
     var fetchUrl = hrefWithoutHtml + "assets/Worlds/" + exampleLink.file + ".ttworld";
     console.log("Fetching example world from " + fetchUrl);
@@ -101,8 +128,7 @@ function loadFromExampleLink(exampleLink) {
     document.getElementById("dialog-loading").showModal();
     fetch("./assets/Worlds/" + exampleLink.file + ".ttworld").then(function (response) {
         response.arrayBuffer().then(function (worldBuffer) {
-            currentWorld = 0;
-            worlds[currentWorld].fromBuffer(worldBuffer, 0);
+            loadingWorld.fromBuffer(worldBuffer, 0);
             document.getElementById("dialog-loading").close();
         });
     });
@@ -117,12 +143,21 @@ var _loop_1 = function (i) {
             loadFromExampleLink(examples[i]);
         });
         document.getElementById("examples-list").appendChild(listElement);
+        if (NEWUI) {
+            var buttonElement_1 = document.createElement("button");
+            buttonElement_1.innerText = examples[i].name;
+            buttonElement_1.classList.add("navbar-li");
+            buttonElement_1.addEventListener("click", function () {
+                loadFromExampleLink(examples[i]);
+            });
+            document.getElementById("navbar-examples-buttons").appendChild(buttonElement_1);
+        }
     }
 };
 for (var i = 0; i < examples.length; i++) {
     _loop_1(i);
 }
-var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0, void 0, function () {
+var readBinaryFile = function (file, filePath, worldId) { return __awaiter(_this, void 0, void 0, function () {
     var buffer, loadedChunk, worldMeta, settingsMeta, buffer, loadedInventory, buffer;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -133,30 +168,31 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                 buffer = _a.sent();
                 loadedChunk = new Chunk();
                 loadedChunk.fromBuffer(buffer);
-                worlds[currentWorld].addChunk(loadedChunk);
-                worlds[currentWorld].chunkCache[filePath] = buffer;
+                worlds[worldId].addChunk(loadedChunk);
+                worlds[worldId].chunkCache[filePath] = buffer;
                 return [3 /*break*/, 8];
             case 2:
                 if (!filePath.endsWith("world.meta")) return [3 /*break*/, 3];
                 worldMeta = JSON.parse(file);
-                worlds[currentWorld].name = worldMeta.name;
-                worlds[currentWorld].seed = worldMeta.seed;
-                worlds[currentWorld].version = worldMeta.version;
-                worlds[currentWorld].highestUsedVersion = worldMeta.highestUsedVersion;
-                if (!worlds[currentWorld].highestUsedVersion) {
-                    worlds[currentWorld].highestUsedVersion = worldMeta.version;
+                worlds[worldId].name = worldMeta.name;
+                worlds[worldId].seed = worldMeta.seed;
+                worlds[worldId].version = worldMeta.version;
+                worlds[worldId].highestUsedVersion = worldMeta.highestUsedVersion;
+                if (!worlds[worldId].highestUsedVersion) {
+                    worlds[worldId].highestUsedVersion = worldMeta.version;
                 }
-                worlds[currentWorld].hasBeenGenerated = worldMeta.hasBeenGenerated;
+                worlds[worldId].hasBeenGenerated = worldMeta.hasBeenGenerated;
+                updateWorldList();
                 return [3 /*break*/, 8];
             case 3:
                 if (!filePath.endsWith("settings.meta")) return [3 /*break*/, 4];
                 settingsMeta = JSON.parse(file);
-                worlds[currentWorld].progression = settingsMeta.progression;
-                worlds[currentWorld].friendlyFire = settingsMeta.friendlyFire;
-                worlds[currentWorld].forestBarrierBroken = settingsMeta.forestBarrierBroken;
-                worlds[currentWorld].timescale = settingsMeta.timescale;
-                worlds[currentWorld].NPCsOff = settingsMeta.NPCsOff;
-                worlds[currentWorld].additionalParams = settingsMeta.additionalParams;
+                worlds[worldId].progression = settingsMeta.progression;
+                worlds[worldId].friendlyFire = settingsMeta.friendlyFire;
+                worlds[worldId].forestBarrierBroken = settingsMeta.forestBarrierBroken;
+                worlds[worldId].timescale = settingsMeta.timescale;
+                worlds[worldId].NPCsOff = settingsMeta.NPCsOff;
+                worlds[worldId].additionalParams = settingsMeta.additionalParams;
                 return [3 /*break*/, 8];
             case 4:
                 if (!filePath.endsWith("inventory.dat")) return [3 /*break*/, 6];
@@ -166,7 +202,7 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
                 loadedInventory = new Inventory();
                 loadedInventory.fromBuffer(buffer);
                 loadedInventory.filePath = filePath;
-                worlds[currentWorld].containers.push(loadedInventory);
+                worlds[worldId].containers.push(loadedInventory);
                 return [3 /*break*/, 8];
             case 6: return [4 /*yield*/, file.arrayBuffer()];
             case 7:
@@ -187,33 +223,38 @@ var readBinaryFile = function (file, filePath) { return __awaiter(_this, void 0,
     }
 })*/
 newButton.addEventListener("click", function () {
+    currentWorld = worlds.length;
     worlds[currentWorld] = new World();
+    updateWorldList();
     uneditedFiles = {};
 });
 importInput.addEventListener("change", function () {
     if (importInput.files.length > 0) {
-        worlds[currentWorld] = new World();
+        var thisWorldId_1 = worlds.length;
+        worlds[thisWorldId_1] = new World();
+        currentWorld = thisWorldId_1;
         uneditedFiles = {};
         var _loop_2 = function (i) {
             //console.log(importInput.files[i].webkitRelativePath)
             if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath);
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
             }
             else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
                 var fileReader = new FileReader();
                 fileReader.onload = function (e) {
-                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath);
+                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId_1);
                 };
                 fileReader.readAsText(importInput.files[i]);
             }
             else {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath);
+                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
             }
         };
         for (var i = 0; i < importInput.files.length; i++) {
             _loop_2(i);
         }
     }
+    updateWorldList();
 });
 exportButton.addEventListener("click", function () {
     worlds[currentWorld].saveAsFile();

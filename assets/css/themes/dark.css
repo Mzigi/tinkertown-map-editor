@@ -1,0 +1,17 @@
+:root {
+    --white: #1a191d;
+
+    --lightgray: #17171a;
+    --lightgray-hovered: #1c1c20;
+    --lightgray-almost-border: #151518;
+    --lightgray-border: #1e1d24;
+
+    --shadow-color: rgba(0, 0, 0, 0.9);
+    --weak-shadow-color: rgba(0, 0, 0, 0.2);
+
+    --title-color: #ffffff;
+    --sub-text-color: rgb(214, 214, 214);
+    --text-weak: #e2e2e2;
+
+    --body-color: #232527;
+}

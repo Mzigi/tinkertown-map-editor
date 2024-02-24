@@ -10,6 +10,7 @@ class Camera {
     x: number;
     y: number;
     zoom: number;
+    world: World;
 
     rightButtonPressed: boolean;
     lastPosition: Vector2;
@@ -37,6 +38,10 @@ class Camera {
         let camera = this
 
         window.addEventListener('mousemove', function (e) {
+            if (camera.world.getId() != currentWorld) {
+                return
+            }
+
             let MousePosition = getMousePos(canvas,e)
             
             let MouseDiff: Vector2 = {
@@ -60,6 +65,10 @@ class Camera {
             MouseY = MousePosition.y*/
         }, false);
         canvas.addEventListener("wheel", function(e: WheelEvent) {
+            if (camera.world.getId() != currentWorld) {
+                return
+            }
+
             let newZoom: number = camera.zoom + camera.zoom / (-e.deltaY / 32) //e.wheelDeltaY
             newZoom = Math.floor(newZoom * 100) / 100
             newZoom = Math.max(0.075, newZoom)

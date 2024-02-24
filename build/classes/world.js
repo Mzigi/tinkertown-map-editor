@@ -43,6 +43,7 @@ var World = /** @class */ (function () {
         this.containers = [];
         this.chunks = [];
         this.camera = new Camera();
+        this.camera.world = this;
         this.xMin = 0;
         this.yMin = 0;
         this.xMax = 1;
@@ -68,6 +69,16 @@ var World = /** @class */ (function () {
         this.toolHistory = [
             { "chunks": [] },
         ];
+        this.hidden = false;
+    };
+    World.prototype.getId = function () {
+        var id = 0;
+        for (var i = 0; i < worlds.length; i++) {
+            if (worlds[i] == this) {
+                id = i;
+            }
+        }
+        return id;
     };
     World.prototype.clearChunks = function () {
         this.chunks = [];
@@ -187,6 +198,7 @@ var World = /** @class */ (function () {
                 this.containers.push(container);
             }
         }
+        updateWorldList();
     };
     World.prototype.writeToBuffer = function (writeBuffer, byteOffset) {
         var view = new simpleView(writeBuffer);

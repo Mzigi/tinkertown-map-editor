@@ -72,6 +72,7 @@ class World {
 
     chunkCache: Object
     toolHistory: any
+    hidden: boolean
 
     constructor() {
         this.reset()
@@ -81,6 +82,7 @@ class World {
         this.containers = []
         this.chunks = []
         this.camera = new Camera()
+        this.camera.world = this
 
         this.xMin = 0
         this.yMin = 0
@@ -110,6 +112,19 @@ class World {
         this.toolHistory = [
             {"chunks": []},
         ]
+        this.hidden = false
+    }
+
+    getId(): number {
+        let id = 0
+
+        for (let i = 0; i < worlds.length; i++) {
+            if (worlds[i] == this) {
+                id = i
+            }
+        }
+
+        return id
     }
 
     clearChunks() {
@@ -263,6 +278,8 @@ class World {
                 this.containers.push(container)
             }
         }
+
+        updateWorldList()
     }
 
     writeToBuffer(writeBuffer: ArrayBuffer, byteOffset: number) {
