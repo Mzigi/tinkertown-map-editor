@@ -133,7 +133,17 @@ function listIncludesTilePos(arr, x, y) {
     }
     return false;
 }
+function objectIncludesTilePos(obj, x, y) {
+    if (!obj[x]) {
+        obj[x] = {};
+    }
+    return obj[x][y] == true;
+}
+function tilePosIsValid(tilePos) {
+    return (tilePos.x >= 0 && tilePos.x <= 9 && tilePos.y >= 0 && tilePos.y <= 9);
+}
 function fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
+    var _a, _b, _c, _d;
     //create new chunk if there is none
     if (chunkAtMouse == null) {
         var chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
@@ -169,47 +179,57 @@ function fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMou
         if (!highestTile) {
             highestTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, layerIdToFlood);
         }
-        tileIdToFlood = highestTile.id;
-        console.log(tileIdToFlood);
-        console.log(layerIdToFlood);
+        tileIdToFlood = highestTile === null || highestTile === void 0 ? void 0 : highestTile.tileAssetId;
+        if (!highestTile) {
+            highestTile = { "x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood };
+            tileIdToFlood = undefined;
+        }
         var openTiles = [highestTile];
-        var closedTiles = [];
+        var closedTiles = {};
         while (openTiles.length > 0) {
             var newOpenTiles = [];
             for (var i = 0; i < openTiles.length; i++) {
                 var currentTile = openTiles[i];
-                if (currentTile.id == tileIdToFlood && currentTile.z == layerIdToFlood) {
+                if (currentTile.tileAssetId == tileIdToFlood && currentTile.z == layerIdToFlood) {
                     var replacementTile = new Tile();
                     replacementTile.x = currentTile.x;
                     replacementTile.y = currentTile.y;
+                    replacementTile.z = layerIdToFlood;
                     replacementTile.tileAssetId = selectedTile;
                     chunkAtMouse.setTile(replacementTile);
-                    closedTiles.push([currentTile.x, currentTile.y]);
+                    if (!closedTiles[currentTile.x]) {
+                        closedTiles[currentTile.x] = {};
+                    }
+                    closedTiles[currentTile.x][currentTile.y] = true;
                     //west
-                    var westTile = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z);
-                    if (westTile) {
-                        if (!listIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
+                    var westTile = { "x": currentTile.x - 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined };
+                    westTile.tileAssetId = (_a = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z)) === null || _a === void 0 ? void 0 : _a.tileAssetId;
+                    if (tilePosIsValid(westTile)) {
+                        if (!objectIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
                             newOpenTiles.push(westTile);
                         }
                     }
                     //east
-                    var eastTile = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z);
-                    if (eastTile) {
-                        if (!listIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
+                    var eastTile = { "x": currentTile.x + 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined };
+                    eastTile.tileAssetId = (_b = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z)) === null || _b === void 0 ? void 0 : _b.tileAssetId;
+                    if (tilePosIsValid(eastTile)) {
+                        if (!objectIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
                             newOpenTiles.push(eastTile);
                         }
                     }
                     //north
-                    var northTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z);
-                    if (northTile) {
-                        if (!listIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
+                    var northTile = { "x": currentTile.x, "y": currentTile.y + 1, "z": currentTile.z, "tileAssetId": undefined };
+                    northTile.tileAssetId = (_c = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z)) === null || _c === void 0 ? void 0 : _c.tileAssetId;
+                    if (tilePosIsValid(northTile)) {
+                        if (!objectIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
                             newOpenTiles.push(northTile);
                         }
                     }
                     //south
-                    var southTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z);
-                    if (southTile) {
-                        if (!listIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
+                    var southTile = { "x": currentTile.x, "y": currentTile.y - 1, "z": currentTile.z, "tileAssetId": undefined };
+                    southTile.tileAssetId = (_d = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z)) === null || _d === void 0 ? void 0 : _d.tileAssetId;
+                    if (tilePosIsValid(southTile)) {
+                        if (!objectIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
                             newOpenTiles.push(southTile);
                         }
                     }

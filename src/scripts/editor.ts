@@ -153,6 +153,18 @@ function listIncludesTilePos(arr: Array<any>, x: number, y: number) {
     return false
 }
 
+function objectIncludesTilePos(obj: any, x: number, y: number) {
+    if (!obj[x]) {
+        obj[x] = {}
+    }
+
+    return obj[x][y] == true
+}
+
+function tilePosIsValid(tilePos: any) {
+    return (tilePos.x >= 0 && tilePos.x <= 9 && tilePos.y >= 0 && tilePos.y <= 9)
+}
+
 function fillToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any, lastTileAtMouse: any, worldMousePos: Vector2, lastMouseButtonPressed: any, selectedLayer: number, selectedTile: number) {
     //create new chunk if there is none
     if (chunkAtMouse == null) {
@@ -192,57 +204,69 @@ function fillToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any
         if (!highestTile) {
             highestTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, layerIdToFlood)
         }
-        tileIdToFlood = highestTile.id
+        tileIdToFlood = highestTile?.tileAssetId
 
-        console.log(tileIdToFlood)
-        console.log(layerIdToFlood)
+        if (!highestTile) {
+            highestTile = {"x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood}
+            tileIdToFlood = undefined
+        }
 
         let openTiles = [highestTile]
-        let closedTiles = []
+        let closedTiles = {}
 
         while (openTiles.length > 0) {
             let newOpenTiles = []
 
             for (let i = 0; i < openTiles.length; i++) {
                 let currentTile = openTiles[i]
-                if (currentTile.id == tileIdToFlood && currentTile.z == layerIdToFlood) {
+                
+                if (currentTile.tileAssetId == tileIdToFlood && currentTile.z == layerIdToFlood) {
                     let replacementTile = new Tile()
                     replacementTile.x = currentTile.x
                     replacementTile.y = currentTile.y
+                    replacementTile.z = layerIdToFlood
                     replacementTile.tileAssetId = selectedTile
 
                     chunkAtMouse.setTile(replacementTile)
 
-                    closedTiles.push([currentTile.x, currentTile.y])
+                    if (!closedTiles[currentTile.x]) {
+                        closedTiles[currentTile.x] = {}
+                    }
+
+                    closedTiles[currentTile.x][currentTile.y] = true
 
                     //west
-                    let westTile = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z)
-                    if (westTile) {
-                        if (!listIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
+                    let westTile = {"x": currentTile.x - 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined}
+                    westTile.tileAssetId = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z)?.tileAssetId
+                    if (tilePosIsValid(westTile)) {
+                        if (!objectIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
                             newOpenTiles.push(westTile)
                         }
                     }
 
                     //east
-                    let eastTile = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z)
-                    if (eastTile) {
-                        if (!listIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
+                    let eastTile = {"x": currentTile.x + 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined}
+                    eastTile.tileAssetId = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z)?.tileAssetId
+                    if (tilePosIsValid(eastTile)) {
+                        if (!objectIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
                             newOpenTiles.push(eastTile)
                         }
                     }
 
                     //north
-                    let northTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z)
-                    if (northTile) {
-                        if (!listIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
+                    let northTile = {"x": currentTile.x, "y": currentTile.y + 1, "z": currentTile.z, "tileAssetId": undefined}
+                    northTile.tileAssetId = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z)?.tileAssetId
+                    if (tilePosIsValid(northTile)) {
+                        if (!objectIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
                             newOpenTiles.push(northTile)
                         }
                     }
 
                     //south
-                    let southTile = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z)
-                    if (southTile) {
-                        if (!listIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
+                    let southTile = {"x": currentTile.x, "y": currentTile.y - 1, "z": currentTile.z, "tileAssetId": undefined}
+                    southTile.tileAssetId = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z)?.tileAssetId
+                    if (tilePosIsValid(southTile)) {
+                        if (!objectIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
                             newOpenTiles.push(southTile)
                         }
                     }

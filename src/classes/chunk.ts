@@ -66,7 +66,7 @@ class Chunk {
         this.resetCacheImage()
     }
 
-    findTileIndexAt(x: number,y: number,z: number) {
+    findTileIndexAt(x: number,y: number,z: number): null | number {
         for (let i = 0; i < this.tileDataList.length; i++) {
             let currentTile = this.tileDataList[i]
             if (currentTile.x == x && currentTile.y == y && currentTile.z == z) {
@@ -77,7 +77,7 @@ class Chunk {
         return null
     }
 
-    findTileAt(x: number,y: number,z: number) {
+    findTileAt(x: number,y: number,z: number): null | Tile {
         let index = this.findTileIndexAt(x,y,z)
         if (index !== null) {
             return this.tileDataList[index]
