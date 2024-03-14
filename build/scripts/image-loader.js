@@ -76,18 +76,22 @@ var imagesToLoad = [
     //Other
     "assets/storage.png",
     "assets/storage-small.png",
+    "assets/highlightedChunk.png"
 ];
 var images = {};
 var loadedImages = 0;
 //load images
-for (var i = 0; i < imagesToLoad.length; i++) {
-    images[imagesToLoad[i]] = new Image();
-    images[imagesToLoad[i]].addEventListener("load", function (e) {
-        loadedImages += 1;
-        if (loadedImages >= imagesToLoad.length) {
-            updateSearch();
-        }
-    });
-    images[imagesToLoad[i]].src = imagesToLoad[i];
+function loadImages() {
+    for (var i = 0; i < imagesToLoad.length; i++) {
+        images[imagesToLoad[i]] = new Image();
+        images[imagesToLoad[i]].addEventListener("load", function (e) {
+            loadedImages += 1;
+            if (loadedImages >= imagesToLoad.length) {
+                updateSearch();
+            }
+        });
+        images[imagesToLoad[i]].src = imagesToLoad[i];
+    }
 }
+loadImages();
 //# sourceMappingURL=image-loader.js.map

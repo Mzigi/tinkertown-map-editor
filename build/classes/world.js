@@ -70,6 +70,7 @@ var World = /** @class */ (function () {
             { "chunks": [] },
         ];
         this.hidden = false;
+        this.highlightedChunk = null;
     };
     World.prototype.getId = function () {
         var id = 0;

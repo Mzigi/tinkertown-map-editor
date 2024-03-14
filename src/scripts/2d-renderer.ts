@@ -187,9 +187,11 @@ function drawTileCache(tile: Tile, cacheCtx: CanvasRenderingContext2D) {
         dy -= sHeight
         dy += 16 * 10
         
-        if (images["assets/Tilesets/" + tileInfo.tileset + ".png"]) {
-            cacheCtx.drawImage(images["assets/Tilesets/" + tileInfo.tileset + ".png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
-        } else {
+        let tileImg = images["assets/Tilesets/" + tileInfo.tileset + ".png"]
+
+        if (tileImg) {
+            cacheCtx.drawImage(tileImg, sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
+        } else if (images["assets/Tilesets/unknown.png"]) {
             //draw unknown
             sx = 0
             sy = 0
@@ -205,7 +207,7 @@ function drawTileCache(tile: Tile, cacheCtx: CanvasRenderingContext2D) {
             
             cacheCtx.drawImage(images["assets/Tilesets/unknown.png"], sx, sy, sWidth, sHeight, dx, dy, sWidth, sHeight)
         }
-    } else {
+    } else if (images["assets/Tilesets/unknown.png"]) {
         //draw unknown
         let sx: number = 0
         let sy: number = 0
@@ -330,6 +332,10 @@ function drawChunk(chunk: Chunk, camera: Camera) {
                 }
             }
         }
+    }
+
+    if (worlds[currentWorld].highlightedChunk == chunk) {
+        camera.drawImage(canvasElement, ctx, images["assets/highlightedChunk.png"], chunk.x * 160 + 80, chunk.y * -160 - 80, 160, 160)
     }
 }
 

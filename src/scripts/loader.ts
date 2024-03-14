@@ -102,6 +102,7 @@ function setPreference(key: string, value: string | number | boolean) {
 
 function loadFromExampleLink(exampleLink: worldLink) {
     let loadingWorld = new World()
+    loadingWorld.name = "Failed to load"
     worlds[worlds.length] = loadingWorld
     currentWorld = worlds.length - 1
 
@@ -117,6 +118,11 @@ function loadFromExampleLink(exampleLink: worldLink) {
             loadingWorld.fromBuffer(worldBuffer, 0);
             (<HTMLDialogElement>document.getElementById("dialog-loading")).close();
         })
+    }).catch(error => {
+        console.warn(error);
+        (<HTMLDialogElement>document.getElementById("dialog-loading")).close();
+        alertText("Failed to fetch example", true, 3)
+        updateWorldList()
     })
 }
 

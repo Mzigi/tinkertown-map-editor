@@ -117,6 +117,9 @@ class Camera {
     }
 
     drawImageCropped(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement, sx: number, sy: number, sWidth: number, sHeight: number, dx: number, dy: number, dWidth: number, dHeight: number) {
+        if (!image)
+            return
+        
         ctx.imageSmoothingEnabled = false
 
         let W: number = dWidth * this.zoom
@@ -136,6 +139,9 @@ class Camera {
     }
 
     drawImage(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement|HTMLCanvasElement, dx: number, dy: number, dWidth: number, dHeight: number) {
+        if (!image)
+            return
+
         ctx.imageSmoothingEnabled = false
 
         let W: number = dWidth * this.zoom

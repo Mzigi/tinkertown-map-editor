@@ -73,6 +73,7 @@ class World {
     chunkCache: Object
     toolHistory: any
     hidden: boolean
+    highlightedChunk: Chunk | null
 
     constructor() {
         this.reset()
@@ -113,6 +114,7 @@ class World {
             {"chunks": []},
         ]
         this.hidden = false
+        this.highlightedChunk = null
     }
 
     getId(): number {

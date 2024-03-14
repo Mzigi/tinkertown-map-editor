@@ -283,6 +283,16 @@ function addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAt
         }
     }
 }
+function chunkToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
+    if (chunkAtMouse) {
+        worlds[currentWorld].highlightedChunk = chunkAtMouse;
+    }
+}
+function chunkToolPressed(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
+    if (chunkAtMouse) {
+        console.log("cli");
+    }
+}
 var selectedTile;
 var selectedTool;
 var selectedLayer; //-1 == auto layer
@@ -734,6 +744,7 @@ function tick() {
         
         chunkAtMouse.setTile(replacementTile)*/
     }
+    worlds[currentWorld].highlightedChunk = null;
     //Items and containers
     var isHoveringOverObject = false;
     hoveredStorage = null;
@@ -770,27 +781,46 @@ function tick() {
     }
     //Tools
     if (!isHoveringOverObject) {
-        if (mouseButtonPressed[0] && selectedTool === 0) { // draw tool
-            drawToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
-        }
-        else if (mouseButtonPressed[0] && selectedTool === 1) { // erase tool
-            eraseToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
-        }
-        else if (mouseButtonPressed[0] && selectedTool === 2) { // pick tool
-            var tileToSet = pickToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
-            if (tileToSet) {
-                console.log(tileToSet);
-                selectedTile = tileToSet;
+        if (mouseButtonPressed[0]) { //mouse pressed
+            switch (selectedTool) {
+                case 0: //draw
+                    drawToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                case 1: //erase
+                    eraseToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                case 2: //pick
+                    var tileToSet = pickToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    if (tileToSet) {
+                        console.log(tileToSet);
+                        selectedTile = tileToSet;
+                    }
+                    break;
+                case 3: //fill
+                    fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                case 4: //container
+                    addContainerToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                case 5: //item
+                    addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                case 6: //chunk
+                    if (!lastMouseButtonPressed[0])
+                        chunkToolPressed(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                default:
+                    break;
             }
         }
-        else if (mouseButtonPressed[0] && selectedTool === 3) {
-            fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
-        }
-        else if (mouseButtonPressed[0] && selectedTool === 4) {
-            addContainerToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
-        }
-        else if (mouseButtonPressed[0] && selectedTool === 5) {
-            addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+        else { //mouse not pressed
+            switch (selectedTool) {
+                case 6: //chunk
+                    chunkToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile);
+                    break;
+                default:
+                    break;
+            }
         }
     }
     else if (hoveredStorage && mouseButtonPressed[0] && selectedTool === 1) { //erase storage

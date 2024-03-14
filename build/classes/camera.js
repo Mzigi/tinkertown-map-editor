@@ -89,6 +89,8 @@ var Camera = /** @class */ (function () {
         return { "x": X, "y": Y };
     };
     Camera.prototype.drawImageCropped = function (canvas, ctx, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
+        if (!image)
+            return;
         ctx.imageSmoothingEnabled = false;
         var W = dWidth * this.zoom;
         var H = dHeight * this.zoom;
@@ -103,6 +105,8 @@ var Camera = /** @class */ (function () {
         ctx.drawImage(image, sx, sy, sWidth, sHeight, X, Y, W, H);
     };
     Camera.prototype.drawImage = function (canvas, ctx, image, dx, dy, dWidth, dHeight) {
+        if (!image)
+            return;
         ctx.imageSmoothingEnabled = false;
         var W = dWidth * this.zoom;
         var H = dHeight * this.zoom;

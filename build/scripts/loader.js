@@ -119,6 +119,7 @@ function setPreference(key, value) {
 }
 function loadFromExampleLink(exampleLink) {
     var loadingWorld = new World();
+    loadingWorld.name = "Failed to load";
     worlds[worlds.length] = loadingWorld;
     currentWorld = worlds.length - 1;
     var hrefWithoutHtml = window.location.href.replace("index.html", "");
@@ -131,6 +132,11 @@ function loadFromExampleLink(exampleLink) {
             loadingWorld.fromBuffer(worldBuffer, 0);
             document.getElementById("dialog-loading").close();
         });
+    }).catch(function (error) {
+        console.warn(error);
+        document.getElementById("dialog-loading").close();
+        alertText("Failed to fetch example", true, 3);
+        updateWorldList();
     });
 }
 var _loop_1 = function (i) {

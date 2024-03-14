@@ -83,7 +83,6 @@ function updateSearch() {
                     var backgroundSizeY = (image.naturalHeight / rectH) * slotSize;
                     var backgroundPosX = (backgroundSizeX / image.naturalWidth) * rectX;
                     var backgroundPosY = (backgroundSizeY / image.naturalHeight) * (image.naturalHeight - rectY - rectH);
-                    //bruh
                     itemImage.setAttribute("style", "background-image: url(assets/Tilesets/".concat(itemInfo.tileset, ".png); background-position: -").concat(backgroundPosX, "px -").concat(backgroundPosY, "px; background-size: ").concat(backgroundSizeX, "px ").concat(backgroundSizeY, "px;"));
                 }
                 else { //set it to unknown image
@@ -153,6 +152,7 @@ function updateItemSearch() {
                     itemTitle = itemTitle + " (" + itemInfo.category + ")";
                 }
                 slot.title = itemTitle;
+                itemImage.title = itemTitle;
                 //loading image
                 if (itemInfo.tileset != "" && itemInfo.tileset != undefined && images["assets/Tilesets/".concat(itemInfo.tileset, ".png")]) {
                     var image = images["assets/Tilesets/".concat(itemInfo.tileset, ".png")];

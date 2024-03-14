@@ -110,7 +110,6 @@ function updateSearch() {
                     let backgroundPosX = (backgroundSizeX / image.naturalWidth) * rectX
                     let backgroundPosY = (backgroundSizeY / image.naturalHeight) * (image.naturalHeight - rectY - rectH)
     
-                    //bruh
                     itemImage.setAttribute("style",`background-image: url(assets/Tilesets/${itemInfo.tileset}.png); background-position: -${backgroundPosX}px -${backgroundPosY}px; background-size: ${backgroundSizeX}px ${backgroundSizeY}px;`)
                 } else { //set it to unknown image
                     itemImage.src = "assets/unknown.png"
@@ -192,6 +191,7 @@ function updateItemSearch() {
                     itemTitle = itemTitle + " (" + itemInfo.category + ")"
                 }
                 slot.title = itemTitle
+                itemImage.title = itemTitle
 
                 //loading image
                 if (itemInfo.tileset != "" && itemInfo.tileset != undefined && images[`assets/Tilesets/${itemInfo.tileset}.png`]) {
