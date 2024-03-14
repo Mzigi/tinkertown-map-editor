@@ -135,7 +135,7 @@ function listIncludesTilePos(arr, x, y) {
 }
 function objectIncludesTilePos(obj, x, y) {
     if (!obj[x]) {
-        obj[x] = {};
+        return false;
     }
     return obj[x][y] == true;
 }
@@ -170,18 +170,15 @@ function fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMou
                     highestTile = testTile;
                 }
             }
-            if (highestTile) {
-                highestZ += 1;
-            }
             highestZ = Math.min(highestZ, chunkAtMouse.layers);
-            layerIdToFlood = highestZ - 1;
+            layerIdToFlood = highestZ;
         }
         if (!highestTile) {
             highestTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, layerIdToFlood);
         }
         tileIdToFlood = highestTile === null || highestTile === void 0 ? void 0 : highestTile.tileAssetId;
         if (!highestTile) {
-            highestTile = { "x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood };
+            highestTile = { "x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood, "tileAssetId": undefined };
             tileIdToFlood = undefined;
         }
         var openTiles = [highestTile];

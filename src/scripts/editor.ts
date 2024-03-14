@@ -155,7 +155,7 @@ function listIncludesTilePos(arr: Array<any>, x: number, y: number) {
 
 function objectIncludesTilePos(obj: any, x: number, y: number) {
     if (!obj[x]) {
-        obj[x] = {}
+        return false
     }
 
     return obj[x][y] == true
@@ -194,11 +194,9 @@ function fillToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any
                 }
             }
 
-            if (highestTile) {
-                highestZ += 1
-            }
+            
             highestZ = Math.min(highestZ, chunkAtMouse.layers)
-            layerIdToFlood = highestZ - 1
+            layerIdToFlood = highestZ
         }
 
         if (!highestTile) {
@@ -207,7 +205,7 @@ function fillToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMouse: any
         tileIdToFlood = highestTile?.tileAssetId
 
         if (!highestTile) {
-            highestTile = {"x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood}
+            highestTile = {"x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood, "tileAssetId": undefined}
             tileIdToFlood = undefined
         }
 
