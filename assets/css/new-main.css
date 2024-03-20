@@ -51,6 +51,7 @@ body {
     background-image: url(assets/background.png);
     background-color: var(--body-color);
     overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 input {
@@ -252,7 +253,8 @@ select {
 
 .tool-name {
     height: 25%;
-    color: var(--text-weak)
+    color: var(--text-weak);
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .tool-selected {
