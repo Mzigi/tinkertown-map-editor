@@ -340,6 +340,13 @@ dialog {
     min-width: 220px;
 }
 
+#import-label {
+    width: -moz-available;
+    width: -webkit-fill-available;
+    width: fill-available;
+    height: 1.2em;
+}
+
 input[type=search] {
     margin: 0 0.5em 0 0.5em;
     padding: 1em;
