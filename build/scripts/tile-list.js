@@ -71,6 +71,7 @@ function updateSearch() {
                     itemTitle = itemTitle + " (" + itemInfo.category + ")";
                 }
                 slot_1.title = itemTitle;
+                itemImage.title = itemTitle;
                 //loading image
                 if (itemInfo.tileset != "" && itemInfo.tileset != undefined && images["assets/Tilesets/".concat(itemInfo.tileset, ".png")]) {
                     var image = images["assets/Tilesets/".concat(itemInfo.tileset, ".png")];

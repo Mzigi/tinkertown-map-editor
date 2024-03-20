@@ -142,7 +142,7 @@ class World {
         return null
     }
 
-    getChunkAt(x: number,y: number): Chunk | null {
+    getChunkAt(x: number, y: number): Chunk | null {
         for (let i = 0; i < this.chunks.length; i++) {
             if (this.chunks[i].x === x && this.chunks[i].y === y) {
                 return this.chunks[i]

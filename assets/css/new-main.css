@@ -282,6 +282,7 @@ dialog {
     font-size: 25px;
     cursor: pointer;
     user-select: none;
+    -webkit-user-select: none;
     color: var(--white);
     border-radius: 5px;
     border-style: none;

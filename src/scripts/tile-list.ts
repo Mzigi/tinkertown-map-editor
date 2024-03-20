@@ -92,6 +92,7 @@ function updateSearch() {
                     itemTitle = itemTitle + " (" + itemInfo.category + ")"
                 }
                 slot.title = itemTitle
+                itemImage.title = itemTitle
 
                 //loading image
                 if (itemInfo.tileset != "" && itemInfo.tileset != undefined && images[`assets/Tilesets/${itemInfo.tileset}.png`]) {
