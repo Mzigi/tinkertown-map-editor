@@ -94,6 +94,7 @@ function loadImages() {
             loadedImages += 1
             if (loadedImages >= imagesToLoad.length) {
                 updateSearch()
+                updateItemSearch()
             }
         })
         images[imagesToLoad[i]].src = imagesToLoad[i]
