@@ -111,6 +111,7 @@ function updateSearch() {
 }
 updateSearch();
 function updateItemSearch() {
+    console.log("Loading item list");
     setTimeout(function () {
         var search = document.getElementById("small-item-list-searchbar").value || "";
         var category = "";
