@@ -95,10 +95,12 @@ function loadImages() {
             if (loadedImages >= imagesToLoad.length) {
                 updateSearch()
                 updateItemSearch()
+                console.log("Loaded all images")
             }
         })
         images[imagesToLoad[i]].src = imagesToLoad[i]
     }
 }
 
+console.log("Loading images...")
 loadImages()

@@ -138,6 +138,8 @@ updateSearch()
 
 
 function updateItemSearch() {
+    console.log("Loading item list")
+
     setTimeout(function() {
         let search: string = (<HTMLInputElement>document.getElementById("small-item-list-searchbar")).value || ""
         let category: string = ""
