@@ -71,6 +71,7 @@ function componentToHex(c) {
     return hex.length == 1 ? "0" + hex : hex;
 }
 function isChunkOnScreen(chunk, camera) {
+    return true;
     var x1 = (12 + chunk.x * 10) * 16;
     var y1 = (12 + chunk.y * 10) * -16;
     var x2 = (0 + chunk.x * 10) * 16;
@@ -347,12 +348,18 @@ function drawWorld(canvas, world) {
             }
         }
         //draw chunks
-        for (var x = xMax + 1; x > xMin - 2; x--) {
-            for (var y = yMax + 1; y > yMin - 2; y--) {
+        xMax += 2;
+        xMin -= 3;
+        yMax += 2;
+        yMin -= 3;
+        for (var x = xMax; x > xMin; x--) {
+            for (var y = yMax; y > yMin; y--) {
                 var chunk = world.getChunkAt(x, y);
                 drawChunkCheck(chunk, world);
             }
         }
+        //console.log("X: " + xMin + " - " + xMax)
+        //console.log("Y: " + yMin + " - " + yMax)
         //draw storage icons
         for (var i = 0; i < world.containers.length; i++) {
             drawStorage(world.containers[i], worlds[currentWorld].camera);

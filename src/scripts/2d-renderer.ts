@@ -80,6 +80,8 @@ function componentToHex(c: number) {
 }
 
 function isChunkOnScreen(chunk: Chunk, camera: Camera): boolean {
+    return true
+
     let x1: number = (12 + chunk.x * 10) * 16
     let y1: number = (12 + chunk.y * 10) * -16
 
@@ -99,6 +101,7 @@ function isChunkOnScreen(chunk: Chunk, camera: Camera): boolean {
      ) {
         return true
     }
+
     return false
 }
 
@@ -394,13 +397,21 @@ function drawWorld(canvas: HTMLCanvasElement, world: World) {
         }
 
         //draw chunks
-        for (let x = xMax + 1; x > xMin - 2; x--) {
-            for (let y = yMax + 1; y > yMin - 2; y--) {
+        xMax += 2
+        xMin -= 3
+
+        yMax += 2
+        yMin -= 3
+
+        for (let x = xMax; x > xMin; x--) {
+            for (let y = yMax; y > yMin; y--) {
                 let chunk: Chunk|null = world.getChunkAt(x,y)
                 
                 drawChunkCheck(chunk, world)
             }
         }
+        //console.log("X: " + xMin + " - " + xMax)
+        //console.log("Y: " + yMin + " - " + yMax)
 
         //draw storage icons
         for (let i = 0; i < world.containers.length; i++) {
