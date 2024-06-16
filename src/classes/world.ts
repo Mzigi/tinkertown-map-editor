@@ -223,6 +223,42 @@ class World {
         this.chunks.push(chunk)
     }
 
+    fillWithContainers() {
+        let containerSize = 8
+
+        let placedItems = 0
+        let placedContainers = 1
+        let currentContainer = new Inventory()
+        currentContainer.chunkX = 0
+        currentContainer.chunkY = 0
+        currentContainer.x = 0
+        currentContainer.y = 0
+        currentContainer.height = containerSize
+        currentContainer.width = containerSize
+        worlds[currentWorld].containers.push(currentContainer)
+
+        for (let item in item_assetInfo) {
+            console.log(item)
+            if (Math.floor(placedItems / (containerSize*containerSize)) != placedContainers - 1) {
+                currentContainer = new Inventory()
+                //currentContainer.chunkX = Math.floor((placedContainers * 2) / 10)
+                currentContainer.chunkX = 0
+                currentContainer.chunkY = 0
+                currentContainer.x = (placedContainers * 2) % 10
+                currentContainer.y = Math.floor(placedContainers / 5) * 2
+                currentContainer.height = containerSize
+                currentContainer.width = containerSize
+                worlds[currentWorld].containers.push(currentContainer)
+                placedContainers += 1
+            }
+            
+            currentContainer.setIdAtSlot(placedItems % (containerSize*containerSize), Number(item_assetInfo[item].uniqueID))
+            currentContainer.setCountAtSlot(placedItems % (containerSize*containerSize), 999)
+
+            placedItems += 1
+        }
+    }
+
     fromBuffer(worldBuffer: ArrayBuffer, byteOffset: number) {
         this.reset()
 

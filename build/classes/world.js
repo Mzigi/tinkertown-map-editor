@@ -154,6 +154,37 @@ var World = /** @class */ (function () {
         this.removeChunkAt(chunk.x, chunk.y);
         this.chunks.push(chunk);
     };
+    World.prototype.fillWithContainers = function () {
+        var containerSize = 8;
+        var placedItems = 0;
+        var placedContainers = 1;
+        var currentContainer = new Inventory();
+        currentContainer.chunkX = 0;
+        currentContainer.chunkY = 0;
+        currentContainer.x = 0;
+        currentContainer.y = 0;
+        currentContainer.height = containerSize;
+        currentContainer.width = containerSize;
+        worlds[currentWorld].containers.push(currentContainer);
+        for (var item in item_assetInfo) {
+            console.log(item);
+            if (Math.floor(placedItems / (containerSize * containerSize)) != placedContainers - 1) {
+                currentContainer = new Inventory();
+                //currentContainer.chunkX = Math.floor((placedContainers * 2) / 10)
+                currentContainer.chunkX = 0;
+                currentContainer.chunkY = 0;
+                currentContainer.x = (placedContainers * 2) % 10;
+                currentContainer.y = Math.floor(placedContainers / 5) * 2;
+                currentContainer.height = containerSize;
+                currentContainer.width = containerSize;
+                worlds[currentWorld].containers.push(currentContainer);
+                placedContainers += 1;
+            }
+            currentContainer.setIdAtSlot(placedItems % (containerSize * containerSize), Number(item_assetInfo[item].uniqueID));
+            currentContainer.setCountAtSlot(placedItems % (containerSize * containerSize), 999);
+            placedItems += 1;
+        }
+    };
     World.prototype.fromBuffer = function (worldBuffer, byteOffset) {
         this.reset();
         var view = new simpleView(worldBuffer);
