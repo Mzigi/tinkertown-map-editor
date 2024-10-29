@@ -17,6 +17,23 @@ var Tile = /** @class */ (function () {
         }
         return null;
     };
+    Tile.prototype.fromObject = function (tileData) {
+        this.x = Math.abs(tileData.x % 10);
+        this.y = Math.abs(tileData.y % 10);
+        this.z = tileData.z;
+        if (tileData.x < 0) {
+            this.x = (9 - this.x + 1) % 10;
+        }
+        if (tileData.y < 0) {
+            this.y = (9 - this.y + 1) % 10;
+        }
+        this.health = tileData.hp;
+        this.tileAssetId = tileData.tileAssetID;
+        this.rotation = tileData.rotation;
+        this.memoryA = tileData.memA;
+        this.memoryB = tileData.memB;
+        //TODO: tileData.dungeon
+    };
     Tile.prototype.fromBuffer = function (tileBuffer) {
         var view = new simpleView(tileBuffer);
         this.x = view.readUint8(); //left to right

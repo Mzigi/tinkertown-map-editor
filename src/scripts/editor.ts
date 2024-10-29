@@ -367,6 +367,50 @@ let openedStorage: Inventory = null
 let openedItem: Item = null
 let openedItemStorage: Inventory = null
 
+function updateTheme(cssTheme: string) {
+    let cssThemeElement: HTMLLinkElement = <HTMLLinkElement>document.getElementById("css-theme")
+    setPreference("theme", cssTheme)
+
+    switch (cssTheme) {
+        case "dark":
+            document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+            document.getElementById("navbar-themes-light").innerHTML = 'Light'
+            cssThemeElement.setAttribute("href", "assets/css/themes/dark.css")
+            break;
+        case "light":
+            document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+            document.getElementById("navbar-themes-dark").innerHTML = 'Dark'
+            cssThemeElement.setAttribute("href", "assets/css/themes/light.css")
+            break;
+    }
+}
+
+function setTileListDisplay(visible: string) {
+    setPreference("tile-list-visible", visible)
+
+    if (visible === "true") {
+        document.getElementById("item-list-side").style.display = ""
+        document.getElementById("layer-list-side").style.display = ""
+        document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)'
+        document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+    } else {
+        document.getElementById("item-list-side").style.display = "none"
+        document.getElementById("layer-list-side").style.display = "none"
+        document.getElementById("2Dcanvas").style.width = '100%'
+        document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List'
+    }
+}
+
+function setCanvasDebugText(visible: string) {
+    setPreference("canvas-debug-text", visible)
+
+    if (visible === "true") {
+        document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+    } else {
+        document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug'
+    }
+}
+
 if (NEWUI) {
     let navbarButtons = document.getElementsByClassName("navbar-button")
     
@@ -457,28 +501,9 @@ if (NEWUI) {
     }
 
     //preferences ui
-    let cssThemeElement: HTMLLinkElement = <HTMLLinkElement>document.getElementById("css-theme")
-
     let cssTheme = getPreference("theme")
     if (!cssTheme) {
         cssTheme = "dark"
-    }
-
-    function updateTheme(cssTheme: string) {
-        setPreference("theme", cssTheme)
-
-        switch (cssTheme) {
-            case "dark":
-                document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
-                document.getElementById("navbar-themes-light").innerHTML = 'Light'
-                cssThemeElement.setAttribute("href", "assets/css/themes/dark.css")
-                break;
-            case "light":
-                document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
-                document.getElementById("navbar-themes-dark").innerHTML = 'Dark'
-                cssThemeElement.setAttribute("href", "assets/css/themes/light.css")
-                break;
-        }
     }
 
     document.getElementById("navbar-themes-dark").addEventListener("click", () => {
@@ -497,22 +522,6 @@ if (NEWUI) {
         tileListVisible = "true"
     }
 
-    function setTileListDisplay(visible: string) {
-        setPreference("tile-list-visible", visible)
-
-        if (visible === "true") {
-            document.getElementById("item-list-side").style.display = ""
-            document.getElementById("layer-list-side").style.display = ""
-            document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)'
-            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
-        } else {
-            document.getElementById("item-list-side").style.display = "none"
-            document.getElementById("layer-list-side").style.display = "none"
-            document.getElementById("2Dcanvas").style.width = '100%'
-            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List'
-        }
-    }
-
     document.getElementById("navbar-view-tilelist").addEventListener("click", () => {
         if (getPreference("tile-list-visible") === "true") {
             setTileListDisplay("false")
@@ -528,16 +537,6 @@ if (NEWUI) {
     let canvasDebugText: string = getPreference("canvas-debug-text")
     if (!canvasDebugText) {
         canvasDebugText = "true"
-    }
-
-    function setCanvasDebugText(visible: string) {
-        setPreference("canvas-debug-text", visible)
-
-        if (visible === "true") {
-            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
-        } else {
-            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug'
-        }
     }
 
     document.getElementById("navbar-view-canvasdebug").addEventListener("click",() => {

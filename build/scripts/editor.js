@@ -307,6 +307,46 @@ var hoveredStorage = null;
 var openedStorage = null;
 var openedItem = null;
 var openedItemStorage = null;
+function updateTheme(cssTheme) {
+    var cssThemeElement = document.getElementById("css-theme");
+    setPreference("theme", cssTheme);
+    switch (cssTheme) {
+        case "dark":
+            document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+            document.getElementById("navbar-themes-light").innerHTML = 'Light';
+            cssThemeElement.setAttribute("href", "assets/css/themes/dark.css");
+            break;
+        case "light":
+            document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+            document.getElementById("navbar-themes-dark").innerHTML = 'Dark';
+            cssThemeElement.setAttribute("href", "assets/css/themes/light.css");
+            break;
+    }
+}
+function setTileListDisplay(visible) {
+    setPreference("tile-list-visible", visible);
+    if (visible === "true") {
+        document.getElementById("item-list-side").style.display = "";
+        document.getElementById("layer-list-side").style.display = "";
+        document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)';
+        document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+    }
+    else {
+        document.getElementById("item-list-side").style.display = "none";
+        document.getElementById("layer-list-side").style.display = "none";
+        document.getElementById("2Dcanvas").style.width = '100%';
+        document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List';
+    }
+}
+function setCanvasDebugText(visible) {
+    setPreference("canvas-debug-text", visible);
+    if (visible === "true") {
+        document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+    }
+    else {
+        document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug';
+    }
+}
 if (NEWUI) {
     var navbarButtons_1 = document.getElementsByClassName("navbar-button");
     var hoveredButton_1 = null;
@@ -383,25 +423,9 @@ if (NEWUI) {
         _loop_1(i);
     }
     //preferences ui
-    var cssThemeElement_1 = document.getElementById("css-theme");
     var cssTheme = getPreference("theme");
     if (!cssTheme) {
         cssTheme = "dark";
-    }
-    function updateTheme(cssTheme) {
-        setPreference("theme", cssTheme);
-        switch (cssTheme) {
-            case "dark":
-                document.getElementById("navbar-themes-dark").innerHTML = 'Dark<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
-                document.getElementById("navbar-themes-light").innerHTML = 'Light';
-                cssThemeElement_1.setAttribute("href", "assets/css/themes/dark.css");
-                break;
-            case "light":
-                document.getElementById("navbar-themes-light").innerHTML = 'Light<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
-                document.getElementById("navbar-themes-dark").innerHTML = 'Dark';
-                cssThemeElement_1.setAttribute("href", "assets/css/themes/light.css");
-                break;
-        }
     }
     document.getElementById("navbar-themes-dark").addEventListener("click", function () {
         updateTheme("dark");
@@ -414,21 +438,6 @@ if (NEWUI) {
     var tileListVisible = getPreference("tile-list-visible");
     if (!tileListVisible) {
         tileListVisible = "true";
-    }
-    function setTileListDisplay(visible) {
-        setPreference("tile-list-visible", visible);
-        if (visible === "true") {
-            document.getElementById("item-list-side").style.display = "";
-            document.getElementById("layer-list-side").style.display = "";
-            document.getElementById("2Dcanvas").style.width = 'calc(100% - 550px)';
-            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
-        }
-        else {
-            document.getElementById("item-list-side").style.display = "none";
-            document.getElementById("layer-list-side").style.display = "none";
-            document.getElementById("2Dcanvas").style.width = '100%';
-            document.getElementById("navbar-view-tilelist").innerHTML = 'Tile List';
-        }
     }
     document.getElementById("navbar-view-tilelist").addEventListener("click", function () {
         if (getPreference("tile-list-visible") === "true") {
@@ -443,15 +452,6 @@ if (NEWUI) {
     var canvasDebugText = getPreference("canvas-debug-text");
     if (!canvasDebugText) {
         canvasDebugText = "true";
-    }
-    function setCanvasDebugText(visible) {
-        setPreference("canvas-debug-text", visible);
-        if (visible === "true") {
-            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
-        }
-        else {
-            document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug';
-        }
     }
     document.getElementById("navbar-view-canvasdebug").addEventListener("click", function () {
         if (getPreference("canvas-debug-text") === "true") {

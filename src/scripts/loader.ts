@@ -7,6 +7,7 @@ var currentWorld: number = 0
 
 let newButton: any = document.getElementById("navbar-new")
 let importInput: any = document.getElementById("navbar-import")
+let importInput2: any = document.getElementById("navbar-import-2")
 let exportButton: any = document.getElementById("navbar-export")
 let helpButton: any = document.getElementById("navbar-help")
 let worldSettingsButton: any = document.getElementById("navbar-world-settings")
@@ -241,6 +242,47 @@ importInput.addEventListener("change", () => {
     }
 
     updateWorldList()
+})
+
+initSqlJs({locateFile: filename => `node_modules/sql.js/dist/sql-wasm.wasm`}).then((SQL) => { 
+    window["SQL"] = SQL
+
+    importInput2.addEventListener("change", () => {
+        if (importInput2.files.length > 0) {
+            let thisWorldId = worlds.length
+            worlds[thisWorldId] = new World()
+    
+            currentWorld = thisWorldId
+            
+            uneditedFiles = {}
+            for (let i = 0; i < importInput2.files.length; i++) {
+                //console.log(importInput2.files[i].webkitRelativePath)
+                if (importInput2.files[i].webkitRelativePath.endsWith("world.dat")) {
+                    //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
+                    let fileReader = new FileReader()
+    
+                    fileReader.onload = function(e) {
+                        let uint8data = new Uint8Array(<ArrayBufferLike>fileReader.result)
+                        let dataBase = new SQL.Database(uint8data)
+                        worlds[thisWorldId].fromDatabase(dataBase)
+                    }
+                    fileReader.readAsArrayBuffer(importInput2.files[i])
+                } else if (importInput2.files[i].webkitRelativePath.endsWith(".meta")) {
+                    let fileReader = new FileReader()
+    
+                    fileReader.onload = function(e) {
+                        readBinaryFile(e.target.result, importInput2.files[i].webkitRelativePath, thisWorldId)
+                    }
+    
+                    fileReader.readAsText(importInput2.files[i])
+                } else {
+                    console.warn(`I don't know how to read ${importInput2.files[i].webkitRelativePath}`)
+                }
+            }
+        }
+    
+        updateWorldList()
+    })
 })
 
 exportButton.addEventListener("click", () => {

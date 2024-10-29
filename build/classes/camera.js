@@ -52,7 +52,7 @@ var Camera = /** @class */ (function () {
             }
             var newZoom = camera.zoom + camera.zoom / (-e.deltaY / 32); //e.wheelDeltaY
             newZoom = Math.floor(newZoom * 100) / 100;
-            newZoom = Math.max(0.075, newZoom);
+            newZoom = Math.max(0.06, newZoom);
             newZoom = Math.min(6, newZoom);
             camera.zoom = newZoom;
             /*if (newZoom < 6 && newZoom> 0.1) {

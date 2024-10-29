@@ -17,6 +17,7 @@
         <!--Third Party Libraries-->
         <script src="src/libraries/jszip.min.js" defer></script>
         <script src="src/libraries/FileSaver.min.js" defer></script>
+        <script src="node_modules/sql.js/dist/sql-wasm.js" defer></script>
 
         <!--types/interfaces-->
         <script src="build/types/vector2.js" defer></script>
@@ -69,8 +70,10 @@
                     <button id="navbar-file" class="navbar-button">File</button>
                     <ul id="navbar-file-buttons" class="navbar-dropdown">
                         <button id="navbar-new" class="navbar-li">New</button>
-                        <label for="navbar-import" class="navbar-li" id="import-label">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import">
-                        <button id="navbar-export" class="navbar-li">Export</button>
+                        <label for="navbar-import-2" class="navbar-li import-label" id="import-label-2">Import folder (2.0 BETA)</label><input type="file" webkitdirectory mozdirectory id="navbar-import-2" class="navbar-import">
+                        <label for="navbar-import" class="navbar-li import-label" id="import-label">Import folder (Pre 2.0)</label><input type="file" webkitdirectory mozdirectory id="navbar-import" class="navbar-import">
+                        <!--<button id="navbar-export-2" class="navbar-li">Export</button>-->
+                        <button id="navbar-export" class="navbar-li">Export (Pre 2.0)</button>
                         <button id="navbar-examples" class="navbar-li navbar-button" parentnav="navbar-file">Examples<span class="material-symbols-outlined">chevron_right</span></button>
                         <ul id="navbar-examples-buttons" class="navbar-dropdown navbar-dropdown-parented">
 

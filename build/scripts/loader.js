@@ -42,6 +42,7 @@ var uneditedFiles = {};
 var currentWorld = 0;
 var newButton = document.getElementById("navbar-new");
 var importInput = document.getElementById("navbar-import");
+var importInput2 = document.getElementById("navbar-import-2");
 var exportButton = document.getElementById("navbar-export");
 var helpButton = document.getElementById("navbar-help");
 var worldSettingsButton = document.getElementById("navbar-world-settings");
@@ -261,6 +262,44 @@ importInput.addEventListener("change", function () {
         }
     }
     updateWorldList();
+});
+initSqlJs({ locateFile: function (filename) { return "node_modules/sql.js/dist/sql-wasm.wasm"; } }).then(function (SQL) {
+    window["SQL"] = SQL;
+    importInput2.addEventListener("change", function () {
+        if (importInput2.files.length > 0) {
+            var thisWorldId_2 = worlds.length;
+            worlds[thisWorldId_2] = new World();
+            currentWorld = thisWorldId_2;
+            uneditedFiles = {};
+            var _loop_3 = function (i) {
+                //console.log(importInput2.files[i].webkitRelativePath)
+                if (importInput2.files[i].webkitRelativePath.endsWith("world.dat")) {
+                    //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
+                    var fileReader_1 = new FileReader();
+                    fileReader_1.onload = function (e) {
+                        var uint8data = new Uint8Array(fileReader_1.result);
+                        var dataBase = new SQL.Database(uint8data);
+                        worlds[thisWorldId_2].fromDatabase(dataBase);
+                    };
+                    fileReader_1.readAsArrayBuffer(importInput2.files[i]);
+                }
+                else if (importInput2.files[i].webkitRelativePath.endsWith(".meta")) {
+                    var fileReader = new FileReader();
+                    fileReader.onload = function (e) {
+                        readBinaryFile(e.target.result, importInput2.files[i].webkitRelativePath, thisWorldId_2);
+                    };
+                    fileReader.readAsText(importInput2.files[i]);
+                }
+                else {
+                    console.warn("I don't know how to read ".concat(importInput2.files[i].webkitRelativePath));
+                }
+            };
+            for (var i = 0; i < importInput2.files.length; i++) {
+                _loop_3(i);
+            }
+        }
+        updateWorldList();
+    });
 });
 exportButton.addEventListener("click", function () {
     worlds[currentWorld].saveAsFile();

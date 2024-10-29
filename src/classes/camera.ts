@@ -71,7 +71,7 @@ class Camera {
 
             let newZoom: number = camera.zoom + camera.zoom / (-e.deltaY / 32) //e.wheelDeltaY
             newZoom = Math.floor(newZoom * 100) / 100
-            newZoom = Math.max(0.075, newZoom)
+            newZoom = Math.max(0.06, newZoom)
             newZoom = Math.min(6, newZoom)
 
             camera.zoom = newZoom

@@ -9,6 +9,7 @@ let imagesToLoad: Array<string> = [
     "assets/Tilesets/AmongUsLightHouseLight.png",
     "assets/Tilesets/AmongUsObjects.png",
     "assets/Tilesets/AmongUsWallElements.png",
+    "assets/Tilesets/BigWallDwarfs.png",
     "assets/Tilesets/Building.png",
     "assets/Tilesets/ClassesAndCombat.png",
     "assets/Tilesets/Desert.png",
@@ -18,6 +19,7 @@ let imagesToLoad: Array<string> = [
     "assets/Tilesets/DungeonForest.png",
     "assets/Tilesets/DungeonIce.png",
     "assets/Tilesets/DungeonIceNoPopup.png",
+    "assets/Tilesets/Endgame_PortalStone.png",
     "assets/Tilesets/Extra.png",
     "assets/Tilesets/Farming.png",
     "assets/Tilesets/Forest.png",
@@ -42,6 +44,7 @@ let imagesToLoad: Array<string> = [
     "assets/Tilesets/Traps.png",
     "assets/Tilesets/unknown.png",
     "assets/Tilesets/VoidDungeon.png",
+    "assets/Tilesets/VoidDungeon2.png",
     "assets/Tilesets/VolcanoMiniDungeons.png",
 
     //Items

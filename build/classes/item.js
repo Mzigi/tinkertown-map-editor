@@ -63,6 +63,16 @@ var Item = /** @class */ (function () {
     Item.prototype.getByteSize = function () {
         return 24;
     };
+    Item.prototype.fromObject = function (worldItemData, itemPaletteData) {
+        var itemGuid = worldItemData.itemGuid;
+        var chunkAndTilePos = worlds[currentWorld].getChunkAndTilePosAtWorldPos(worldItemData.worldPositionX, worldItemData.worldPositionY);
+        this.chunkX = chunkAndTilePos[0].x;
+        this.chunkY = chunkAndTilePos[0].y;
+        this.x = chunkAndTilePos[1].x;
+        this.y = chunkAndTilePos[1].y;
+        this.count = itemPaletteData[itemGuid].count;
+        this.id = itemPaletteData[itemGuid].id;
+    };
     return Item;
 }());
 //# sourceMappingURL=item.js.map

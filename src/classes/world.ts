@@ -4,6 +4,7 @@
 //javascript globals
 declare var JSZip: any
 declare var saveAs: any
+declare var initSqlJs: any
 
 var saveByteArray = (function () {
     var a = document.createElement("a");
@@ -202,6 +203,23 @@ class World {
     getChunkAtScreenPos(canvas: HTMLCanvasElement, x: number, y: number): Chunk | null {
         let pos = this.getChunkPosAtScreenPos(canvas, x, y)
         return this.getChunkAt(pos.x, pos.y)
+    }
+
+    getChunkAndTilePosAtWorldPos(x: number, y: number): Vector2[] {
+        let chunkPos = {"x": Math.floor(x / 10), "y": Math.floor(y / 10)}
+
+        let newX = Math.abs(x % 10)
+        let newY = Math.abs(y % 10)
+
+        if (x < 0) {
+            newX = (9 - newX + 1) % 10
+        }
+
+        if (y < 0) {
+            newY = (9 - newY + 1) % 10
+        }
+
+        return [chunkPos, {"x": newX, "y": newY}]
     }
 
     removeChunkAt(x: number,y: number) {
@@ -463,6 +481,66 @@ class World {
         this.writeToBuffer(worldBuffer, 0)
 
         saveByteArray([worldBuffer], this.name + ".ttworld")
+    }
+
+    fromDatabase(db: any) {
+        console.log(db)
+
+        //load tiles
+        let dbTileData = db.prepare("SELECT * FROM Tiles")
+
+        while (dbTileData.step()) {
+            let tileData = dbTileData.getAsObject()
+
+            let chunkPos = {"x": Math.floor(tileData.x / 10), "y": Math.floor(tileData.y / 10)}
+            let chunk = this.getChunkAt(chunkPos.x, chunkPos.y)
+            if (!chunk) {
+                chunk = new Chunk()
+                chunk.x = chunkPos.x
+                chunk.y = chunkPos.y
+                this.addChunk(chunk)
+            }
+
+            let tile = new Tile()
+            tile.fromObject(tileData)
+            chunk.setTile(tile)
+        }
+
+        dbTileData.free()
+
+        //load item palette
+        let itemPaletteData = {}
+
+        let dbItemPaletteData = db.prepare("SELECT * FROM Item")
+
+        while (dbItemPaletteData.step()) {
+            let itemPalette = dbItemPaletteData.getAsObject()
+
+            itemPaletteData[itemPalette.itemGuid] = {"id": itemPalette.itemAssetID, "count": itemPalette.count}
+        }
+
+        dbItemPaletteData.free()
+
+        //load world items (ground items)
+        let dbWorldItemData = db.prepare("SELECT * FROM WorldItem")
+
+        while (dbWorldItemData.step()) {
+            let worldItemData = dbWorldItemData.getAsObject()
+
+            let worldItem = new Item()
+            worldItem.fromObject(worldItemData, itemPaletteData)
+
+            let itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY)
+
+            if (itemChunk) {
+                itemChunk.itemDataList.push(worldItem)
+                itemChunk.resetCacheImage()
+            } else {
+                console.warn(`Chunk missing for item at chunk [${worldItem.chunkX}, ${worldItem.chunkY}]`)
+            }
+        }
+
+        dbWorldItemData.free()
     }
 
     undoOnce() {

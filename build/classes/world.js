@@ -140,6 +140,18 @@ var World = /** @class */ (function () {
         var pos = this.getChunkPosAtScreenPos(canvas, x, y);
         return this.getChunkAt(pos.x, pos.y);
     };
+    World.prototype.getChunkAndTilePosAtWorldPos = function (x, y) {
+        var chunkPos = { "x": Math.floor(x / 10), "y": Math.floor(y / 10) };
+        var newX = Math.abs(x % 10);
+        var newY = Math.abs(y % 10);
+        if (x < 0) {
+            newX = (9 - newX + 1) % 10;
+        }
+        if (y < 0) {
+            newY = (9 - newY + 1) % 10;
+        }
+        return [chunkPos, { "x": newX, "y": newY }];
+    };
     World.prototype.removeChunkAt = function (x, y) {
         var chunkIndex = this.getChunkIndexAt(x, y);
         if (chunkIndex != null) {
@@ -350,6 +362,50 @@ var World = /** @class */ (function () {
         var worldBuffer = new ArrayBuffer(this.getByteSize());
         this.writeToBuffer(worldBuffer, 0);
         saveByteArray([worldBuffer], this.name + ".ttworld");
+    };
+    World.prototype.fromDatabase = function (db) {
+        console.log(db);
+        //load tiles
+        var dbTileData = db.prepare("SELECT * FROM Tiles");
+        while (dbTileData.step()) {
+            var tileData = dbTileData.getAsObject();
+            var chunkPos = { "x": Math.floor(tileData.x / 10), "y": Math.floor(tileData.y / 10) };
+            var chunk = this.getChunkAt(chunkPos.x, chunkPos.y);
+            if (!chunk) {
+                chunk = new Chunk();
+                chunk.x = chunkPos.x;
+                chunk.y = chunkPos.y;
+                this.addChunk(chunk);
+            }
+            var tile = new Tile();
+            tile.fromObject(tileData);
+            chunk.setTile(tile);
+        }
+        dbTileData.free();
+        //load item palette
+        var itemPaletteData = {};
+        var dbItemPaletteData = db.prepare("SELECT * FROM Item");
+        while (dbItemPaletteData.step()) {
+            var itemPalette = dbItemPaletteData.getAsObject();
+            itemPaletteData[itemPalette.itemGuid] = { "id": itemPalette.itemAssetID, "count": itemPalette.count };
+        }
+        dbItemPaletteData.free();
+        //load world items (ground items)
+        var dbWorldItemData = db.prepare("SELECT * FROM WorldItem");
+        while (dbWorldItemData.step()) {
+            var worldItemData = dbWorldItemData.getAsObject();
+            var worldItem = new Item();
+            worldItem.fromObject(worldItemData, itemPaletteData);
+            var itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY);
+            if (itemChunk) {
+                itemChunk.itemDataList.push(worldItem);
+                itemChunk.resetCacheImage();
+            }
+            else {
+                console.warn("Chunk missing for item at chunk [".concat(worldItem.chunkX, ", ").concat(worldItem.chunkY, "]"));
+            }
+        }
+        dbWorldItemData.free();
     };
     World.prototype.undoOnce = function () {
         for (var i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {

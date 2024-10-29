@@ -33,6 +33,29 @@ class Tile {
         return null
     }
 
+    fromObject(tileData: any) {
+        this.x = Math.abs(tileData.x % 10)
+        this.y = Math.abs(tileData.y % 10)
+        this.z = tileData.z
+
+        if (tileData.x < 0) {
+            this.x = (9 - this.x + 1) % 10
+        }
+
+        if (tileData.y < 0) {
+            this.y = (9 - this.y + 1) % 10
+        }
+
+        this.health = tileData.hp
+        this.tileAssetId = tileData.tileAssetID
+        this.rotation = tileData.rotation
+
+        this.memoryA = tileData.memA
+        this.memoryB = tileData.memB
+
+        //TODO: tileData.dungeon
+    }
+
     fromBuffer(tileBuffer: ArrayBuffer) {
         let view: simpleView = new simpleView(tileBuffer)
         this.x = view.readUint8() //left to right

@@ -192,7 +192,7 @@ select {
     background-color: var(--lightgray-hovered);
 }
 
-#navbar-import {
+.navbar-import {
     opacity: 0;
     position: absolute;
     z-index: -1;
@@ -342,7 +342,7 @@ dialog {
     min-width: 220px;
 }
 
-#import-label {
+.import-label {
     width: -moz-available;
     width: -webkit-fill-available;
     width: fill-available;
