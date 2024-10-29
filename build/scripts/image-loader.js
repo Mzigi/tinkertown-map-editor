@@ -45,7 +45,7 @@ var imagesToLoad = [
     "assets/Tilesets/VoidDungeon.png",
     "assets/Tilesets/VoidDungeon2.png",
     "assets/Tilesets/VolcanoMiniDungeons.png",
-    //Items
+    //Items (MOST ARE UNUSED NOW)
     "assets/Tilesets/Actor_Blank.png",
     "assets/Tilesets/BuffIcons_3.png",
     "assets/Tilesets/Item_Among_Us.png",
@@ -76,6 +76,8 @@ var imagesToLoad = [
     "assets/Tilesets/Tileset_Mines.png",
     "assets/Tilesets/Tileset_Transportation_Items.png",
     "assets/Tilesets/Item_Rewards.png",
+    "assets/Tilesets/sactx-0-1024x512-Uncompressed-ItemsSpriteAtlas-a1ce990c.png",
+    "assets/Tilesets/sactx-0-2048x2048-Uncompressed-UISpriteAtlas-371b51d9.png",
     //Other
     "assets/storage.png",
     "assets/storage-small.png",
