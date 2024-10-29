@@ -222,6 +222,21 @@ class World {
         return [chunkPos, {"x": newX, "y": newY}]
     }
 
+    getContainerAt(x: number, y: number, z: number) {
+        let chunkAndTilePos = this.getChunkAndTilePosAtWorldPos(x, y)
+
+        for (let container of this.containers) {
+            if (container.chunkX == chunkAndTilePos[0].x &&
+                container.chunkY == chunkAndTilePos[0].y &&
+                container.x == chunkAndTilePos[1].x &&
+                container.y == chunkAndTilePos[1].y &&
+                container.z == z
+            ) {
+                return container
+            }
+        }
+    }
+
     removeChunkAt(x: number,y: number) {
         let chunkIndex: any = this.getChunkIndexAt(x,y)
         if (chunkIndex != null) {
@@ -541,6 +556,39 @@ class World {
         }
 
         dbWorldItemData.free()
+
+        //load storage items
+        let dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory WHERE actorGuid = 'tile'")
+
+        while (dbItemByInventory.step()) {
+            let itemByInventory = dbItemByInventory.getAsObject()
+
+            let container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ)
+            if (!container) {
+                container = new Inventory()
+                container.width = 5 //TODO: make these the actual inventory size
+                container.height = 5
+                
+                let containerChunkAndTilePos = this.getChunkAndTilePosAtWorldPos(itemByInventory.tileX, itemByInventory.tileY)
+                container.chunkX = containerChunkAndTilePos[0].x
+                container.chunkY = containerChunkAndTilePos[0].y
+                container.x = containerChunkAndTilePos[1].x
+                container.y = containerChunkAndTilePos[1].y
+                container.z = itemByInventory.tileZ
+                container.target = InventoryFormat.Container
+
+                this.containers.push(container)
+            }
+
+            let item = new InventoryItem()
+            item.slot = itemByInventory.inventoryIndex
+            item.count = itemPaletteData[itemByInventory.itemGuid].count
+            item.id = itemPaletteData[itemByInventory.itemGuid].id
+
+            container.addItem(item)
+        }
+
+        dbItemByInventory.free()
     }
 
     undoOnce() {

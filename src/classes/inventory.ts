@@ -308,6 +308,18 @@ class Inventory {
         }
     }
 
+    addItem(item: InventoryItem) {
+        for (let i = 0; i < this.itemDataList.length; i++) {
+            let item2 = this.itemDataList[i]
+            if (item2.slot == item.slot) {
+                this.itemDataList.splice(i, 1)
+            }
+        }
+        this.itemDataList.push(item)
+        this.totalSlots = this.itemDataList.length
+        this.checkContainsItems()
+    }
+
     visualize() {
         //find elements
         let rootElement = <HTMLHtmlElement>document.querySelector(":root")

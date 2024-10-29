@@ -239,6 +239,17 @@ var Inventory = /** @class */ (function () {
             }
         }
     };
+    Inventory.prototype.addItem = function (item) {
+        for (var i = 0; i < this.itemDataList.length; i++) {
+            var item2 = this.itemDataList[i];
+            if (item2.slot == item.slot) {
+                this.itemDataList.splice(i, 1);
+            }
+        }
+        this.itemDataList.push(item);
+        this.totalSlots = this.itemDataList.length;
+        this.checkContainsItems();
+    };
     Inventory.prototype.visualize = function () {
         //find elements
         var rootElement = document.querySelector(":root");

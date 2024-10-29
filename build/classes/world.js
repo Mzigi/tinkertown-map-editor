@@ -152,6 +152,19 @@ var World = /** @class */ (function () {
         }
         return [chunkPos, { "x": newX, "y": newY }];
     };
+    World.prototype.getContainerAt = function (x, y, z) {
+        var chunkAndTilePos = this.getChunkAndTilePosAtWorldPos(x, y);
+        for (var _i = 0, _a = this.containers; _i < _a.length; _i++) {
+            var container = _a[_i];
+            if (container.chunkX == chunkAndTilePos[0].x &&
+                container.chunkY == chunkAndTilePos[0].y &&
+                container.x == chunkAndTilePos[1].x &&
+                container.y == chunkAndTilePos[1].y &&
+                container.z == z) {
+                return container;
+            }
+        }
+    };
     World.prototype.removeChunkAt = function (x, y) {
         var chunkIndex = this.getChunkIndexAt(x, y);
         if (chunkIndex != null) {
@@ -406,6 +419,31 @@ var World = /** @class */ (function () {
             }
         }
         dbWorldItemData.free();
+        //load storage items
+        var dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory WHERE actorGuid = 'tile'");
+        while (dbItemByInventory.step()) {
+            var itemByInventory = dbItemByInventory.getAsObject();
+            var container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ);
+            if (!container) {
+                container = new Inventory();
+                container.width = 5; //TODO: make these the actual inventory size
+                container.height = 5;
+                var containerChunkAndTilePos = this.getChunkAndTilePosAtWorldPos(itemByInventory.tileX, itemByInventory.tileY);
+                container.chunkX = containerChunkAndTilePos[0].x;
+                container.chunkY = containerChunkAndTilePos[0].y;
+                container.x = containerChunkAndTilePos[1].x;
+                container.y = containerChunkAndTilePos[1].y;
+                container.z = itemByInventory.tileZ;
+                container.target = InventoryFormat.Container;
+                this.containers.push(container);
+            }
+            var item = new InventoryItem();
+            item.slot = itemByInventory.inventoryIndex;
+            item.count = itemPaletteData[itemByInventory.itemGuid].count;
+            item.id = itemPaletteData[itemByInventory.itemGuid].id;
+            container.addItem(item);
+        }
+        dbItemByInventory.free();
     };
     World.prototype.undoOnce = function () {
         for (var i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
