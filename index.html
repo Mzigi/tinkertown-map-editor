@@ -18,9 +18,6 @@
         <script src="src/libraries/jszip.min.js" defer></script>
         <script src="src/libraries/FileSaver.min.js" defer></script>
         <script src="node_modules/sql.js/dist/sql-wasm.js" defer></script>
-
-        <!--types/interfaces-->
-        <script src="build/types/vector2.js" defer></script>
         
         <!--custom libraries-->
         <script src="build/libraries/assetInfoToJson.js" defer></script>
@@ -70,9 +67,8 @@
                     <button id="navbar-file" class="navbar-button">File</button>
                     <ul id="navbar-file-buttons" class="navbar-dropdown">
                         <button id="navbar-new" class="navbar-li">New</button>
-                        <label for="navbar-import-2" class="navbar-li import-label" id="import-label-2">Import folder (2.0 BETA)</label><input type="file" webkitdirectory mozdirectory id="navbar-import-2" class="navbar-import">
-                        <label for="navbar-import" class="navbar-li import-label" id="import-label">Import folder (Pre 2.0)</label><input type="file" webkitdirectory mozdirectory id="navbar-import" class="navbar-import">
-                        <!--<button id="navbar-export-2" class="navbar-li">Export</button>-->
+                        <label for="navbar-import" class="navbar-li import-label" id="import-label">Import folder</label><input type="file" webkitdirectory mozdirectory id="navbar-import" class="navbar-import">
+                        <button id="navbar-export-2" class="navbar-li">Export</button>
                         <button id="navbar-export" class="navbar-li">Export (Pre 2.0)</button>
                         <button id="navbar-examples" class="navbar-li navbar-button" parentnav="navbar-file">Examples<span class="material-symbols-outlined">chevron_right</span></button>
                         <ul id="navbar-examples-buttons" class="navbar-dropdown navbar-dropdown-parented">
@@ -99,6 +95,7 @@
                             <ul id="navbar-view-buttons" class="navbar-dropdown navbar-dropdown-parented">
                                 <button id="navbar-view-tilelist" class="navbar-li">Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
                                 <button id="navbar-view-canvasdebug" class="navbar-li">Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
+                                <button id="navbar-view-show-poi" class="navbar-li">Show Points Of Interest<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
                             </ul>
                         </div>
                     </ul>
@@ -179,6 +176,10 @@
 
             <dialog id="dialog-loading">
                 <span class="title">Loading world...</span>
+            </dialog>
+
+            <dialog id="dialog-exporting">
+                <span class="title" id="dialog-exporting-percentage">Exporting world...</span>
             </dialog>
 
             <dialog id="dialog-world-settings">

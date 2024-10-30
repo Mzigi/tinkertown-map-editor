@@ -38,12 +38,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var _this = this;
 // @ts-check
 var worlds = [new World()];
-var uneditedFiles = {};
 var currentWorld = 0;
 var newButton = document.getElementById("navbar-new");
 var importInput = document.getElementById("navbar-import");
-var importInput2 = document.getElementById("navbar-import-2");
 var exportButton = document.getElementById("navbar-export");
+var exportButton2 = document.getElementById("navbar-export-2");
 var helpButton = document.getElementById("navbar-help");
 var worldSettingsButton = document.getElementById("navbar-world-settings");
 var examplesButton = document.getElementById("navbar-examples");
@@ -98,6 +97,9 @@ var examples = [
         "name": "Earlytown - 1",
     },
 ];
+var isDarkMode = function () {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
 var savedPrefereneces = null;
 function getPreference(key) {
     if (savedPrefereneces == null) {
@@ -105,6 +107,20 @@ function getPreference(key) {
     }
     if (!savedPrefereneces) {
         savedPrefereneces = {};
+    }
+    if (!savedPrefereneces[key]) {
+        /*if (["show-poi","tile-list-visible"].includes(key)) {
+            savedPrefereneces[key] = "true"
+        } else if (["canvas-debug-text"].includes(key)) {
+            savedPrefereneces[key] = "false"
+        } else*/ if (key == "theme") {
+            if (isDarkMode()) {
+                savedPrefereneces[key] = "dark";
+            }
+            else {
+                savedPrefereneces[key] = "light";
+            }
+        }
     }
     return savedPrefereneces[key];
 }
@@ -173,10 +189,16 @@ var readBinaryFile = function (file, filePath, worldId) { return __awaiter(_this
                 return [4 /*yield*/, file.arrayBuffer()];
             case 1:
                 buffer = _a.sent();
-                loadedChunk = new Chunk();
-                loadedChunk.fromBuffer(buffer);
-                worlds[worldId].addChunk(loadedChunk);
-                worlds[worldId].chunkCache[filePath] = buffer;
+                if (worlds[worldId].format === WorldFormat.Binary) {
+                    loadedChunk = new Chunk();
+                    loadedChunk.fromBuffer(buffer);
+                    worlds[worldId].addChunk(loadedChunk);
+                    worlds[worldId].chunkCache[filePath] = buffer;
+                }
+                else {
+                    console.warn("Attempted to load chunk file while world is in the Database format");
+                    worlds[worldId].uneditedFiles[filePath] = buffer;
+                }
                 return [3 /*break*/, 8];
             case 2:
                 if (!filePath.endsWith("world.meta")) return [3 /*break*/, 3];
@@ -206,16 +228,22 @@ var readBinaryFile = function (file, filePath, worldId) { return __awaiter(_this
                 return [4 /*yield*/, file.arrayBuffer()];
             case 5:
                 buffer = _a.sent();
-                loadedInventory = new Inventory();
-                loadedInventory.fromBuffer(buffer);
-                loadedInventory.filePath = filePath;
-                worlds[worldId].containers.push(loadedInventory);
+                if (worlds[worldId].format === WorldFormat.Binary) {
+                    loadedInventory = new Inventory();
+                    loadedInventory.fromBuffer(buffer);
+                    loadedInventory.filePath = filePath;
+                    worlds[worldId].containers.push(loadedInventory);
+                }
+                else {
+                    console.warn("Attempted to load inventory file while world is in the Database format");
+                    worlds[worldId].uneditedFiles[filePath] = buffer;
+                }
                 return [3 /*break*/, 8];
             case 6: return [4 /*yield*/, file.arrayBuffer()];
             case 7:
                 buffer = _a.sent();
                 console.log("Editor doesn't know how to read " + filePath);
-                uneditedFiles[filePath] = buffer;
+                worlds[worldId].uneditedFiles[filePath] = buffer;
                 _a.label = 8;
             case 8: return [2 /*return*/];
         }
@@ -233,69 +261,52 @@ newButton.addEventListener("click", function () {
     currentWorld = worlds.length;
     worlds[currentWorld] = new World();
     updateWorldList();
-    uneditedFiles = {};
-});
-importInput.addEventListener("change", function () {
-    if (importInput.files.length > 0) {
-        var thisWorldId_1 = worlds.length;
-        worlds[thisWorldId_1] = new World();
-        currentWorld = thisWorldId_1;
-        uneditedFiles = {};
-        var _loop_2 = function (i) {
-            //console.log(importInput.files[i].webkitRelativePath)
-            if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
-            }
-            else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
-                var fileReader = new FileReader();
-                fileReader.onload = function (e) {
-                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId_1);
-                };
-                fileReader.readAsText(importInput.files[i]);
-            }
-            else {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
-            }
-        };
-        for (var i = 0; i < importInput.files.length; i++) {
-            _loop_2(i);
-        }
-    }
-    updateWorldList();
+    worlds[currentWorld].uneditedFiles = {};
 });
 initSqlJs({ locateFile: function (filename) { return "node_modules/sql.js/dist/sql-wasm.wasm"; } }).then(function (SQL) {
     window["SQL"] = SQL;
-    importInput2.addEventListener("change", function () {
-        if (importInput2.files.length > 0) {
-            var thisWorldId_2 = worlds.length;
-            worlds[thisWorldId_2] = new World();
-            currentWorld = thisWorldId_2;
-            uneditedFiles = {};
-            var _loop_3 = function (i) {
-                //console.log(importInput2.files[i].webkitRelativePath)
-                if (importInput2.files[i].webkitRelativePath.endsWith("world.dat")) {
+    importInput.addEventListener("change", function () {
+        if (importInput.files.length > 0) {
+            var thisWorldId_1 = worlds.length;
+            worlds[thisWorldId_1] = new World();
+            worlds[thisWorldId_1].format = WorldFormat.Binary;
+            currentWorld = thisWorldId_1;
+            worlds[thisWorldId_1].uneditedFiles = {};
+            //check if world is database
+            for (var _i = 0, _a = importInput.files; _i < _a.length; _i++) {
+                var file = _a[_i];
+                if (file.webkitRelativePath.endsWith("world.dat")) {
+                    worlds[currentWorld].format = WorldFormat.Database;
+                }
+            }
+            var _loop_2 = function (i) {
+                //console.log(importInput.files[i].webkitRelativePath)
+                if (importInput.files[i].webkitRelativePath.endsWith("world.dat")) {
                     //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
                     var fileReader_1 = new FileReader();
                     fileReader_1.onload = function (e) {
                         var uint8data = new Uint8Array(fileReader_1.result);
                         var dataBase = new SQL.Database(uint8data);
-                        worlds[thisWorldId_2].fromDatabase(dataBase);
+                        worlds[thisWorldId_1].fromDatabase(dataBase);
                     };
-                    fileReader_1.readAsArrayBuffer(importInput2.files[i]);
+                    fileReader_1.readAsArrayBuffer(importInput.files[i]);
                 }
-                else if (importInput2.files[i].webkitRelativePath.endsWith(".meta")) {
+                else if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
+                    readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
+                }
+                else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
                     var fileReader = new FileReader();
                     fileReader.onload = function (e) {
-                        readBinaryFile(e.target.result, importInput2.files[i].webkitRelativePath, thisWorldId_2);
+                        readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId_1);
                     };
-                    fileReader.readAsText(importInput2.files[i]);
+                    fileReader.readAsText(importInput.files[i]);
                 }
                 else {
-                    console.warn("I don't know how to read ".concat(importInput2.files[i].webkitRelativePath));
+                    readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId_1);
                 }
             };
-            for (var i = 0; i < importInput2.files.length; i++) {
-                _loop_3(i);
+            for (var i = 0; i < importInput.files.length; i++) {
+                _loop_2(i);
             }
         }
         updateWorldList();
@@ -303,6 +314,9 @@ initSqlJs({ locateFile: function (filename) { return "node_modules/sql.js/dist/s
 });
 exportButton.addEventListener("click", function () {
     worlds[currentWorld].saveAsFile();
+});
+exportButton2.addEventListener("click", function () {
+    worlds[currentWorld].saveAsFile(true);
 });
 helpButton.addEventListener("click", function () {
     document.getElementById("dialog-help").showModal();

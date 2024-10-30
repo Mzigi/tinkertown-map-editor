@@ -47,10 +47,140 @@ function writeWorldVersion(view: simpleView, version: worldVersion) {
     }
 }
 
+async function Wait(time: number): Promise<Number> {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(time)
+        }, time)
+    })
+}
+
+function uuid() {
+    return (1e7.toString()+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16)
+    );
+}
+
+class PlayerSave {
+    puid: string
+    
+    health: number
+    mana: number
+
+    spawnPointX: number
+    spawnPointY: number
+
+    deathPointX: number
+    deathPointY: number
+
+    positionX: number
+    positionY: number
+
+    fromObject(playerSaveData: any) {
+        this.puid = playerSaveData.Puid
+
+        this.health = playerSaveData.Health
+        this.mana = playerSaveData.Mana
+        
+        this.spawnPointX = playerSaveData.SpawnPointX
+        this.spawnPointY = playerSaveData.SpawnPointY
+
+        this.deathPointX = playerSaveData.DeathPointX
+        this.deathPointY = playerSaveData.DeathPointY
+
+        this.positionX = playerSaveData.PositionX
+        this.positionY = playerSaveData.PositionY
+    }
+}
+
+class BuildingDTO {
+    id: string
+
+    bottomLeft: Vector2
+    topRight: Vector2
+
+    rootX: number
+    rootY: number
+    rootZ: number
+
+    townianId: number
+
+    tilePositions: Array<Vector3>
+
+    fromObject(buildingDTOData: any) {
+        this.id = buildingDTOData.id
+
+        this.bottomLeft = {"x": buildingDTOData.boundingboxbottomleftx, "y": buildingDTOData.boundingboxbottomlefty}
+        this.topRight = {"x": buildingDTOData.boundingboxtoprightx, "y": buildingDTOData.boundingboxtoprighty}
+
+        this.rootX = buildingDTOData.rootpositionx
+        this.rootY = buildingDTOData.rootpositiony
+        this.rootZ = buildingDTOData.rootpositionz
+
+        this.townianId = buildingDTOData.townianid
+
+        this.tilePositions = []
+    }
+}
+
+class PointOfInterest {
+    id: number
+    type: number
+    questId: string
+    position: Vector2
+    revealedForAllPlayers: number
+
+    fromObject(pointOfInterestData: any) {
+        this.id = pointOfInterestData.id
+        this.type = pointOfInterestData.type
+        this.questId = pointOfInterestData.questID
+        this.position = {"x": pointOfInterestData.tilepositionx, "y": pointOfInterestData.tilepositiony}
+        this.revealedForAllPlayers = pointOfInterestData.RevealedForAllPlayers
+    }
+}
+
+class DiscoveryPointOfInterest { //i dont know what this actually is
+    position: Vector2
+    discoverer: string
+    questId: string
+    
+    fromObject(discovererPOIData: any) {
+        this.position = {"x": discovererPOIData.tilepositionx, "y": discovererPOIData.tilepositiony}
+        this.discoverer = discovererPOIData.discoverer
+        this.questId = discovererPOIData.questID
+    }
+}
+
+class MinimapValue {
+    position: Vector2
+    tileAssetId: number
+    dungeon: number
+
+    fromObject(minimapValueData: any) {
+        this.position = {"x": minimapValueData.x, "y": minimapValueData.y}
+        this.tileAssetId = minimapValueData.tileAssetID
+        this.dungeon = minimapValueData.dungeon
+    }
+}
+
+enum WorldFormat {
+    Binary,
+    Database,
+}
+
 class World {
-    containers: Array<Inventory>
+    playerSaves: {[key: string]: PlayerSave}
+
+    containers: Array<Inventory> //tile containers
+    otherContainers: {[key: string]: Inventory}
+
     chunks: Array<Chunk>
-    camera: Camera
+    dungeons: {[key: number]: Array<Chunk>}
+
+    buildingDTOs: {[key: string]: BuildingDTO}
+    pointsOfInterest: Array<PointOfInterest>
+    discoveryPointsOfInterest: Array<DiscoveryPointOfInterest>
+    minimapData: Array<MinimapValue>
 
     xMin: number
     yMin: number
@@ -71,20 +201,32 @@ class World {
     NPCsOff: boolean
     additionalParams: Array<string>
 
+    //editor only
     chunkCache: Object
     toolHistory: any
     hidden: boolean
     highlightedChunk: Chunk | null
+    camera: Camera
+    format: WorldFormat
+    uneditedFiles: {[key: string]: ArrayBuffer}
 
     constructor() {
         this.reset()
     }
 
     reset() {
+        this.playerSaves = {}
+        
         this.containers = []
+        this.otherContainers = {}
+
         this.chunks = []
-        this.camera = new Camera()
-        this.camera.world = this
+        this.dungeons = {}
+
+        this.buildingDTOs = {}
+        this.pointsOfInterest = []
+        this.discoveryPointsOfInterest = []
+        this.minimapData = []
 
         this.xMin = 0
         this.yMin = 0
@@ -116,6 +258,10 @@ class World {
         ]
         this.hidden = false
         this.highlightedChunk = null
+        this.camera = new Camera()
+        this.camera.world = this
+        this.format = WorldFormat.Database
+        this.uneditedFiles = {}
     }
 
     getId(): number {
@@ -143,10 +289,10 @@ class World {
         return null
     }
 
-    getChunkAt(x: number, y: number): Chunk | null {
-        for (let i = 0; i < this.chunks.length; i++) {
-            if (this.chunks[i].x === x && this.chunks[i].y === y) {
-                return this.chunks[i]
+    getChunkAt(x: number, y: number, chunksArray = this.chunks): Chunk | null {
+        for (let i = 0; i < chunksArray.length; i++) {
+            if (chunksArray[i].x === x && chunksArray[i].y === y) {
+                return chunksArray[i]
             }
         }
         return null
@@ -205,7 +351,7 @@ class World {
         return this.getChunkAt(pos.x, pos.y)
     }
 
-    getChunkAndTilePosAtWorldPos(x: number, y: number): Vector2[] {
+    getChunkAndTilePosAtGlobalPos(x: number, y: number): Vector2[] {
         let chunkPos = {"x": Math.floor(x / 10), "y": Math.floor(y / 10)}
 
         let newX = Math.abs(x % 10)
@@ -222,8 +368,15 @@ class World {
         return [chunkPos, {"x": newX, "y": newY}]
     }
 
+    getGlobalPosAtChunkAndTilePos(chunkX: number, chunkY: number, tileX: number, tileY: number): Vector2 {
+        let x = tileX + chunkX * 10
+        let y = tileY + chunkY * 10
+
+        return {"x": x, "y": y}
+    }
+
     getContainerAt(x: number, y: number, z: number) {
-        let chunkAndTilePos = this.getChunkAndTilePosAtWorldPos(x, y)
+        let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y)
 
         for (let container of this.containers) {
             if (container.chunkX == chunkAndTilePos[0].x &&
@@ -256,6 +409,14 @@ class World {
         this.chunks.push(chunk)
     }
 
+    addChunkDungeon(chunk: Chunk, dungeonId: number) {
+        if (!this.dungeons[dungeonId]) {
+            this.dungeons[dungeonId] = []
+        }
+
+        this.dungeons[dungeonId].push(chunk)
+    }
+
     fillWithContainers() {
         let containerSize = 8
 
@@ -268,7 +429,7 @@ class World {
         currentContainer.y = 0
         currentContainer.height = containerSize
         currentContainer.width = containerSize
-        worlds[currentWorld].containers.push(currentContainer)
+        this.containers.push(currentContainer)
 
         for (let item in item_assetInfo) {
             console.log(item)
@@ -281,7 +442,7 @@ class World {
                 currentContainer.y = Math.floor(placedContainers / 5) * 2
                 currentContainer.height = containerSize
                 currentContainer.width = containerSize
-                worlds[currentWorld].containers.push(currentContainer)
+                this.containers.push(currentContainer)
                 placedContainers += 1
             }
             
@@ -426,31 +587,43 @@ class World {
         return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize + 2 + containersByteSize
     }
 
-    saveAsFile() {
+    async saveAsFile(isDatabase = false) {
         let zip = new JSZip()
 
-        //chunks
-        for (let i = 0; i < this.chunks.length; i++) {
-            let chunk = this.chunks[i]
-
-            if (chunk.chunkHasBeenEdited || this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"] == null) {
-                let buffer = new ArrayBuffer(chunk.getByteSize())
-                chunk.writeToBuffer(buffer,0)
-                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
-                //saveByteArray([buffer], chunk.x + "_" + chunk.y + ".dat")
-            } else {
-                let buffer = this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"]
-                zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
-            }
+        //unknown files
+        for (let key in this.uneditedFiles) {
+            let fileBuffer = this.uneditedFiles[key]
+            let fileWorldName = key.split("/")[0]
+            zip.file(key.replace(fileWorldName + "/",""), fileBuffer, {"binary": true})
         }
 
-        //storage
-        for (let i = 0; i < this.containers.length; i++) {
-            let container = this.containers[i]
+        if (!isDatabase) {
+            //chunks
+            for (let i = 0; i < this.chunks.length; i++) {
+                let chunk = this.chunks[i]
 
-            let buffer = new ArrayBuffer(container.getByteSize())
-            container.writeToBuffer(buffer, 0)
-            zip.file(container.getFileName() + "inventory.dat", buffer, {"binary":true})
+                if (chunk.chunkHasBeenEdited || this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"] == null) {
+                    let buffer = new ArrayBuffer(chunk.getByteSize())
+                    chunk.writeToBuffer(buffer,0)
+                    zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+                    //saveByteArray([buffer], chunk.x + "_" + chunk.y + ".dat")
+                } else {
+                    let buffer = this.chunkCache[this.name + "/" + chunk.x + "_" + chunk.y + ".dat"]
+                    zip.file(chunk.x + "_" + chunk.y + ".dat", buffer, {"binary":true})
+                }
+            }
+
+            //storage
+            for (let i = 0; i < this.containers.length; i++) {
+                let container = this.containers[i]
+
+                let buffer = new ArrayBuffer(container.getByteSize())
+                container.writeToBuffer(buffer, 0)
+                zip.file(container.getFileName() + "inventory.dat", buffer, {"binary":true})
+            }
+        } else {
+            let buffer = ((await this.toDatabase()).export()).buffer
+            zip.file("backups/world.dat", buffer, {"binary":true})
         }
 
         //world meta
@@ -475,12 +648,6 @@ class World {
             }
         ))
 
-        //unknown files
-        for (let key in uneditedFiles) {
-            let fileBuffer = uneditedFiles[key]
-            zip.file(key.replace(this.name + "/",""), fileBuffer, {"binary": true})
-        }
-
         //save the zip
         let world = this
 
@@ -498,7 +665,15 @@ class World {
         saveByteArray([worldBuffer], this.name + ".ttworld")
     }
 
-    fromDatabase(db: any) {
+    async fromDatabase(db: any) {
+        let loadingDialog: HTMLDialogElement | null = <HTMLDialogElement>document.getElementById("dialog-loading")
+        
+        if (loadingDialog) {
+            loadingDialog.showModal()
+        }
+
+        await Wait(1)
+
         console.log(db)
 
         //load tiles
@@ -513,7 +688,13 @@ class World {
                 chunk = new Chunk()
                 chunk.x = chunkPos.x
                 chunk.y = chunkPos.y
-                this.addChunk(chunk)
+
+                if (tileData.dungeon === 0) {
+                    this.addChunk(chunk)
+                } else {
+                    console.log("Creating dungeon chunk")
+                    this.addChunkDungeon(chunk, tileData.dungeon)
+                }
             }
 
             let tile = new Tile()
@@ -558,37 +739,499 @@ class World {
         dbWorldItemData.free()
 
         //load storage items
-        let dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory WHERE actorGuid = 'tile'")
+        let dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory") // WHERE actorGuid = 'tile
 
         while (dbItemByInventory.step()) {
             let itemByInventory = dbItemByInventory.getAsObject()
 
-            let container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ)
-            if (!container) {
-                container = new Inventory()
-                container.width = 5 //TODO: make these the actual inventory size
-                container.height = 5
-                
-                let containerChunkAndTilePos = this.getChunkAndTilePosAtWorldPos(itemByInventory.tileX, itemByInventory.tileY)
-                container.chunkX = containerChunkAndTilePos[0].x
-                container.chunkY = containerChunkAndTilePos[0].y
-                container.x = containerChunkAndTilePos[1].x
-                container.y = containerChunkAndTilePos[1].y
-                container.z = itemByInventory.tileZ
-                container.target = InventoryFormat.Container
+            if (itemByInventory.actorGuid === "tile") { //container item
+                let container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ)
+                if (!container) {
+                    container = new Inventory()
+                    container.width = 5 //TODO: make these the actual inventory size
+                    container.height = 5
+                    container.target = InventoryFormat.Container
+                    
+                    let containerChunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(itemByInventory.tileX, itemByInventory.tileY)
+                    container.chunkX = containerChunkAndTilePos[0].x
+                    container.chunkY = containerChunkAndTilePos[0].y
+                    container.x = containerChunkAndTilePos[1].x
+                    container.y = containerChunkAndTilePos[1].y
+                    container.z = itemByInventory.tileZ
+                    container.target = InventoryFormat.Container
 
-                this.containers.push(container)
+                    this.containers.push(container)
+                }
+
+                let item = new InventoryItem()
+                item.slot = itemByInventory.inventoryIndex
+                item.count = itemPaletteData[itemByInventory.itemGuid].count
+                item.id = itemPaletteData[itemByInventory.itemGuid].id
+
+                container.addItem(item)
+            } else { //player inventory (i hope), inventoryType = Armor or Inventory
+                let container = this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType]
+                if (!container) {
+                    container = new Inventory()
+
+                    //doing this because its probably a playevenventory container
+                    container.width = 5
+                    container.height = 5
+                    container.target = InventoryFormat.Player
+
+                    this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container
+                }
+
+                let item = new InventoryItem()
+                item.slot = itemByInventory.inventoryIndex
+                item.count = itemPaletteData[itemByInventory.itemGuid].count
+                item.id = itemPaletteData[itemByInventory.itemGuid].id
+
+                container.addItem(item)
             }
-
-            let item = new InventoryItem()
-            item.slot = itemByInventory.inventoryIndex
-            item.count = itemPaletteData[itemByInventory.itemGuid].count
-            item.id = itemPaletteData[itemByInventory.itemGuid].id
-
-            container.addItem(item)
         }
 
         dbItemByInventory.free()
+
+        //load fogreveal
+        let dbFogRevealData = db.prepare("SELECT * FROM FogReveal")
+
+        while (dbFogRevealData.step()) {
+            let fogRevealData = dbFogRevealData.getAsObject()
+
+            let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(fogRevealData.x, fogRevealData.y)
+
+            //dungeon compatability
+            let chunkArr = this.chunks
+            if (fogRevealData.dungeon !== 0) {
+                chunkArr = this.dungeons[fogRevealData.dungeon]
+                if (!chunkArr) {
+                    this.dungeons[fogRevealData.dungeon] = []
+                    chunkArr = this.dungeons[fogRevealData.dungeon]
+                }
+            }
+
+            let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y, chunkArr)
+
+            if (chunk) {
+                chunk.revealed = true
+            } else {
+                console.warn(`Chunk missing for FogReveal at chunk [${fogRevealData.x}, ${fogRevealData.y}] at dungeon ${fogRevealData.dungeon}`)
+            }
+        }
+
+        dbFogRevealData.free()
+
+        //biomes
+        let dbBiomeEntryData = db.prepare("SELECT * FROM BiomeEntry")
+
+        while (dbBiomeEntryData.step()) {
+            let biomeEntryData = dbBiomeEntryData.getAsObject()
+
+            let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(biomeEntryData.X, biomeEntryData.Y)
+            let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y)
+
+            if (chunk) {
+                chunk.biomeID = biomeEntryData.Biome
+            } else {
+                console.warn(`Chunk missing for BiomeEntry at chunk [${biomeEntryData.X}, ${biomeEntryData.Y}]`)
+            }
+        }
+
+        dbBiomeEntryData.free()
+
+        //player save
+        let dbPlayerSaveData = db.prepare("SELECT * FROM PlayerSave")
+
+        while (dbPlayerSaveData.step()) {
+            let playerSaveData = dbPlayerSaveData.getAsObject()
+
+            let playerSave = new PlayerSave()
+            playerSave.fromObject(playerSaveData)
+
+            this.playerSaves[playerSave.puid] = playerSave
+        }
+
+        dbPlayerSaveData.free()
+
+        //BuildingDTO
+        let dbBuildingDTOData = db.prepare("SELECT * FROM BuildingDTO")
+
+        while (dbBuildingDTOData.step()) {
+            let buildingDTOData = dbBuildingDTOData.getAsObject()
+
+            let buildingDTO = new BuildingDTO()
+            buildingDTO.fromObject(buildingDTOData)
+
+            this.buildingDTOs[buildingDTO.id] = buildingDTO
+        }
+
+        dbBuildingDTOData.free()
+
+        //BuildingTilesDTO
+        let dbBuildingTilesDTO = db.prepare("SELECT * FROM BuildingTilesDTO")
+
+        while (dbBuildingTilesDTO.step()) {
+            let buildingTileDTOData = dbBuildingTilesDTO.getAsObject()
+
+            let buildingDTOId = buildingTileDTOData.id
+            let buildingDTO = this.buildingDTOs[buildingDTOId]
+
+            if (buildingDTO) {
+                buildingDTO.tilePositions.push({"x": buildingTileDTOData.x, "y": buildingTileDTOData.y, "z": buildingTileDTOData.z})
+            } else {
+                console.warn(`BuildingDTO ${buildingDTOId} missing for BuildingTileDTO at [${buildingTileDTOData.x}, ${buildingTileDTOData.y}, ${buildingTileDTOData.z}]`)
+            }
+        }
+
+        dbBuildingTilesDTO.free()
+
+        //poi
+        let dbPOI = db.prepare("SELECT * FROM PointOfInterest")
+
+        while (dbPOI.step()) {
+            let POIData = dbPOI.getAsObject()
+
+            let poi = new PointOfInterest()
+            poi.fromObject(POIData)
+
+            this.pointsOfInterest.push(poi)
+        }
+
+        dbPOI.free()
+
+        //discovery poi (i dont know what this is)
+        let dbDiscoveryPOI = db.prepare("SELECT * FROM DiscoveryPOI")
+
+        while (dbDiscoveryPOI.step()) {
+            let discoveryPOIData = dbDiscoveryPOI.getAsObject()
+
+            let discoveryPOI = new DiscoveryPointOfInterest()
+            discoveryPOI.fromObject(discoveryPOIData)
+
+            this.discoveryPointsOfInterest.push(discoveryPOI)
+        }
+
+        dbDiscoveryPOI.free()
+
+        //minimap (i dont know what this is)
+        let dbMinimapData = db.prepare("SELECT * FROM Minimap")
+        
+        while (dbMinimapData.step()) {
+            let minimapData = dbMinimapData.getAsObject()
+
+            let minimapValue = new MinimapValue()
+            minimapValue.fromObject(minimapData)
+
+            this.minimapData.push(minimapValue)
+        }
+
+        dbMinimapData.free()
+
+        //finished loading
+        if (loadingDialog) {
+            loadingDialog.close()
+        }
+
+        db.close()
+
+        console.log("Finished loading database world")
+    }
+
+    dbMassInsert(db: any, start: string, valueCount: number, values: Array<any>) {
+        if (values.length > 0) {
+            //create string like this (?,?,?)
+            let toAddStr = "("
+
+            for (let i = 0; i < valueCount; i++) {
+                toAddStr += "?,"
+            }
+
+            toAddStr = toAddStr.slice(0,-1) + "), "
+
+            let endStr = ""
+            for (let i = 0; i < values.length / valueCount; i++) {
+                endStr += toAddStr
+            }
+
+            //create final string
+            let finalStr = start + endStr.slice(0, -2) + ";"
+
+            //run database command
+            /*console.log(finalStr)
+            console.log(values)
+            console.log(values.length)*/
+
+            db.run(finalStr, values)
+        }
+    }
+
+    async dbCheckMassInsert(db: any, start: string, valueCount: number, values: Array<any>, isEnd: boolean, resetValues: any) {
+        if ((values.length / valueCount >= 999 - valueCount) || (values.length > 0 && isEnd)) {
+            this.dbMassInsert(db, start, valueCount, values)
+            //exportingPercentageElement.innerText = `Exporting world ${Math.floor(percentStart + percentCurrent * (progress / progressMax))}%`
+            resetValues()
+            await Wait(0.001)
+        }
+    }
+
+    addToItemPalette(itemPalette: any, itemGuid: string, itemAssetID: number, count: number): Array<any> {
+        itemPalette.push(itemGuid, itemAssetID, count)
+        return itemPalette
+    }
+
+    async toDatabase(): Promise<any | null> {
+        let SQL = window["SQL"]
+
+        let exportingDialog: HTMLDialogElement | null = <HTMLDialogElement>document.getElementById("dialog-exporting")
+        //let exportingPercentageElement: HTMLElement | null = document.getElementById("dialog-exporting-percentage")
+
+        exportingDialog.showModal()
+
+        if (SQL) {
+            await Wait(1000 / 60) //to show dialog
+
+            let db = new SQL.Database()
+
+            // TILES
+            db.run("CREATE TABLE Tiles(x int, y int, z int, hp int DEFAULT 10, memA int, dungeon int, memB int, rotation int, tileAssetID int, PRIMARY KEY (x,y,z))")
+
+            let start = "INSERT INTO Tiles (x,y,z,hp,memA,dungeon,memB,rotation,tileAssetID) VALUES "
+            let values = []
+
+            //main world chunks
+            for (let chunk of this.chunks) {
+                for (let tile of chunk.getTiles()) {
+                    let tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, tile.x, tile.y)
+
+                    values.push(tilePos.x, tilePos.y, tile.z, tile.health, tile.memoryA, 0, tile.memoryB, tile.rotation, tile.tileAssetId)
+
+                    await this.dbCheckMassInsert(db, start, 9, values, false, () => {values = []})
+                }
+            }
+
+            //dungeon chunks
+            for (let dungeonId in this.dungeons) {
+                for (let chunk of this.dungeons[dungeonId]) {
+                    for (let tile of chunk.getTiles()) {
+                        let tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, tile.x, tile.y)
+
+                        values.push(tilePos.x, tilePos.y, tile.z, tile.health, tile.memoryA, dungeonId, tile.memoryB, tile.rotation, tile.tileAssetId)
+
+                        await this.dbCheckMassInsert(db, start, 9, values, false, () => {values = []})
+                    }
+                }
+            }
+
+            //end insert
+            await this.dbCheckMassInsert(db, start, 9, values, true, () => {values = []})
+
+            // ITEMS
+            let itemPalette = []
+
+            db.run(`CREATE TABLE "Item" ('itemGuid' varchar primary key not null, 'itemAssetID' integer, 'count' integer)`)
+
+            // CONTAINERS AND INVENTORIES
+            db.run(`CREATE TABLE "ItemByInventory" ("tileX" integer ,"tileY" integer ,"tileZ" integer ,"actorGuid" varchar ,"inventoryType" integer ,"itemGuid" varchar primary key not null ,"inventoryIndex" integer )`)
+
+            start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemGuid,inventoryIndex) VALUES "
+
+            //containers
+            for (let container of this.containers) {
+                let tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y)
+
+                for (let item of container.itemDataList) {
+                    let itemGuid = uuid()
+                    this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+
+                    values.push(tilePos.x, tilePos.y, container.z, "tile", 0, itemGuid, item.slot)
+
+                    await this.dbCheckMassInsert(db, start, 7, values, false, () => {values = []})
+                }
+            }
+
+            //player inventories
+            for (let otherContainerKey in this.otherContainers) {
+                let actorGuidAndInventoryType = otherContainerKey.split("_")
+                let actorGuid = actorGuidAndInventoryType[0]
+                let inventoryType = Number(actorGuidAndInventoryType[1])
+
+                let container = this.otherContainers[otherContainerKey]
+
+                for (let item of container.itemDataList) {
+                    let itemGuid = uuid()
+                    this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+
+                    values.push(0, 0, 0, actorGuid, inventoryType, itemGuid, item.slot)
+
+                    await this.dbCheckMassInsert(db, start, 7, values, false, () => {values = []})
+                }
+            }
+
+            await this.dbCheckMassInsert(db, start, 7, values, true, () => {values = []})
+
+            // WORLD ITEMS
+            db.run(`CREATE TABLE "WorldItem" ("worldPositionX" float ,"worldPositionY" float ,"itemGuid" varchar primary key not null )`)
+
+            start = `INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid) VALUES `
+            
+            for (let chunk of this.chunks) {
+                for (let item of chunk.itemDataList) {
+                    let tilePos = this.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y)
+
+                    let itemGuid = uuid()
+                    this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+
+                    values.push(tilePos.x, tilePos.y, itemGuid)
+                    await this.dbCheckMassInsert(db, start, 3, values, false, () => {values = []})
+                }
+            }
+
+            await this.dbCheckMassInsert(db, start, 3, values, true, () => {values = []})
+
+            // ITEM PALETTE
+            start = `INSERT INTO Item (itemGuid,itemAssetID,count) VALUES `
+
+            for (let i = 0; i < itemPalette.length; i += 3) {
+                values.push(itemPalette[i + 0], itemPalette[i + 1], itemPalette[i + 2])
+                await this.dbCheckMassInsert(db, start, 3, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 3, values, true, () => {values = []})
+
+            // BUILDING DTO
+            db.run(`CREATE TABLE "BuildingDTO" ("id" varchar primary key not null ,"boundingboxbottomlefty" integer ,"boundingboxbottomleftx" integer ,"boundingboxtoprighty" integer ,"boundingboxtoprightx" integer ,"rootpositionx" integer ,"rootpositiony" integer ,"rootpositionz" integer ,"townianid" integer )`)
+
+            start = `INSERT INTO BuildingDTO (id,boundingboxbottomlefty,boundingboxbottomleftx,boundingboxtoprighty,boundingboxtoprightx,rootpositionx,rootpositiony,rootpositionz,townianid) VALUES `
+
+            for (let buildingDTOkey in this.buildingDTOs) {
+                let buildingDTO = this.buildingDTOs[buildingDTOkey]
+
+                values.push(buildingDTO.id, buildingDTO.bottomLeft.y, buildingDTO.bottomLeft.x, buildingDTO.topRight.y, buildingDTO.topRight.x, buildingDTO.rootX, buildingDTO.rootY, buildingDTO.rootZ, buildingDTO.townianId)
+                await this.dbCheckMassInsert(db, start, 9, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 9, values, true, () => {values = []})
+
+            // BUILDING DTO TILES
+            db.run(`CREATE TABLE BuildingTilesDTO (x int,y int,z int,id TEXT)`)
+
+            start = `INSERT INTO BuildingTilesDTO (x,y,z,id) VALUES `
+
+            for (let buildingDTOkey in this.buildingDTOs) {
+                let buildingDTO = this.buildingDTOs[buildingDTOkey]
+
+                for (let tilePosition of buildingDTO.tilePositions) {
+                    values.push(tilePosition.x, tilePosition.y, tilePosition.x, buildingDTO.id)
+                    await this.dbCheckMassInsert(db, start, 4, values, false, () => {values = []})
+                }
+            }
+
+            await this.dbCheckMassInsert(db, start, 4, values, true, () => {values = []})
+
+            //DISCOVERY POI
+            db.run(`CREATE TABLE DiscoveryPOI (tilepositionx int, tilepositiony int, discoverer varchar(140), questID varchar(20), PRIMARY KEY (tilepositionx,tilepositiony,discoverer))`)
+
+            start = `INSERT INTO DiscoveryPOI (tilepositionx,tilepositiony,discoverer,questID) VALUES `
+
+            for (let discoveryPOI of this.discoveryPointsOfInterest) {
+                values.push(discoveryPOI.position.x, discoveryPOI.position.y, discoveryPOI.discoverer, discoveryPOI.questId)
+                await this.dbCheckMassInsert(db, start, 4, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 4, values, true, () => {values = []})
+
+            //BIOME ENTRY
+            db.run(`CREATE TABLE BiomeEntry(X int, Y int, Biome int, PRIMARY KEY (X,Y))`)
+
+            start = `INSERT INTO BiomeEntry (X,Y,Biome) VALUES `
+
+            for (let chunk of this.chunks) {
+                for (let x = 0; x < 10; x++) {
+                    for (let y = 0; y < 10; y++) {
+                        let tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, x, y)
+
+                        values.push(tilePos.x, tilePos.y, chunk.biomeID)
+                        await this.dbCheckMassInsert(db, start, 3, values, false, () => {values = []})
+                    }
+                }
+            }
+
+            await this.dbCheckMassInsert(db, start, 3, values, true, () => {values = []})
+
+            //FOG REVEAL
+            db.run(`CREATE TABLE FogReveal (x int, y int, dungeon int)`)
+
+            start = `INSERT INTO FogReveal (x,y,dungeon) VALUES `
+
+            for (let chunk of this.chunks) {
+                let tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, 0, 0)
+
+                if (chunk.revealed) {
+                    values.push(tilePos.x, tilePos.y, 0)
+                    await this.dbCheckMassInsert(db, start, 3, values, false, () => {values = []})
+                }
+            }
+
+            for (let dungeonId in this.dungeons) {
+                for (let chunk of this.dungeons[dungeonId]) {
+                    let tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, 0, 0)
+
+                    if (chunk.revealed) {
+                        values.push(tilePos.x, tilePos.y, dungeonId)
+                        await this.dbCheckMassInsert(db, start, 3, values, false, () => {values = []})
+                    }
+                }
+            }
+
+            await this.dbCheckMassInsert(db, start, 3, values, true, () => {values = []})
+
+            // MINIMAP
+            db.run(`CREATE TABLE Minimap (x int, y int, tileAssetID int, dungeon int, PRIMARY KEY (x,y))`)
+
+            start = `INSERT INTO Minimap (x,y,tileAssetID,dungeon) VALUES `
+
+            for (let minimapValue of this.minimapData) {
+                values.push(minimapValue.position.x, minimapValue.position.y, minimapValue.tileAssetId, minimapValue.dungeon)
+                await this.dbCheckMassInsert(db, start, 4, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 4, values, true, () => {values = []})
+
+            // PLAYER SAVE
+            db.run(`CREATE TABLE "PlayerSave" ("Puid" varchar primary key not null ,"Health" integer ,"Mana" integer ,"SpawnPointX" float ,"SpawnPointY" float ,"DeathPointX" float ,"DeathPointY" float ,"PositionX" float ,"PositionY" float )`)
+
+            start = `INSERT INTO PlayerSave (Puid,Health,Mana,SpawnPointX,SpawnPointY,DeathPointX,DeathPointY,PositionX,PositionY) VALUES `
+
+            for (let playerSaveKey in this.playerSaves) {
+                let playerSave = this.playerSaves[playerSaveKey]
+
+                values.push(playerSave.puid, playerSave.health, playerSave.mana, playerSave.spawnPointX, playerSave.spawnPointY, playerSave.deathPointX, playerSave.deathPointY, playerSave.positionX, playerSave.positionY)
+                await this.dbCheckMassInsert(db, start, 9, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 9, values, true, () => {values = []})
+
+            // POI
+            db.run(`CREATE TABLE PointOfInterest (tilepositionx int, tilepositiony int, id int, RevealedForAllPlayers int, type int, questID varchar(20), PRIMARY KEY (tilepositionx,tilepositiony, id, type, questID))`)
+
+            start = `INSERT INTO PointOfInterest (tilepositionx,tilepositiony,id,RevealedForAllPlayers,type,questID) VALUES `
+
+            for (let poi of this.pointsOfInterest) {
+                values.push(poi.position.x, poi.position.y, poi.id, poi.revealedForAllPlayers, poi.type, poi.questId)
+                await this.dbCheckMassInsert(db, start, 6, values, false, () => {values = []})
+            }
+
+            await this.dbCheckMassInsert(db, start, 6, values, true, () => {values = []})
+
+            // END
+            exportingDialog.close()
+            return db
+        }
+        
+        exportingDialog.close()
+
+        return null
     }
 
     undoOnce() {
@@ -603,4 +1246,8 @@ class World {
 
         this.toolHistory.push({"chunks":[]})
     }
+}
+
+function async() {
+    throw new Error("Function not implemented.");
 }

@@ -81,7 +81,8 @@ var imagesToLoad = [
     //Other
     "assets/storage.png",
     "assets/storage-small.png",
-    "assets/highlightedChunk.png"
+    "assets/highlightedChunk.png",
+    "assets/poi3.png"
 ];
 var images = {};
 var loadedImages = 0;

@@ -18,9 +18,10 @@ class Chunk {
 
     width: number
     height: number
-
     layers: number
+
     biomeID: number
+    revealed: boolean
 
     private tileDataList: Array<Tile> = []
     itemDataList: Array<Item> = []
@@ -36,9 +37,10 @@ class Chunk {
 
         this.width = 10
         this.height = 10
-        
         this.layers = 11 //amount of layers + 1
+
         this.biomeID = 3
+        this.revealed = false
 
         this.tileDataList = []
         this.itemDataList = []
@@ -154,6 +156,10 @@ class Chunk {
         this.chunkHasBeenEdited = true
         this.undoEdited = true
         this.resetCacheImage()
+    }
+
+    getTiles(): Array<Tile> {
+        return this.tileDataList
     }
 
     fromBuffer(chunkBuffer: ArrayBuffer) {

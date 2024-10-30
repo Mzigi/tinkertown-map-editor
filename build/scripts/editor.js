@@ -252,6 +252,8 @@ function addContainerToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastT
                 newContainer.chunkY = chunkAtMouse.y;
                 newContainer.x = tileAtMouse.x;
                 newContainer.y = tileAtMouse.y;
+                newContainer.z = tileAtMouse.z;
+                newContainer.target = InventoryFormat.Container;
                 worlds[currentWorld].containers.push(newContainer);
             }
         }
@@ -345,6 +347,15 @@ function setCanvasDebugText(visible) {
     }
     else {
         document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug';
+    }
+}
+function setShowPOI(visible) {
+    setPreference("show-poi", visible);
+    if (visible === "true") {
+        document.getElementById("navbar-view-show-poi").innerHTML = 'Show Points Of Interest<span class="material-symbols-outlined" style="display: inline-block;">done</span>';
+    }
+    else {
+        document.getElementById("navbar-view-show-poi").innerHTML = 'Show Points Of Interest';
     }
 }
 if (NEWUI) {
@@ -451,7 +462,7 @@ if (NEWUI) {
     //debug text in 2d renderer
     var canvasDebugText = getPreference("canvas-debug-text");
     if (!canvasDebugText) {
-        canvasDebugText = "true";
+        canvasDebugText = "false";
     }
     document.getElementById("navbar-view-canvasdebug").addEventListener("click", function () {
         if (getPreference("canvas-debug-text") === "true") {
@@ -462,6 +473,20 @@ if (NEWUI) {
         }
     });
     setCanvasDebugText(canvasDebugText);
+    //show points of interest
+    var showPOI = getPreference("show-poi");
+    if (!showPOI) {
+        showPOI = "true";
+    }
+    document.getElementById("navbar-view-show-poi").addEventListener("click", function () {
+        if (getPreference("show-poi") === "true") {
+            setShowPOI("false");
+        }
+        else {
+            setShowPOI("true");
+        }
+    });
+    setShowPOI(showPOI);
 }
 document.getElementById("2Dcanvas").addEventListener('mousedown', function (e) {
     mouseButtonPressed[e.button] = true;
@@ -665,7 +690,7 @@ function setTool(tool) {
 function changeSetting(settingName) {
     var originalName = worlds[currentWorld]["name"];
     var worldSettingValue = document.getElementById("world-settings-" + settingName).value;
-    for (var key in uneditedFiles) {
+    for (var key in worlds[currentWorld].uneditedFiles) {
         originalName = key.split("/")[0];
     }
     if (settingName == "seed" || settingName == "timescale") { //numbers
@@ -702,11 +727,11 @@ function changeSetting(settingName) {
     }
     if (settingName == "name") {
         //fix file paths in unedited files
-        for (var key in uneditedFiles) {
-            var buffer = uneditedFiles[key];
+        for (var key in worlds[currentWorld].uneditedFiles) {
+            var buffer = worlds[currentWorld].uneditedFiles[key];
             var newKey = key.replace(originalName, worlds[currentWorld].name);
-            uneditedFiles[newKey] = buffer;
-            delete uneditedFiles[key];
+            worlds[currentWorld].uneditedFiles[newKey] = buffer;
+            delete worlds[currentWorld].uneditedFiles[key];
         }
         //fix file paths in world.chunkCache
         for (var key in worlds[currentWorld].chunkCache) {

@@ -294,6 +294,8 @@ function addContainerToolTick(chunkAtMouse: any, tileAtMouse: any, lastChunkAtMo
                 newContainer.chunkY = chunkAtMouse.y
                 newContainer.x = tileAtMouse.x
                 newContainer.y = tileAtMouse.y
+                newContainer.z = tileAtMouse.z
+                newContainer.target = InventoryFormat.Container
 
                 worlds[currentWorld].containers.push(newContainer)
             }
@@ -408,6 +410,16 @@ function setCanvasDebugText(visible: string) {
         document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
     } else {
         document.getElementById("navbar-view-canvasdebug").innerHTML = 'Canvas Debug'
+    }
+}
+
+function setShowPOI(visible: string) {
+    setPreference("show-poi", visible)
+
+    if (visible === "true") {
+        document.getElementById("navbar-view-show-poi").innerHTML = 'Show Points Of Interest<span class="material-symbols-outlined" style="display: inline-block;">done</span>'
+    } else {
+        document.getElementById("navbar-view-show-poi").innerHTML = 'Show Points Of Interest'
     }
 }
 
@@ -536,7 +548,7 @@ if (NEWUI) {
 
     let canvasDebugText: string = getPreference("canvas-debug-text")
     if (!canvasDebugText) {
-        canvasDebugText = "true"
+        canvasDebugText = "false"
     }
 
     document.getElementById("navbar-view-canvasdebug").addEventListener("click",() => {
@@ -548,6 +560,22 @@ if (NEWUI) {
     })
 
     setCanvasDebugText(canvasDebugText)
+
+    //show points of interest
+    let showPOI: string = getPreference("show-poi")
+    if (!showPOI) {
+        showPOI = "true"
+    }
+
+    document.getElementById("navbar-view-show-poi").addEventListener("click",() => {
+        if (getPreference("show-poi") === "true") {
+            setShowPOI("false")
+        } else {
+            setShowPOI("true")
+        }
+    })
+
+    setShowPOI(showPOI)
 }
 
 document.getElementById("2Dcanvas").addEventListener('mousedown', function(e) {
@@ -798,7 +826,7 @@ function changeSetting(settingName: string) {
     let originalName = worlds[currentWorld]["name"]
     let worldSettingValue: string = (<HTMLInputElement>document.getElementById("world-settings-" + settingName)).value
 
-    for (let key in uneditedFiles) {
+    for (let key in worlds[currentWorld].uneditedFiles) {
         originalName = key.split("/")[0]
     }
 
@@ -830,11 +858,11 @@ function changeSetting(settingName: string) {
 
     if (settingName == "name") {
         //fix file paths in unedited files
-        for (let key in uneditedFiles) {
-            let buffer = uneditedFiles[key]
+        for (let key in worlds[currentWorld].uneditedFiles) {
+            let buffer = worlds[currentWorld].uneditedFiles[key]
             let newKey = key.replace(originalName, worlds[currentWorld].name)
-            uneditedFiles[newKey] = buffer
-            delete uneditedFiles[key]
+            worlds[currentWorld].uneditedFiles[newKey] = buffer
+            delete worlds[currentWorld].uneditedFiles[key]
         }
 
         //fix file paths in world.chunkCache

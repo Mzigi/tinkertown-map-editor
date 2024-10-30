@@ -20,6 +20,7 @@ var Chunk = /** @class */ (function () {
         this.height = 10;
         this.layers = 11; //amount of layers + 1
         this.biomeID = 3;
+        this.revealed = false;
         this.tileDataList = [];
         this.itemDataList = [];
         //not saved (only used by editor)
@@ -115,6 +116,9 @@ var Chunk = /** @class */ (function () {
         this.chunkHasBeenEdited = true;
         this.undoEdited = true;
         this.resetCacheImage();
+    };
+    Chunk.prototype.getTiles = function () {
+        return this.tileDataList;
     };
     Chunk.prototype.fromBuffer = function (chunkBuffer) {
         //clear array/lists

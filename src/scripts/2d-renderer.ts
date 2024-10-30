@@ -384,12 +384,13 @@ function drawWorld(canvas: HTMLCanvasElement, world: World) {
         for (let x = topLeftCornerWorldPos.x; x < bottomRightCornerWorldPos.x + 2; x++) {
             for (let y = bottomRightCornerWorldPos.y; y < topLeftCornerWorldPos.y + 1; y++) {
                 if ((x + y%2) % 2 == 0) {
-                    let alpha = Math.min(world.camera.zoom*1.5 - 0.25, 1)
-
+                    //when camera approaches 0.25 alpha should become 0
+                    let alpha = Math.min((world.camera.zoom - 0.25) * 4, 1)
+                    
                     if (getPreference("theme") === "dark") {
                         ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")"
                     } else {
-                        ctx.fillStyle = "#cacaca"
+                        ctx.fillStyle = "rgba(202, 202, 202, " + alpha + ")"
                     }
                     world.camera.drawRect(canvasElement, ctx, x * 160 - 80, y * -160 - 80, 160, 160)
                 }
@@ -416,6 +417,13 @@ function drawWorld(canvas: HTMLCanvasElement, world: World) {
         //draw storage icons
         for (let i = 0; i < world.containers.length; i++) {
             drawStorage(world.containers[i], worlds[currentWorld].camera)
+        }
+    }
+
+    //draw points of interest
+    if (world.camera.zoom <= 0.35 && getPreference("show-poi") === "true") {
+        for (let poi of world.pointsOfInterest) {
+            world.camera.drawImage(canvasElement, ctx, images["assets/poi3.png"], poi.position.x * 16 - 8, poi.position.y * -16 - 8, 1600 / 4, 1600 / 4)
         }
     }
 
@@ -479,12 +487,21 @@ function render() {
     if (getPreference("canvas-debug-text") === "true") {
         ctx.fillStyle = "#ffffff"
         ctx.font = "32px pixellari"
-        ctx.fillText("FPS: " +FPS.toString(), 0, canvasElement.height - 32)
+        ctx.fillText("FPS: " +FPS.toString(), 0, canvasElement.height - 96)
 
         let worldMousePos = worlds[currentWorld].camera.screenPosToWorldPos((<HTMLCanvasElement>document.getElementById("2Dcanvas")), worlds[currentWorld].camera.lastPosition.x,worlds[currentWorld].camera.lastPosition.y)
-        let chunkPos = worlds[currentWorld].getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y)
+        let chunkAndTilePos = worlds[currentWorld].getChunkAndTilePosAtGlobalPos(worldMousePos.x / 16, (worldMousePos.y / 16) * -1)
+        let chunkPos = chunkAndTilePos[0]
+        let tilePos = chunkAndTilePos[1]
 
-        ctx.fillText("CHUNK: [" + chunkPos.x + ", " + chunkPos.y + "]", 0, canvasElement.height)
+        let globalTilePos = worlds[currentWorld].getGlobalPosAtChunkAndTilePos(chunkPos.x, chunkPos.y, Math.floor(tilePos.x), Math.floor(tilePos.y))
+
+        let chunkAtMouse = worlds[currentWorld].getChunkAt(chunkPos.x, chunkPos.y)
+
+        //relative tile position = [${Math.floor(tilePos.x)}, ${Math.floor(tilePos.y)}] 
+        ctx.fillText(`CHUNK REVEALED: ${chunkAtMouse?.revealed ? "TRUE" : "FALSE"}`, 0, canvasElement.height - 64)
+        ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}]`, 0, canvasElement.height - 32)
+        ctx.fillText(`CHUNK: [${chunkPos.x}, ${chunkPos.y}]`, 0, canvasElement.height)
     }
 
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)

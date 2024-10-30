@@ -65,7 +65,7 @@ var Item = /** @class */ (function () {
     };
     Item.prototype.fromObject = function (worldItemData, itemPaletteData) {
         var itemGuid = worldItemData.itemGuid;
-        var chunkAndTilePos = worlds[currentWorld].getChunkAndTilePosAtWorldPos(worldItemData.worldPositionX, worldItemData.worldPositionY);
+        var chunkAndTilePos = worlds[currentWorld].getChunkAndTilePosAtGlobalPos(worldItemData.worldPositionX, worldItemData.worldPositionY);
         this.chunkX = chunkAndTilePos[0].x;
         this.chunkY = chunkAndTilePos[0].y;
         this.x = chunkAndTilePos[1].x;

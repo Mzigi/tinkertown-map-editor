@@ -2,13 +2,12 @@
 // @ts-check
 
 var worlds: Array<World> = [new World()]
-var uneditedFiles = {}
 var currentWorld: number = 0
 
 let newButton: any = document.getElementById("navbar-new")
 let importInput: any = document.getElementById("navbar-import")
-let importInput2: any = document.getElementById("navbar-import-2")
 let exportButton: any = document.getElementById("navbar-export")
+let exportButton2: any = document.getElementById("navbar-export-2")
 let helpButton: any = document.getElementById("navbar-help")
 let worldSettingsButton: any = document.getElementById("navbar-world-settings")
 let examplesButton: any = document.getElementById("navbar-examples")
@@ -73,6 +72,9 @@ let examples: Array<worldLink> = [
     },
 ]
 
+const isDarkMode = () => 
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
 var savedPrefereneces = null
 
 function getPreference(key: string): string {
@@ -82,6 +84,20 @@ function getPreference(key: string): string {
 
     if (!savedPrefereneces) {
         savedPrefereneces = {}
+    }
+
+    if (!savedPrefereneces[key]) {
+        /*if (["show-poi","tile-list-visible"].includes(key)) {
+            savedPrefereneces[key] = "true"
+        } else if (["canvas-debug-text"].includes(key)) {
+            savedPrefereneces[key] = "false"
+        } else*/ if (key == "theme") {
+            if (isDarkMode()) {
+                savedPrefereneces[key] = "dark"
+            } else {
+                savedPrefereneces[key] = "light"
+            }
+        }
     }
 
     return savedPrefereneces[key]
@@ -159,10 +175,15 @@ const readBinaryFile = async (file: any, filePath: string, worldId: number) => {
     if (filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3) { //chunk
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
-        let loadedChunk: Chunk = new Chunk()
-        loadedChunk.fromBuffer(buffer)
-        worlds[worldId].addChunk(loadedChunk)
-        worlds[worldId].chunkCache[filePath] = buffer
+        if (worlds[worldId].format === WorldFormat.Binary) {
+            let loadedChunk: Chunk = new Chunk()
+            loadedChunk.fromBuffer(buffer)
+            worlds[worldId].addChunk(loadedChunk)
+            worlds[worldId].chunkCache[filePath] = buffer
+        } else {
+            console.warn("Attempted to load chunk file while world is in the Database format")
+            worlds[worldId].uneditedFiles[filePath] = buffer
+        }
     } else if (filePath.endsWith("world.meta")) { //world.meta
         let worldMeta: any = JSON.parse(file)
         worlds[worldId].name = worldMeta.name
@@ -186,16 +207,21 @@ const readBinaryFile = async (file: any, filePath: string, worldId: number) => {
     } else if (filePath.endsWith("inventory.dat")) { //container
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
-        let loadedInventory: Inventory = new Inventory()
-        loadedInventory.fromBuffer(buffer)
-        loadedInventory.filePath = filePath
-        
-        worlds[worldId].containers.push(loadedInventory)
+        if (worlds[worldId].format === WorldFormat.Binary) {
+            let loadedInventory: Inventory = new Inventory()
+            loadedInventory.fromBuffer(buffer)
+            loadedInventory.filePath = filePath
+            
+            worlds[worldId].containers.push(loadedInventory)
+        } else {
+            console.warn("Attempted to load inventory file while world is in the Database format")
+            worlds[worldId].uneditedFiles[filePath] = buffer
+        }
     } else {
         const buffer: ArrayBuffer = await file.arrayBuffer()
 
         console.log("Editor doesn't know how to read " + filePath)
-        uneditedFiles[filePath] = buffer
+        worlds[worldId].uneditedFiles[filePath] = buffer
     }
 }
 
@@ -212,81 +238,67 @@ newButton.addEventListener("click", () => {
     currentWorld = worlds.length
     worlds[currentWorld] = new World()
     updateWorldList()
-    uneditedFiles = {}
-})
-
-importInput.addEventListener("change", () => {
-    if (importInput.files.length > 0) {
-        let thisWorldId = worlds.length
-        worlds[thisWorldId] = new World()
-
-        currentWorld = thisWorldId
-        
-        uneditedFiles = {}
-        for (let i = 0; i < importInput.files.length; i++) {
-            //console.log(importInput.files[i].webkitRelativePath)
-            if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
-            } else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
-                let fileReader = new FileReader()
-
-                fileReader.onload = function(e) {
-                    readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId)
-                }
-
-                fileReader.readAsText(importInput.files[i])
-            } else {
-                readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
-            }
-        }
-    }
-
-    updateWorldList()
+    worlds[currentWorld].uneditedFiles = {}
 })
 
 initSqlJs({locateFile: filename => `node_modules/sql.js/dist/sql-wasm.wasm`}).then((SQL) => { 
     window["SQL"] = SQL
 
-    importInput2.addEventListener("change", () => {
-        if (importInput2.files.length > 0) {
+    importInput.addEventListener("change", () => {
+        if (importInput.files.length > 0) {
             let thisWorldId = worlds.length
             worlds[thisWorldId] = new World()
-    
+            worlds[thisWorldId].format = WorldFormat.Binary
+
             currentWorld = thisWorldId
             
-            uneditedFiles = {}
-            for (let i = 0; i < importInput2.files.length; i++) {
-                //console.log(importInput2.files[i].webkitRelativePath)
-                if (importInput2.files[i].webkitRelativePath.endsWith("world.dat")) {
+            worlds[thisWorldId].uneditedFiles = {}
+
+            //check if world is database
+            for (let file of importInput.files) {
+                if (file.webkitRelativePath.endsWith("world.dat")) {
+                    worlds[currentWorld].format = WorldFormat.Database
+                }
+            }
+
+            for (let i = 0; i < importInput.files.length; i++) {
+                //console.log(importInput.files[i].webkitRelativePath)
+                if (importInput.files[i].webkitRelativePath.endsWith("world.dat")) {
                     //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
                     let fileReader = new FileReader()
-    
+
                     fileReader.onload = function(e) {
                         let uint8data = new Uint8Array(<ArrayBufferLike>fileReader.result)
                         let dataBase = new SQL.Database(uint8data)
                         worlds[thisWorldId].fromDatabase(dataBase)
                     }
-                    fileReader.readAsArrayBuffer(importInput2.files[i])
-                } else if (importInput2.files[i].webkitRelativePath.endsWith(".meta")) {
+                    fileReader.readAsArrayBuffer(importInput.files[i])
+                } else if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {
+                    readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
+                } else if (importInput.files[i].webkitRelativePath.endsWith(".meta")) {
                     let fileReader = new FileReader()
-    
+
                     fileReader.onload = function(e) {
-                        readBinaryFile(e.target.result, importInput2.files[i].webkitRelativePath, thisWorldId)
+                        readBinaryFile(e.target.result, importInput.files[i].webkitRelativePath, thisWorldId)
                     }
-    
-                    fileReader.readAsText(importInput2.files[i])
+
+                    fileReader.readAsText(importInput.files[i])
                 } else {
-                    console.warn(`I don't know how to read ${importInput2.files[i].webkitRelativePath}`)
+                    readBinaryFile(importInput.files[i], importInput.files[i].webkitRelativePath, thisWorldId)
                 }
             }
         }
-    
+
         updateWorldList()
     })
 })
 
 exportButton.addEventListener("click", () => {
     worlds[currentWorld].saveAsFile()
+})
+
+exportButton2.addEventListener("click", () => {
+    worlds[currentWorld].saveAsFile(true)
 })
 
 helpButton.addEventListener("click", () => {
