@@ -23,6 +23,7 @@ or use this shortcut:
 - Layer orders might be ignored near chunk borders
 - Tiles larger than 1x1 are always drawn with the bottom left corner as the origin
 - Tiles in the tile list are sometimes stretched
+- All containers are shown as being 5x5
 
 ## Permissions
 
