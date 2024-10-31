@@ -245,7 +245,7 @@ initSqlJs({locateFile: filename => `src/libraries/sql-wasm.wasm`}).then((SQL) =>
     window["SQL"] = SQL
 
     console.log(SQL)
-    console.log("Initialized SQL")
+    console.log("Initialized SQL.js")
 
     importInput.addEventListener("change", () => {
         if (importInput.files.length > 0) {

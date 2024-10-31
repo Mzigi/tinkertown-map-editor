@@ -266,7 +266,7 @@ newButton.addEventListener("click", function () {
 initSqlJs({ locateFile: function (filename) { return "src/libraries/sql-wasm.wasm"; } }).then(function (SQL) {
     window["SQL"] = SQL;
     console.log(SQL);
-    console.log("Initialized SQL");
+    console.log("Initialized SQL.js");
     importInput.addEventListener("change", function () {
         if (importInput.files.length > 0) {
             var thisWorldId_1 = worlds.length;
