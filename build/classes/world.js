@@ -535,9 +535,9 @@ var World = /** @class */ (function () {
         this.writeToBuffer(worldBuffer, 0);
         saveByteArray([worldBuffer], this.name + ".ttworld");
     };
-    World.prototype.fromDatabase = function (db) {
+    World.prototype.fromDatabase = function (db, isDungeon) {
         return __awaiter(this, void 0, void 0, function () {
-            var loadingDialog, dbTileData, tileData, chunkPos, chunk, tile, itemPaletteData, dbItemPaletteData, itemPalette, dbWorldItemData, worldItemData, worldItem, itemChunk, dbItemByInventory, itemByInventory, container, containerChunkAndTilePos, item, container, item, dbFogRevealData, fogRevealData, chunkAndTilePos, chunkArr, chunk, dbBiomeEntryData, biomeEntryData, chunkAndTilePos, chunk, dbPlayerSaveData, playerSaveData, playerSave, dbBuildingDTOData, buildingDTOData, buildingDTO, dbBuildingTilesDTO, buildingTileDTOData, buildingDTOId, buildingDTO, dbPOI, POIData, poi, dbDiscoveryPOI, discoveryPOIData, discoveryPOI, dbMinimapData, minimapData, minimapValue;
+            var loadingDialog, dbTileData, tileData, chunkPos, chunk, tile, dbBiomeEntryData, biomeEntryData, chunkAndTilePos, chunk, itemPaletteData, dbItemPaletteData, itemPalette, dbWorldItemData, worldItemData, worldItem, itemChunk, dbItemByInventory, itemByInventory, container, containerChunkAndTilePos, item, container, item, dbFogRevealData, fogRevealData, chunkAndTilePos, chunkArr, chunk, dbPlayerSaveData, playerSaveData, playerSave, dbBuildingDTOData, buildingDTOData, buildingDTO, dbBuildingTilesDTO, buildingTileDTOData, buildingDTOId, buildingDTO, dbPOI, POIData, poi, dbDiscoveryPOI, discoveryPOIData, discoveryPOI, dbMinimapData, minimapData, minimapValue;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -571,93 +571,6 @@ var World = /** @class */ (function () {
                             chunk.setTile(tile);
                         }
                         dbTileData.free();
-                        itemPaletteData = {};
-                        dbItemPaletteData = db.prepare("SELECT * FROM Item");
-                        while (dbItemPaletteData.step()) {
-                            itemPalette = dbItemPaletteData.getAsObject();
-                            itemPaletteData[itemPalette.itemGuid] = { "id": itemPalette.itemAssetID, "count": itemPalette.count };
-                        }
-                        dbItemPaletteData.free();
-                        dbWorldItemData = db.prepare("SELECT * FROM WorldItem");
-                        while (dbWorldItemData.step()) {
-                            worldItemData = dbWorldItemData.getAsObject();
-                            worldItem = new Item();
-                            worldItem.fromObject(worldItemData, itemPaletteData);
-                            itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY);
-                            if (itemChunk) {
-                                itemChunk.itemDataList.push(worldItem);
-                                itemChunk.resetCacheImage();
-                            }
-                            else {
-                                console.warn("Chunk missing for item at chunk [".concat(worldItem.chunkX, ", ").concat(worldItem.chunkY, "]"));
-                            }
-                        }
-                        dbWorldItemData.free();
-                        dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory") // WHERE actorGuid = 'tile
-                        ;
-                        while (dbItemByInventory.step()) {
-                            itemByInventory = dbItemByInventory.getAsObject();
-                            if (itemByInventory.actorGuid === "tile") { //container item
-                                container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ);
-                                if (!container) {
-                                    container = new Inventory();
-                                    container.width = 5; //TODO: make these the actual inventory size
-                                    container.height = 5;
-                                    container.target = InventoryFormat.Container;
-                                    containerChunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(itemByInventory.tileX, itemByInventory.tileY);
-                                    container.chunkX = containerChunkAndTilePos[0].x;
-                                    container.chunkY = containerChunkAndTilePos[0].y;
-                                    container.x = containerChunkAndTilePos[1].x;
-                                    container.y = containerChunkAndTilePos[1].y;
-                                    container.z = itemByInventory.tileZ;
-                                    container.target = InventoryFormat.Container;
-                                    this.containers.push(container);
-                                }
-                                item = new InventoryItem();
-                                item.slot = itemByInventory.inventoryIndex;
-                                item.count = itemPaletteData[itemByInventory.itemGuid].count;
-                                item.id = itemPaletteData[itemByInventory.itemGuid].id;
-                                container.addItem(item);
-                            }
-                            else { //player inventory (i hope), inventoryType = Armor or Inventory
-                                container = this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType];
-                                if (!container) {
-                                    container = new Inventory();
-                                    //doing this because its probably a playevenventory container
-                                    container.width = 5;
-                                    container.height = 5;
-                                    container.target = InventoryFormat.Player;
-                                    this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container;
-                                }
-                                item = new InventoryItem();
-                                item.slot = itemByInventory.inventoryIndex;
-                                item.count = itemPaletteData[itemByInventory.itemGuid].count;
-                                item.id = itemPaletteData[itemByInventory.itemGuid].id;
-                                container.addItem(item);
-                            }
-                        }
-                        dbItemByInventory.free();
-                        dbFogRevealData = db.prepare("SELECT * FROM FogReveal");
-                        while (dbFogRevealData.step()) {
-                            fogRevealData = dbFogRevealData.getAsObject();
-                            chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(fogRevealData.x, fogRevealData.y);
-                            chunkArr = this.chunks;
-                            if (fogRevealData.dungeon !== 0) {
-                                chunkArr = this.dungeons[fogRevealData.dungeon];
-                                if (!chunkArr) {
-                                    this.dungeons[fogRevealData.dungeon] = [];
-                                    chunkArr = this.dungeons[fogRevealData.dungeon];
-                                }
-                            }
-                            chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y, chunkArr);
-                            if (chunk) {
-                                chunk.revealed = true;
-                            }
-                            else {
-                                console.warn("Chunk missing for FogReveal at chunk [".concat(fogRevealData.x, ", ").concat(fogRevealData.y, "] at dungeon ").concat(fogRevealData.dungeon));
-                            }
-                        }
-                        dbFogRevealData.free();
                         dbBiomeEntryData = db.prepare("SELECT * FROM BiomeEntry");
                         while (dbBiomeEntryData.step()) {
                             biomeEntryData = dbBiomeEntryData.getAsObject();
@@ -671,59 +584,148 @@ var World = /** @class */ (function () {
                             }
                         }
                         dbBiomeEntryData.free();
-                        dbPlayerSaveData = db.prepare("SELECT * FROM PlayerSave");
-                        while (dbPlayerSaveData.step()) {
-                            playerSaveData = dbPlayerSaveData.getAsObject();
-                            playerSave = new PlayerSave();
-                            playerSave.fromObject(playerSaveData);
-                            this.playerSaves[playerSave.puid] = playerSave;
-                        }
-                        dbPlayerSaveData.free();
-                        dbBuildingDTOData = db.prepare("SELECT * FROM BuildingDTO");
-                        while (dbBuildingDTOData.step()) {
-                            buildingDTOData = dbBuildingDTOData.getAsObject();
-                            buildingDTO = new BuildingDTO();
-                            buildingDTO.fromObject(buildingDTOData);
-                            this.buildingDTOs[buildingDTO.id] = buildingDTO;
-                        }
-                        dbBuildingDTOData.free();
-                        dbBuildingTilesDTO = db.prepare("SELECT * FROM BuildingTilesDTO");
-                        while (dbBuildingTilesDTO.step()) {
-                            buildingTileDTOData = dbBuildingTilesDTO.getAsObject();
-                            buildingDTOId = buildingTileDTOData.id;
-                            buildingDTO = this.buildingDTOs[buildingDTOId];
-                            if (buildingDTO) {
-                                buildingDTO.tilePositions.push({ "x": buildingTileDTOData.x, "y": buildingTileDTOData.y, "z": buildingTileDTOData.z });
+                        if (!isDungeon) {
+                            itemPaletteData = {};
+                            dbItemPaletteData = db.prepare("SELECT * FROM Item");
+                            while (dbItemPaletteData.step()) {
+                                itemPalette = dbItemPaletteData.getAsObject();
+                                itemPaletteData[itemPalette.itemGuid] = { "id": itemPalette.itemAssetID, "count": itemPalette.count };
                             }
-                            else {
-                                console.warn("BuildingDTO ".concat(buildingDTOId, " missing for BuildingTileDTO at [").concat(buildingTileDTOData.x, ", ").concat(buildingTileDTOData.y, ", ").concat(buildingTileDTOData.z, "]"));
+                            dbItemPaletteData.free();
+                            dbWorldItemData = db.prepare("SELECT * FROM WorldItem");
+                            while (dbWorldItemData.step()) {
+                                worldItemData = dbWorldItemData.getAsObject();
+                                worldItem = new Item();
+                                worldItem.fromObject(worldItemData, itemPaletteData);
+                                itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY);
+                                if (itemChunk) {
+                                    itemChunk.itemDataList.push(worldItem);
+                                    itemChunk.resetCacheImage();
+                                }
+                                else {
+                                    console.warn("Chunk missing for item at chunk [".concat(worldItem.chunkX, ", ").concat(worldItem.chunkY, "]"));
+                                }
                             }
+                            dbWorldItemData.free();
+                            dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory") // WHERE actorGuid = 'tile
+                            ;
+                            while (dbItemByInventory.step()) {
+                                itemByInventory = dbItemByInventory.getAsObject();
+                                if (itemByInventory.actorGuid === "tile") { //container item
+                                    container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ);
+                                    if (!container) {
+                                        container = new Inventory();
+                                        container.width = 5; //TODO: make these the actual inventory size
+                                        container.height = 5;
+                                        container.target = InventoryFormat.Container;
+                                        containerChunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(itemByInventory.tileX, itemByInventory.tileY);
+                                        container.chunkX = containerChunkAndTilePos[0].x;
+                                        container.chunkY = containerChunkAndTilePos[0].y;
+                                        container.x = containerChunkAndTilePos[1].x;
+                                        container.y = containerChunkAndTilePos[1].y;
+                                        container.z = itemByInventory.tileZ;
+                                        container.target = InventoryFormat.Container;
+                                        this.containers.push(container);
+                                    }
+                                    item = new InventoryItem();
+                                    item.slot = itemByInventory.inventoryIndex;
+                                    item.count = itemPaletteData[itemByInventory.itemGuid].count;
+                                    item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    container.addItem(item);
+                                }
+                                else { //player inventory (i hope), inventoryType = Armor or Inventory
+                                    container = this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType];
+                                    if (!container) {
+                                        container = new Inventory();
+                                        //doing this because its probably a playevenventory container
+                                        container.width = 5;
+                                        container.height = 5;
+                                        container.target = InventoryFormat.Player;
+                                        this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container;
+                                    }
+                                    item = new InventoryItem();
+                                    item.slot = itemByInventory.inventoryIndex;
+                                    item.count = itemPaletteData[itemByInventory.itemGuid].count;
+                                    item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    container.addItem(item);
+                                }
+                            }
+                            dbItemByInventory.free();
+                            dbFogRevealData = db.prepare("SELECT * FROM FogReveal");
+                            while (dbFogRevealData.step()) {
+                                fogRevealData = dbFogRevealData.getAsObject();
+                                chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(fogRevealData.x, fogRevealData.y);
+                                chunkArr = this.chunks;
+                                if (fogRevealData.dungeon !== 0) {
+                                    chunkArr = this.dungeons[fogRevealData.dungeon];
+                                    if (!chunkArr) {
+                                        this.dungeons[fogRevealData.dungeon] = [];
+                                        chunkArr = this.dungeons[fogRevealData.dungeon];
+                                    }
+                                }
+                                chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y, chunkArr);
+                                if (chunk) {
+                                    chunk.revealed = true;
+                                }
+                                else {
+                                    console.warn("Chunk missing for FogReveal at chunk [".concat(fogRevealData.x, ", ").concat(fogRevealData.y, "] at dungeon ").concat(fogRevealData.dungeon));
+                                }
+                            }
+                            dbFogRevealData.free();
+                            dbPlayerSaveData = db.prepare("SELECT * FROM PlayerSave");
+                            while (dbPlayerSaveData.step()) {
+                                playerSaveData = dbPlayerSaveData.getAsObject();
+                                playerSave = new PlayerSave();
+                                playerSave.fromObject(playerSaveData);
+                                this.playerSaves[playerSave.puid] = playerSave;
+                            }
+                            dbPlayerSaveData.free();
+                            dbBuildingDTOData = db.prepare("SELECT * FROM BuildingDTO");
+                            while (dbBuildingDTOData.step()) {
+                                buildingDTOData = dbBuildingDTOData.getAsObject();
+                                buildingDTO = new BuildingDTO();
+                                buildingDTO.fromObject(buildingDTOData);
+                                this.buildingDTOs[buildingDTO.id] = buildingDTO;
+                            }
+                            dbBuildingDTOData.free();
+                            dbBuildingTilesDTO = db.prepare("SELECT * FROM BuildingTilesDTO");
+                            while (dbBuildingTilesDTO.step()) {
+                                buildingTileDTOData = dbBuildingTilesDTO.getAsObject();
+                                buildingDTOId = buildingTileDTOData.id;
+                                buildingDTO = this.buildingDTOs[buildingDTOId];
+                                if (buildingDTO) {
+                                    buildingDTO.tilePositions.push({ "x": buildingTileDTOData.x, "y": buildingTileDTOData.y, "z": buildingTileDTOData.z });
+                                }
+                                else {
+                                    console.warn("BuildingDTO ".concat(buildingDTOId, " missing for BuildingTileDTO at [").concat(buildingTileDTOData.x, ", ").concat(buildingTileDTOData.y, ", ").concat(buildingTileDTOData.z, "]"));
+                                }
+                            }
+                            dbBuildingTilesDTO.free();
+                            dbPOI = db.prepare("SELECT * FROM PointOfInterest");
+                            while (dbPOI.step()) {
+                                POIData = dbPOI.getAsObject();
+                                poi = new PointOfInterest();
+                                poi.fromObject(POIData);
+                                this.pointsOfInterest.push(poi);
+                            }
+                            dbPOI.free();
+                            dbDiscoveryPOI = db.prepare("SELECT * FROM DiscoveryPOI");
+                            while (dbDiscoveryPOI.step()) {
+                                discoveryPOIData = dbDiscoveryPOI.getAsObject();
+                                discoveryPOI = new DiscoveryPointOfInterest();
+                                discoveryPOI.fromObject(discoveryPOIData);
+                                this.discoveryPointsOfInterest.push(discoveryPOI);
+                            }
+                            dbDiscoveryPOI.free();
+                            dbMinimapData = db.prepare("SELECT * FROM Minimap");
+                            while (dbMinimapData.step()) {
+                                minimapData = dbMinimapData.getAsObject();
+                                minimapValue = new MinimapValue();
+                                minimapValue.fromObject(minimapData);
+                                this.minimapData.push(minimapValue);
+                            }
+                            dbMinimapData.free();
                         }
-                        dbBuildingTilesDTO.free();
-                        dbPOI = db.prepare("SELECT * FROM PointOfInterest");
-                        while (dbPOI.step()) {
-                            POIData = dbPOI.getAsObject();
-                            poi = new PointOfInterest();
-                            poi.fromObject(POIData);
-                            this.pointsOfInterest.push(poi);
-                        }
-                        dbPOI.free();
-                        dbDiscoveryPOI = db.prepare("SELECT * FROM DiscoveryPOI");
-                        while (dbDiscoveryPOI.step()) {
-                            discoveryPOIData = dbDiscoveryPOI.getAsObject();
-                            discoveryPOI = new DiscoveryPointOfInterest();
-                            discoveryPOI.fromObject(discoveryPOIData);
-                            this.discoveryPointsOfInterest.push(discoveryPOI);
-                        }
-                        dbDiscoveryPOI.free();
-                        dbMinimapData = db.prepare("SELECT * FROM Minimap");
-                        while (dbMinimapData.step()) {
-                            minimapData = dbMinimapData.getAsObject();
-                            minimapValue = new MinimapValue();
-                            minimapValue.fromObject(minimapData);
-                            this.minimapData.push(minimapValue);
-                        }
-                        dbMinimapData.free();
                         //finished loading
                         if (loadingDialog) {
                             loadingDialog.close();

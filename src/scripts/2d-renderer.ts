@@ -502,6 +502,32 @@ function render() {
         ctx.fillText(`CHUNK REVEALED: ${chunkAtMouse?.revealed ? "TRUE" : "FALSE"}`, 0, canvasElement.height - 64)
         ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}]`, 0, canvasElement.height - 32)
         ctx.fillText(`CHUNK: [${chunkPos.x}, ${chunkPos.y}]`, 0, canvasElement.height)
+
+        if (chunkAtMouse) {
+            tilePos = {"x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y)}
+
+            let highestTile = null
+            let highestZ = 0
+            for (let i = 0; i < chunkAtMouse.layers; i++) {
+                let testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)
+                
+                if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
+                    highestZ = i
+                    highestTile = testTile
+                }
+            }
+
+            if (highestTile) {
+                highestZ += 1
+
+                if (assetInfo[highestTile.tileAssetId]) {
+                    let tileInfo = assetInfo[highestTile.tileAssetId]
+                    let tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId
+                    //console.log(tileNameAndId)
+                    ctx.fillText(tileNameAndId, worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y)
+                }
+            }
+        }
     }
 
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)

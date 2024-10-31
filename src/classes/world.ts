@@ -665,7 +665,7 @@ class World {
         saveByteArray([worldBuffer], this.name + ".ttworld")
     }
 
-    async fromDatabase(db: any) {
+    async fromDatabase(db: any, isDungeon: boolean) {
         let loadingDialog: HTMLDialogElement | null = <HTMLDialogElement>document.getElementById("dialog-loading")
         
         if (loadingDialog) {
@@ -704,124 +704,6 @@ class World {
 
         dbTileData.free()
 
-        //load item palette
-        let itemPaletteData = {}
-
-        let dbItemPaletteData = db.prepare("SELECT * FROM Item")
-
-        while (dbItemPaletteData.step()) {
-            let itemPalette = dbItemPaletteData.getAsObject()
-
-            itemPaletteData[itemPalette.itemGuid] = {"id": itemPalette.itemAssetID, "count": itemPalette.count}
-        }
-
-        dbItemPaletteData.free()
-
-        //load world items (ground items)
-        let dbWorldItemData = db.prepare("SELECT * FROM WorldItem")
-
-        while (dbWorldItemData.step()) {
-            let worldItemData = dbWorldItemData.getAsObject()
-
-            let worldItem = new Item()
-            worldItem.fromObject(worldItemData, itemPaletteData)
-
-            let itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY)
-
-            if (itemChunk) {
-                itemChunk.itemDataList.push(worldItem)
-                itemChunk.resetCacheImage()
-            } else {
-                console.warn(`Chunk missing for item at chunk [${worldItem.chunkX}, ${worldItem.chunkY}]`)
-            }
-        }
-
-        dbWorldItemData.free()
-
-        //load storage items
-        let dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory") // WHERE actorGuid = 'tile
-
-        while (dbItemByInventory.step()) {
-            let itemByInventory = dbItemByInventory.getAsObject()
-
-            if (itemByInventory.actorGuid === "tile") { //container item
-                let container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ)
-                if (!container) {
-                    container = new Inventory()
-                    container.width = 5 //TODO: make these the actual inventory size
-                    container.height = 5
-                    container.target = InventoryFormat.Container
-                    
-                    let containerChunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(itemByInventory.tileX, itemByInventory.tileY)
-                    container.chunkX = containerChunkAndTilePos[0].x
-                    container.chunkY = containerChunkAndTilePos[0].y
-                    container.x = containerChunkAndTilePos[1].x
-                    container.y = containerChunkAndTilePos[1].y
-                    container.z = itemByInventory.tileZ
-                    container.target = InventoryFormat.Container
-
-                    this.containers.push(container)
-                }
-
-                let item = new InventoryItem()
-                item.slot = itemByInventory.inventoryIndex
-                item.count = itemPaletteData[itemByInventory.itemGuid].count
-                item.id = itemPaletteData[itemByInventory.itemGuid].id
-
-                container.addItem(item)
-            } else { //player inventory (i hope), inventoryType = Armor or Inventory
-                let container = this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType]
-                if (!container) {
-                    container = new Inventory()
-
-                    //doing this because its probably a playevenventory container
-                    container.width = 5
-                    container.height = 5
-                    container.target = InventoryFormat.Player
-
-                    this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container
-                }
-
-                let item = new InventoryItem()
-                item.slot = itemByInventory.inventoryIndex
-                item.count = itemPaletteData[itemByInventory.itemGuid].count
-                item.id = itemPaletteData[itemByInventory.itemGuid].id
-
-                container.addItem(item)
-            }
-        }
-
-        dbItemByInventory.free()
-
-        //load fogreveal
-        let dbFogRevealData = db.prepare("SELECT * FROM FogReveal")
-
-        while (dbFogRevealData.step()) {
-            let fogRevealData = dbFogRevealData.getAsObject()
-
-            let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(fogRevealData.x, fogRevealData.y)
-
-            //dungeon compatability
-            let chunkArr = this.chunks
-            if (fogRevealData.dungeon !== 0) {
-                chunkArr = this.dungeons[fogRevealData.dungeon]
-                if (!chunkArr) {
-                    this.dungeons[fogRevealData.dungeon] = []
-                    chunkArr = this.dungeons[fogRevealData.dungeon]
-                }
-            }
-
-            let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y, chunkArr)
-
-            if (chunk) {
-                chunk.revealed = true
-            } else {
-                console.warn(`Chunk missing for FogReveal at chunk [${fogRevealData.x}, ${fogRevealData.y}] at dungeon ${fogRevealData.dungeon}`)
-            }
-        }
-
-        dbFogRevealData.free()
-
         //biomes
         let dbBiomeEntryData = db.prepare("SELECT * FROM BiomeEntry")
 
@@ -840,93 +722,213 @@ class World {
 
         dbBiomeEntryData.free()
 
-        //player save
-        let dbPlayerSaveData = db.prepare("SELECT * FROM PlayerSave")
+        if (!isDungeon) {
+            //load item palette
+            let itemPaletteData = {}
 
-        while (dbPlayerSaveData.step()) {
-            let playerSaveData = dbPlayerSaveData.getAsObject()
+            let dbItemPaletteData = db.prepare("SELECT * FROM Item")
 
-            let playerSave = new PlayerSave()
-            playerSave.fromObject(playerSaveData)
+            while (dbItemPaletteData.step()) {
+                let itemPalette = dbItemPaletteData.getAsObject()
 
-            this.playerSaves[playerSave.puid] = playerSave
-        }
-
-        dbPlayerSaveData.free()
-
-        //BuildingDTO
-        let dbBuildingDTOData = db.prepare("SELECT * FROM BuildingDTO")
-
-        while (dbBuildingDTOData.step()) {
-            let buildingDTOData = dbBuildingDTOData.getAsObject()
-
-            let buildingDTO = new BuildingDTO()
-            buildingDTO.fromObject(buildingDTOData)
-
-            this.buildingDTOs[buildingDTO.id] = buildingDTO
-        }
-
-        dbBuildingDTOData.free()
-
-        //BuildingTilesDTO
-        let dbBuildingTilesDTO = db.prepare("SELECT * FROM BuildingTilesDTO")
-
-        while (dbBuildingTilesDTO.step()) {
-            let buildingTileDTOData = dbBuildingTilesDTO.getAsObject()
-
-            let buildingDTOId = buildingTileDTOData.id
-            let buildingDTO = this.buildingDTOs[buildingDTOId]
-
-            if (buildingDTO) {
-                buildingDTO.tilePositions.push({"x": buildingTileDTOData.x, "y": buildingTileDTOData.y, "z": buildingTileDTOData.z})
-            } else {
-                console.warn(`BuildingDTO ${buildingDTOId} missing for BuildingTileDTO at [${buildingTileDTOData.x}, ${buildingTileDTOData.y}, ${buildingTileDTOData.z}]`)
+                itemPaletteData[itemPalette.itemGuid] = {"id": itemPalette.itemAssetID, "count": itemPalette.count}
             }
+
+            dbItemPaletteData.free()
+
+            //load world items (ground items)
+            let dbWorldItemData = db.prepare("SELECT * FROM WorldItem")
+
+            while (dbWorldItemData.step()) {
+                let worldItemData = dbWorldItemData.getAsObject()
+
+                let worldItem = new Item()
+                worldItem.fromObject(worldItemData, itemPaletteData)
+
+                let itemChunk = this.getChunkAt(worldItem.chunkX, worldItem.chunkY)
+
+                if (itemChunk) {
+                    itemChunk.itemDataList.push(worldItem)
+                    itemChunk.resetCacheImage()
+                } else {
+                    console.warn(`Chunk missing for item at chunk [${worldItem.chunkX}, ${worldItem.chunkY}]`)
+                }
+            }
+
+            dbWorldItemData.free()
+
+            //load storage items
+            let dbItemByInventory = db.prepare("SELECT * FROM ItemByInventory") // WHERE actorGuid = 'tile
+
+            while (dbItemByInventory.step()) {
+                let itemByInventory = dbItemByInventory.getAsObject()
+
+                if (itemByInventory.actorGuid === "tile") { //container item
+                    let container = this.getContainerAt(itemByInventory.tileX, itemByInventory.tileY, itemByInventory.tileZ)
+                    if (!container) {
+                        container = new Inventory()
+                        container.width = 5 //TODO: make these the actual inventory size
+                        container.height = 5
+                        container.target = InventoryFormat.Container
+                        
+                        let containerChunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(itemByInventory.tileX, itemByInventory.tileY)
+                        container.chunkX = containerChunkAndTilePos[0].x
+                        container.chunkY = containerChunkAndTilePos[0].y
+                        container.x = containerChunkAndTilePos[1].x
+                        container.y = containerChunkAndTilePos[1].y
+                        container.z = itemByInventory.tileZ
+                        container.target = InventoryFormat.Container
+
+                        this.containers.push(container)
+                    }
+
+                    let item = new InventoryItem()
+                    item.slot = itemByInventory.inventoryIndex
+                    item.count = itemPaletteData[itemByInventory.itemGuid].count
+                    item.id = itemPaletteData[itemByInventory.itemGuid].id
+
+                    container.addItem(item)
+                } else { //player inventory (i hope), inventoryType = Armor or Inventory
+                    let container = this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType]
+                    if (!container) {
+                        container = new Inventory()
+
+                        //doing this because its probably a playevenventory container
+                        container.width = 5
+                        container.height = 5
+                        container.target = InventoryFormat.Player
+
+                        this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container
+                    }
+
+                    let item = new InventoryItem()
+                    item.slot = itemByInventory.inventoryIndex
+                    item.count = itemPaletteData[itemByInventory.itemGuid].count
+                    item.id = itemPaletteData[itemByInventory.itemGuid].id
+
+                    container.addItem(item)
+                }
+            }
+
+            dbItemByInventory.free()
+
+            //load fogreveal
+            let dbFogRevealData = db.prepare("SELECT * FROM FogReveal")
+
+            while (dbFogRevealData.step()) {
+                let fogRevealData = dbFogRevealData.getAsObject()
+
+                let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(fogRevealData.x, fogRevealData.y)
+
+                //dungeon compatability
+                let chunkArr = this.chunks
+                if (fogRevealData.dungeon !== 0) {
+                    chunkArr = this.dungeons[fogRevealData.dungeon]
+                    if (!chunkArr) {
+                        this.dungeons[fogRevealData.dungeon] = []
+                        chunkArr = this.dungeons[fogRevealData.dungeon]
+                    }
+                }
+
+                let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y, chunkArr)
+
+                if (chunk) {
+                    chunk.revealed = true
+                } else {
+                    console.warn(`Chunk missing for FogReveal at chunk [${fogRevealData.x}, ${fogRevealData.y}] at dungeon ${fogRevealData.dungeon}`)
+                }
+            }
+
+            dbFogRevealData.free()
+
+            //player save
+            let dbPlayerSaveData = db.prepare("SELECT * FROM PlayerSave")
+
+            while (dbPlayerSaveData.step()) {
+                let playerSaveData = dbPlayerSaveData.getAsObject()
+
+                let playerSave = new PlayerSave()
+                playerSave.fromObject(playerSaveData)
+
+                this.playerSaves[playerSave.puid] = playerSave
+            }
+
+            dbPlayerSaveData.free()
+
+            //BuildingDTO
+            let dbBuildingDTOData = db.prepare("SELECT * FROM BuildingDTO")
+
+            while (dbBuildingDTOData.step()) {
+                let buildingDTOData = dbBuildingDTOData.getAsObject()
+
+                let buildingDTO = new BuildingDTO()
+                buildingDTO.fromObject(buildingDTOData)
+
+                this.buildingDTOs[buildingDTO.id] = buildingDTO
+            }
+
+            dbBuildingDTOData.free()
+
+            //BuildingTilesDTO
+            let dbBuildingTilesDTO = db.prepare("SELECT * FROM BuildingTilesDTO")
+
+            while (dbBuildingTilesDTO.step()) {
+                let buildingTileDTOData = dbBuildingTilesDTO.getAsObject()
+
+                let buildingDTOId = buildingTileDTOData.id
+                let buildingDTO = this.buildingDTOs[buildingDTOId]
+
+                if (buildingDTO) {
+                    buildingDTO.tilePositions.push({"x": buildingTileDTOData.x, "y": buildingTileDTOData.y, "z": buildingTileDTOData.z})
+                } else {
+                    console.warn(`BuildingDTO ${buildingDTOId} missing for BuildingTileDTO at [${buildingTileDTOData.x}, ${buildingTileDTOData.y}, ${buildingTileDTOData.z}]`)
+                }
+            }
+
+            dbBuildingTilesDTO.free()
+
+            //poi
+            let dbPOI = db.prepare("SELECT * FROM PointOfInterest")
+
+            while (dbPOI.step()) {
+                let POIData = dbPOI.getAsObject()
+
+                let poi = new PointOfInterest()
+                poi.fromObject(POIData)
+
+                this.pointsOfInterest.push(poi)
+            }
+
+            dbPOI.free()
+
+            //discovery poi (i dont know what this is)
+            let dbDiscoveryPOI = db.prepare("SELECT * FROM DiscoveryPOI")
+
+            while (dbDiscoveryPOI.step()) {
+                let discoveryPOIData = dbDiscoveryPOI.getAsObject()
+
+                let discoveryPOI = new DiscoveryPointOfInterest()
+                discoveryPOI.fromObject(discoveryPOIData)
+
+                this.discoveryPointsOfInterest.push(discoveryPOI)
+            }
+
+            dbDiscoveryPOI.free()
+
+            //minimap (i dont know what this is)
+            let dbMinimapData = db.prepare("SELECT * FROM Minimap")
+            
+            while (dbMinimapData.step()) {
+                let minimapData = dbMinimapData.getAsObject()
+
+                let minimapValue = new MinimapValue()
+                minimapValue.fromObject(minimapData)
+
+                this.minimapData.push(minimapValue)
+            }
+
+            dbMinimapData.free()
         }
-
-        dbBuildingTilesDTO.free()
-
-        //poi
-        let dbPOI = db.prepare("SELECT * FROM PointOfInterest")
-
-        while (dbPOI.step()) {
-            let POIData = dbPOI.getAsObject()
-
-            let poi = new PointOfInterest()
-            poi.fromObject(POIData)
-
-            this.pointsOfInterest.push(poi)
-        }
-
-        dbPOI.free()
-
-        //discovery poi (i dont know what this is)
-        let dbDiscoveryPOI = db.prepare("SELECT * FROM DiscoveryPOI")
-
-        while (dbDiscoveryPOI.step()) {
-            let discoveryPOIData = dbDiscoveryPOI.getAsObject()
-
-            let discoveryPOI = new DiscoveryPointOfInterest()
-            discoveryPOI.fromObject(discoveryPOIData)
-
-            this.discoveryPointsOfInterest.push(discoveryPOI)
-        }
-
-        dbDiscoveryPOI.free()
-
-        //minimap (i dont know what this is)
-        let dbMinimapData = db.prepare("SELECT * FROM Minimap")
-        
-        while (dbMinimapData.step()) {
-            let minimapData = dbMinimapData.getAsObject()
-
-            let minimapValue = new MinimapValue()
-            minimapValue.fromObject(minimapData)
-
-            this.minimapData.push(minimapValue)
-        }
-
-        dbMinimapData.free()
 
         //finished loading
         if (loadingDialog) {

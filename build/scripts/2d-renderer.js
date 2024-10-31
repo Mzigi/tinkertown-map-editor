@@ -435,6 +435,27 @@ function render() {
         ctx.fillText("CHUNK REVEALED: ".concat((chunkAtMouse === null || chunkAtMouse === void 0 ? void 0 : chunkAtMouse.revealed) ? "TRUE" : "FALSE"), 0, canvasElement.height - 64);
         ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, "]"), 0, canvasElement.height - 32);
         ctx.fillText("CHUNK: [".concat(chunkPos.x, ", ").concat(chunkPos.y, "]"), 0, canvasElement.height);
+        if (chunkAtMouse) {
+            tilePos = { "x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y) };
+            var highestTile = null;
+            var highestZ = 0;
+            for (var i = 0; i < chunkAtMouse.layers; i++) {
+                var testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i);
+                if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
+                    highestZ = i;
+                    highestTile = testTile;
+                }
+            }
+            if (highestTile) {
+                highestZ += 1;
+                if (assetInfo[highestTile.tileAssetId]) {
+                    var tileInfo = assetInfo[highestTile.tileAssetId];
+                    var tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId;
+                    //console.log(tileNameAndId)
+                    ctx.fillText(tileNameAndId, worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y);
+                }
+            }
+        }
     }
     /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)
     ctx.fillStyle = "#000000"

@@ -119,7 +119,7 @@ function setPreference(key: string, value: string | number | boolean) {
 
 function loadFromExampleLink(exampleLink: worldLink) {
     let loadingWorld = new World()
-    loadingWorld.name = "Failed to load"
+    loadingWorld.name = "Loading..."
     worlds[worlds.length] = loadingWorld
     currentWorld = worlds.length - 1
 
@@ -241,8 +241,11 @@ newButton.addEventListener("click", () => {
     worlds[currentWorld].uneditedFiles = {}
 })
 
-initSqlJs({locateFile: filename => `node_modules/sql.js/dist/sql-wasm.wasm`}).then((SQL) => { 
+initSqlJs({locateFile: filename => `src/libraries/sql-wasm.wasm`}).then((SQL) => { 
     window["SQL"] = SQL
+
+    console.log(SQL)
+    console.log("Initialized SQL")
 
     importInput.addEventListener("change", () => {
         if (importInput.files.length > 0) {
@@ -261,16 +264,20 @@ initSqlJs({locateFile: filename => `node_modules/sql.js/dist/sql-wasm.wasm`}).th
                 }
             }
 
+            console.log("Loading world with format " + worlds[currentWorld].format)
+
             for (let i = 0; i < importInput.files.length; i++) {
+                console.log(importInput.files[i].webkitRelativePath)
+
                 //console.log(importInput.files[i].webkitRelativePath)
-                if (importInput.files[i].webkitRelativePath.endsWith("world.dat")) {
+                if (importInput.files[i].webkitRelativePath.endsWith("world.dat") || importInput.files[i].webkitRelativePath.endsWith("MapAddition.db")) {
                     //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
                     let fileReader = new FileReader()
 
                     fileReader.onload = function(e) {
                         let uint8data = new Uint8Array(<ArrayBufferLike>fileReader.result)
                         let dataBase = new SQL.Database(uint8data)
-                        worlds[thisWorldId].fromDatabase(dataBase)
+                        worlds[thisWorldId].fromDatabase(dataBase, importInput.files[i].webkitRelativePath.endsWith("MapAddition.db"))
                     }
                     fileReader.readAsArrayBuffer(importInput.files[i])
                 } else if (importInput.files[i].webkitRelativePath.endsWith(".dat")) {

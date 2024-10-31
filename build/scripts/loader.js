@@ -136,7 +136,7 @@ function setPreference(key, value) {
 }
 function loadFromExampleLink(exampleLink) {
     var loadingWorld = new World();
-    loadingWorld.name = "Failed to load";
+    loadingWorld.name = "Loading...";
     worlds[worlds.length] = loadingWorld;
     currentWorld = worlds.length - 1;
     var hrefWithoutHtml = window.location.href.replace("index.html", "");
@@ -263,8 +263,10 @@ newButton.addEventListener("click", function () {
     updateWorldList();
     worlds[currentWorld].uneditedFiles = {};
 });
-initSqlJs({ locateFile: function (filename) { return "node_modules/sql.js/dist/sql-wasm.wasm"; } }).then(function (SQL) {
+initSqlJs({ locateFile: function (filename) { return "src/libraries/sql-wasm.wasm"; } }).then(function (SQL) {
     window["SQL"] = SQL;
+    console.log(SQL);
+    console.log("Initialized SQL");
     importInput.addEventListener("change", function () {
         if (importInput.files.length > 0) {
             var thisWorldId_1 = worlds.length;
@@ -279,15 +281,17 @@ initSqlJs({ locateFile: function (filename) { return "node_modules/sql.js/dist/s
                     worlds[currentWorld].format = WorldFormat.Database;
                 }
             }
+            console.log("Loading world with format " + worlds[currentWorld].format);
             var _loop_2 = function (i) {
+                console.log(importInput.files[i].webkitRelativePath);
                 //console.log(importInput.files[i].webkitRelativePath)
-                if (importInput.files[i].webkitRelativePath.endsWith("world.dat")) {
+                if (importInput.files[i].webkitRelativePath.endsWith("world.dat") || importInput.files[i].webkitRelativePath.endsWith("MapAddition.db")) {
                     //readBinaryFile(importInput2.files[i], importInput2.files[i].webkitRelativePath, thisWorldId)
                     var fileReader_1 = new FileReader();
                     fileReader_1.onload = function (e) {
                         var uint8data = new Uint8Array(fileReader_1.result);
                         var dataBase = new SQL.Database(uint8data);
-                        worlds[thisWorldId_1].fromDatabase(dataBase);
+                        worlds[thisWorldId_1].fromDatabase(dataBase, importInput.files[i].webkitRelativePath.endsWith("MapAddition.db"));
                     };
                     fileReader_1.readAsArrayBuffer(importInput.files[i]);
                 }
