@@ -552,49 +552,52 @@ export class Renderer {
             
             this.ctx.fillText(`CHUNK: [${chunkPos.x}, ${chunkPos.y}]`, 0, this.canvasElement.height)
     
-            if (world.selection.length == 0) {
-                if (chunkAtMouse) {
-                    tilePos = {"x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y)}
-        
-                    let highestTile = null
-                    let highestZ = 0
+            
+            if (chunkAtMouse) {
+                tilePos = {"x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y)}
+    
+                let highestTile = null
+                let highestZ = 0
 
-                    for (let i = 0; i < chunkAtMouse.layers; i++) {
-                        let testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)
-                        
-                        if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
-                            highestZ = i
-                            highestTile = testTile
-                        }
+                for (let i = 0; i < chunkAtMouse.layers; i++) {
+                    let testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)
+                    
+                    if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
+                        highestZ = i
+                        highestTile = testTile
                     }
+                }
 
-                    if (this.editor.selectedLayer != -1) { //if layer isnt auto
-                        highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer)
-                        if (highestTile) {
-                            highestZ = this.editor.selectedLayer
-                        }
-                    }
-        
+                if (this.editor.selectedLayer != -1) { //if layer isnt auto
+                    highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer)
                     if (highestTile) {
-                        this.ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}, ${highestZ}]`, 0, this.canvasElement.height - 32)
-                        highestZ += 1
-        
-                        let tileNameAndId = "#" + highestTile.tileAssetID
-        
-                        if (assetInfo[highestTile.tileAssetId]) {
-                            let tileInfo = assetInfo[highestTile.tileAssetId]
-                            tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId
-                        }
-                        //console.log(tileNameAndId)
+                        highestZ = this.editor.selectedLayer
+                    }
+                }
+    
+                if (highestTile) {
+                    this.ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}, ${highestZ}]`, 0, this.canvasElement.height - 32)
+                    highestZ += 1
+    
+                    let tileNameAndId = "#" + highestTile.tileAssetID
+    
+                    if (assetInfo[highestTile.tileAssetId]) {
+                        let tileInfo = assetInfo[highestTile.tileAssetId]
+                        tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId
+                    }
+                    //console.log(tileNameAndId)
+                    if (world.selection.length == 0) {
                         this.ctx.fillText(tileNameAndId, camera.lastPosition.x, camera.lastPosition.y)
                         this.ctx.fillText(`HP: ${highestTile.health} ROT: ${highestTile.rotation} A: ${highestTile.memoryA} B: ${highestTile.memoryB}`, camera.lastPosition.x, camera.lastPosition.y + 32)
-                    } else {
-                        this.ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}]`, 0, this.canvasElement.height - 32)
                     }
                 } else {
                     this.ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}]`, 0, this.canvasElement.height - 32)
                 }
             } else {
+                this.ctx.fillText(`TILE: [${globalTilePos.x}, ${globalTilePos.y}]`, 0, this.canvasElement.height - 32)
+            }
+
+            if (world.selection.length == 2) {
                 let lowX = Math.min(world.selection[0].x, world.selection[1].x)
                 let highX = Math.max(world.selection[0].x, world.selection[1].x)
         
