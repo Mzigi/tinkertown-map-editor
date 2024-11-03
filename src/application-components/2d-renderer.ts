@@ -616,6 +616,10 @@ export class Renderer {
         
         //window.requestAnimationFrame(this.render)
     
-        document.getElementsByTagName("title")[0].innerText = world.name + " - Tinkertown Map Editor"
+        let windowTitle = world.name + " - Tinkertown Map Editor"
+
+        if (document.getElementsByTagName("title")[0].innerText != windowTitle) {
+            document.getElementsByTagName("title")[0].innerText = windowTitle
+        }
     }
 }

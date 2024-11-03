@@ -504,7 +504,10 @@ var Renderer = /** @class */ (function () {
         ctx.fillRect(0,0, 100, 100)*/
         this.LastTime = CurrentTime;
         //window.requestAnimationFrame(this.render)
-        document.getElementsByTagName("title")[0].innerText = world.name + " - Tinkertown Map Editor";
+        var windowTitle = world.name + " - Tinkertown Map Editor";
+        if (document.getElementsByTagName("title")[0].innerText != windowTitle) {
+            document.getElementsByTagName("title")[0].innerText = windowTitle;
+        }
     };
     return Renderer;
 }());
