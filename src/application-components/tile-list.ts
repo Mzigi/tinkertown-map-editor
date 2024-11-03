@@ -72,6 +72,13 @@ export class TileList {
             }
         }
 
+        window["updateSearch"] = () => {
+            this.updateSearch()
+        }
+        window["updateItemSearch"] = () => {
+            this.updateItemSearch()
+        }
+
         this.updateSearch()
         this.updateItemSearch()
     }

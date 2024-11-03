@@ -53,6 +53,12 @@ var TileList = /** @class */ (function () {
                 }
             }
         };
+        window["updateSearch"] = function () {
+            _this.updateSearch();
+        };
+        window["updateItemSearch"] = function () {
+            _this.updateItemSearch();
+        };
         this.updateSearch();
         this.updateItemSearch();
     }

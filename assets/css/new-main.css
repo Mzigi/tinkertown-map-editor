@@ -557,7 +557,7 @@ input[type=number] {
     padding: 10px;
     z-index: 2;
     background-color: var(--lightgray-border);
-    width: calc(var(--slot-size) * 2.5);
+    width: calc(var(--slot-size) * 3.75);
     height: calc(var(--slot-size) * 4 + 4em);
     border-radius: 0 5px 5px 0;
     box-shadow: 0 0 5px var(--shadow-color);
@@ -569,7 +569,7 @@ input[type=number] {
     height: calc(100% - 4em);
     overflow-y: scroll;
     gap: var(--inventory-padding);
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     background-color: transparent;
 }
 
