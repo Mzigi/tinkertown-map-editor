@@ -8,7 +8,7 @@ import { Erase } from "../classes/tools/erase.js";
 import { Fill } from "../classes/tools/fill.js";
 import { Pick } from "../classes/tools/pick.js";
 import { SelectTool } from "../classes/tools/select.js";
-import { ToolInfo } from "../classes/tools/tool-info.js";
+import { ToolHistory, ToolInfo } from "../classes/tools/tool-info.js";
 var Editor = /** @class */ (function () {
     function Editor(loader, imageHolder) {
         var _this = this;
@@ -168,7 +168,8 @@ var Editor = /** @class */ (function () {
             _this.openedStorage = null;
             //set item properties
             if (_this.openedItem && _this.openedItemStorage) {
-                var chunkAtItem = loader.worlds[loader.currentWorld].getChunkAt(_this.openedItem.chunkX, _this.openedItem.chunkY);
+                var world = _this.loader.getCurrentWorld();
+                var chunkAtItem_1 = world.getChunkAt(_this.openedItem.chunkX, _this.openedItem.chunkY);
                 var shouldDelete = false;
                 if (_this.openedItemStorage.itemDataList.length > 0) {
                     if (_this.openedItemStorage.itemDataList[0].count <= 0) {
@@ -178,27 +179,53 @@ var Editor = /** @class */ (function () {
                 else {
                     shouldDelete = true;
                 }
+                var openedItem_1 = _this.openedItem;
                 if (!shouldDelete) {
-                    _this.openedItem.id = _this.openedItemStorage.itemDataList[0].id;
-                    _this.openedItem.count = _this.openedItemStorage.itemDataList[0].count;
+                    var originalId_1 = _this.openedItem.id;
+                    var originalCount_1 = _this.openedItem.count;
+                    var newId_1 = _this.openedItemStorage.itemDataList[0].id;
+                    var newCount_1 = _this.openedItemStorage.itemDataList[0].count;
+                    if (_this.openedItem.id != newId_1 || _this.openedItem.count != newCount_1) {
+                        world.addHistory(new ToolHistory(function () {
+                            openedItem_1.id = originalId_1;
+                            openedItem_1.count = originalCount_1;
+                            chunkAtItem_1.edited();
+                        }, function () {
+                            openedItem_1.id = newId_1;
+                            openedItem_1.count = newCount_1;
+                            chunkAtItem_1.edited();
+                        }));
+                    }
+                    _this.openedItem.id = newId_1;
+                    _this.openedItem.count = newCount_1;
                 }
                 else {
-                    if (chunkAtItem) {
-                        for (var i = 0; i < chunkAtItem.itemDataList.length; i++) {
-                            if (chunkAtItem.itemDataList[i] == _this.openedItem) {
-                                chunkAtItem.itemDataList.splice(i, 1);
-                                chunkAtItem.chunkHasBeenEdited = true;
-                                chunkAtItem.undoEdited = true;
-                                chunkAtItem.resetCacheImage();
+                    world.addHistory(new ToolHistory(function () {
+                        chunkAtItem_1.itemDataList.push(openedItem_1);
+                        chunkAtItem_1.edited();
+                    }, function () {
+                        if (chunkAtItem_1) {
+                            for (var i = 0; i < chunkAtItem_1.itemDataList.length; i++) {
+                                if (chunkAtItem_1.itemDataList[i] == openedItem_1) {
+                                    chunkAtItem_1.itemDataList.splice(i, 1);
+                                    chunkAtItem_1.edited();
+                                    break;
+                                }
+                            }
+                        }
+                    }));
+                    if (chunkAtItem_1) {
+                        for (var i = 0; i < chunkAtItem_1.itemDataList.length; i++) {
+                            if (chunkAtItem_1.itemDataList[i] == _this.openedItem) {
+                                chunkAtItem_1.itemDataList.splice(i, 1);
+                                chunkAtItem_1.edited();
                                 break;
                             }
                         }
                     }
                 }
-                if (chunkAtItem) {
-                    chunkAtItem.chunkHasBeenEdited = true;
-                    chunkAtItem.undoEdited = true;
-                    chunkAtItem.resetCacheImage();
+                if (chunkAtItem_1) {
+                    chunkAtItem_1.edited();
                 }
             }
             _this.openedItem = null;
@@ -210,7 +237,7 @@ var Editor = /** @class */ (function () {
             if (e.button === 0) {
                 if (_this.hoveredStorage) {
                     _this.openedStorage = _this.hoveredStorage;
-                    _this.hoveredStorage.visualize(_this.images, _this.slotSize);
+                    _this.hoveredStorage.visualize(_this.images, _this.slotSize, _this.loader.getCurrentWorld());
                     _this.positionInventory();
                 }
                 else if (_this.hoveredItem) {
@@ -237,7 +264,7 @@ var Editor = /** @class */ (function () {
             }*/
         });
         document.body.addEventListener("keydown", function (e) {
-            console.log(e);
+            //console.log(e)
             _this.pressedKeys[e.key] = true;
             if (e.ctrlKey) {
                 _this.pressedKeys["ctrlKey"] = true;

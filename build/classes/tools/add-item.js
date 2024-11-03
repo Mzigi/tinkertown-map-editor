@@ -66,7 +66,7 @@ var AddItem = /** @class */ (function (_super) {
                     newItem.y = tileAtMouse.y;
                     chunkAtMouse.itemDataList.push(newItem);
                     chunkAtMouse.edited();
-                    console.log(chunkAtMouse);
+                    //console.log(chunkAtMouse)
                 }
             }
         }

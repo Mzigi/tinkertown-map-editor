@@ -1,6 +1,9 @@
+import { Editor } from "../../application-components/editor.js";
 import { item_assetInfo } from "../../libraries/item-assetInfoToJson.js";
 import { simpleView } from "../simpleView.js";
+import { ToolHistory } from "../tools/tool-info.js";
 import { InventoryItem } from "./inventoryItem.js";
+import { World } from "./world.js";
 
 /*
 INVENTORY
@@ -86,6 +89,12 @@ export enum InventoryFormat {
     Player,
 }
 
+interface ItemInfo {
+    id?: number
+    count?: number
+    slot: number
+}
+
 export class Inventory {
 
     width: number
@@ -112,6 +121,7 @@ export class Inventory {
     constructor() {
         this.reset()
         window["preventDrop"] = preventDrop
+        window["validateNumberInput"] = validateNumberInput
     }
 
     reset() {
@@ -136,6 +146,10 @@ export class Inventory {
 
         //editor only
         this.filePath = ""
+    }
+
+    getEditor(): Editor {
+        return window["application"].editor
     }
 
     getFileName(): string {
@@ -249,11 +263,7 @@ export class Inventory {
     }
 
     checkContainsItems() {
-        if (this.itemDataList.length > 0) {
-            this.containsItems = true
-        } else {
-            this.containsItems = false
-        }
+        this.containsItems = this.itemDataList.length > 0
     }
 
     validateItems() {
@@ -271,7 +281,7 @@ export class Inventory {
         this.totalSlots = this.itemDataList.length
         this.checkContainsItems()
     }
-
+    
     setIdAtSlot(slot: number, id: number) {
         for (let i = 0; i < this.itemDataList.length; i++) {
             let item = this.itemDataList[i]
@@ -326,6 +336,25 @@ export class Inventory {
         }
     }
 
+    getSlotInfo(slot: number): ItemInfo {
+        let item = this.getItemAtSlot(slot)
+
+        if (item) {
+            return {"id": item.id, "count": item.count, "slot": slot}
+        } else {
+            return {"slot": slot}
+        }
+    }
+
+    setSlotInfo(info: any) {
+        if (info.id) {
+            this.setIdAtSlot(info.slot, info.id)
+            this.setCountAtSlot(info.slot, info.count)
+        } else {
+            this.removeItemAtSlot(info.slot)
+        }
+    }
+
     addItem(item: InventoryItem) {
         for (let i = 0; i < this.itemDataList.length; i++) {
             let item2 = this.itemDataList[i]
@@ -366,7 +395,7 @@ export class Inventory {
         return newInventory
     }
 
-    visualize(images:{[key: string]: HTMLImageElement}, slotSize: number) {
+    visualize(images:{[key: string]: HTMLImageElement}, slotSize: number, world: World = null) {
         //find elements
         let rootElement = <HTMLHtmlElement>document.querySelector(":root")
 
@@ -409,11 +438,14 @@ export class Inventory {
                 let originalCount = Number(evt.dataTransfer.getData("originalCount"))
 
                 let currentSlot = Number(slot.getAttribute("slot"))
+                let currentSlotInfo = inventory.getSlotInfo(currentSlot)
 
                 if (originalSlot != "") { //if dragging one item in inventory to another place
                     let currentItem = inventory.getItemAtSlot(currentSlot)
 
                     originalSlot = Number(originalSlot)
+
+                    let originalSlotInfo = inventory.getSlotInfo(originalSlot)
 
                     if (currentItem) {
                         let currentId = currentItem.id
@@ -424,16 +456,76 @@ export class Inventory {
 
                         inventory.setIdAtSlot(originalSlot, currentId)
                         inventory.setCountAtSlot(originalSlot, currentCount)
+
+                        if (world) {
+                            world.addHistory(new ToolHistory(
+                                () => {
+                                    inventory.setSlotInfo(currentSlotInfo)
+                                    inventory.setSlotInfo(originalSlotInfo)
+
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                },
+                                () => {
+                                    inventory.setIdAtSlot(currentSlot, originalId)
+                                    inventory.setCountAtSlot(currentSlot, originalCount)
+
+                                    inventory.setIdAtSlot(originalSlot, currentId)
+                                    inventory.setCountAtSlot(originalSlot, currentCount)
+
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                }
+                            ))
+                        }
                     } else {
                         inventory.removeItemAtSlot(originalSlot)
                         inventory.setIdAtSlot(currentSlot, originalId)
                         inventory.setCountAtSlot(currentSlot, originalCount)
+
+                        if (world) {
+                            world.addHistory(new ToolHistory(
+                                () => {
+                                    inventory.setSlotInfo(currentSlotInfo)
+                                    inventory.setSlotInfo(originalSlotInfo)
+
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                },
+                                () => {
+                                    inventory.removeItemAtSlot(originalSlot)
+                                    inventory.setIdAtSlot(currentSlot, originalId)
+                                    inventory.setCountAtSlot(currentSlot, originalCount)
+
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                }
+                            ))
+                        }
                     }
                 } else { //if youre dragging from item list
                     inventory.setCountAtSlot(currentSlot, 1)
                     inventory.setIdAtSlot(currentSlot, originalId)
+
+                    if (world) {
+                        world.addHistory(new ToolHistory(
+                            () => {
+                                inventory.setSlotInfo(currentSlotInfo)
+
+                                inventory.visualize(images, slotSize, world)
+                                inventory.getEditor().positionInventory()
+                            },
+                            () => {
+                                inventory.setCountAtSlot(currentSlot, 1)
+                                inventory.setIdAtSlot(currentSlot, originalId)
+
+                                inventory.visualize(images, slotSize, world)
+                                inventory.getEditor().positionInventory()
+                            }
+                        ))
+                    }
                 }
-                inventory.visualize(images, slotSize)
+                inventory.visualize(images, slotSize, world)
             }
             slot.ondragover = function(evt) {
                 evt.preventDefault()
@@ -466,11 +558,42 @@ export class Inventory {
 
                     //item amount change event listener
                     let inventory = this
+
+                    let originalCount = item.count
+
                     itemAmountElement.addEventListener("change", function(e) {
                         inventory.setCountAtSlot(item.slot, Number(itemAmountElement.value))
+                        if (world) {
+                            world.addHistory(new ToolHistory(
+                                () => {
+                                    inventory.setCountAtSlot(item.slot, originalCount)
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                },
+                                () => {
+                                    inventory.setCountAtSlot(item.slot, Number(itemAmountElement.value))
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                }
+                            ))
+                        }
                     })
                     itemAmountElement.addEventListener("keyup", function(e) {
                         inventory.setCountAtSlot(item.slot, Number(itemAmountElement.value))
+                        if (world) {
+                            world.addHistory(new ToolHistory(
+                                () => {
+                                    inventory.setCountAtSlot(item.slot, originalCount)
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                },
+                                () => {
+                                    inventory.setCountAtSlot(item.slot, Number(itemAmountElement.value))
+                                    inventory.visualize(images, slotSize, world)
+                                    inventory.getEditor().positionInventory()
+                                }
+                            ))
+                        }
                     })
 
                     //add image

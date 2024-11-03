@@ -246,13 +246,14 @@ var Loader = /** @class */ (function () {
         closeButton.addEventListener("click", function () {
             document.getElementById("remove-world-title").innerText = "Remove " + thisWorld.name + "?";
             document.getElementById("dialog-confirm-close").showModal();
+            var loader = _this;
             function RemoveWorld() {
                 thisWorld.reset();
                 thisWorld.hidden = true;
-                if (worldId == this.loader.currentWorld) {
-                    this.findFirstVisibleWorld();
+                if (worldId == loader.currentWorld) {
+                    loader.editor.findFirstVisibleWorld();
                 }
-                this.loader.updateWorldList();
+                loader.updateWorldList();
                 document.getElementById("dialog-confirm-close").close();
                 document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", RemoveWorld);
                 document.getElementById("dialog-confirm-close-confirm").removeEventListener("click", CancelRemove);

@@ -610,6 +610,7 @@ export class Renderer {
         ctx.fillRect(0,0, 100, 100)*/
     
         this.LastTime = CurrentTime
+        
         //window.requestAnimationFrame(this.render)
     
         document.getElementsByTagName("title")[0].innerText = world.name + " - Tinkertown Map Editor"

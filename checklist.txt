@@ -19,10 +19,10 @@
 ☐ MemoryB
 
 -- Tools
-☐ Select
+☑ Select
     ☑ Drag
-    ☐ Copy and paste
-    ☐ Between worlds
+    ☑ Copy and paste
+    ☑ Between worlds
     ☑ Support multiple layers
 ☑ Undo/redo
 

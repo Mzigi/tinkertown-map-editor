@@ -33,16 +33,21 @@ export class Application {
         //tile list
         this.tileList = new TileList(this.imageHolder, this.editor)
 
+        this.loader.editor = this.editor
         this.imageHolder.loadImages(this.tileList)
         this.tick(this)
     }
 
-    tick(application) {
-        application.editor.tick()
-        application.renderer.render()
-        window.requestAnimationFrame(() => {
-            application.tick(application)
-        })
+    tick(application: Application) {
+        try {
+            application.editor.tick()
+            application.renderer.render()
+            window.requestAnimationFrame(() => {
+                application.tick(application)
+            })
+        } catch(error) {
+            this.loader.alertText("The map editor has crashed: " + error, true, 99999)
+        }
     }
 }
 

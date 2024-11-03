@@ -1,5 +1,6 @@
 import { item_assetInfo } from "../../libraries/item-assetInfoToJson.js";
 import { simpleView } from "../simpleView.js";
+import { ToolHistory } from "../tools/tool-info.js";
 import { InventoryItem } from "./inventoryItem.js";
 /*
 INVENTORY
@@ -81,6 +82,7 @@ var Inventory = /** @class */ (function () {
     function Inventory() {
         this.reset();
         window["preventDrop"] = preventDrop;
+        window["validateNumberInput"] = validateNumberInput;
     }
     Inventory.prototype.reset = function () {
         this.width = 5;
@@ -99,6 +101,9 @@ var Inventory = /** @class */ (function () {
         this.itemDataList = [];
         //editor only
         this.filePath = "";
+    };
+    Inventory.prototype.getEditor = function () {
+        return window["application"].editor;
     };
     Inventory.prototype.getFileName = function () {
         return String(this.x + this.chunkX * 10 + 500) + String(this.y + this.chunkY * 10 + 500) + String(this.y + this.chunkY * 10) + String(this.x + this.chunkX * 10);
@@ -192,12 +197,7 @@ var Inventory = /** @class */ (function () {
         saveByteArray([inventoryBuffer], "inventory.dat");
     };
     Inventory.prototype.checkContainsItems = function () {
-        if (this.itemDataList.length > 0) {
-            this.containsItems = true;
-        }
-        else {
-            this.containsItems = false;
-        }
+        this.containsItems = this.itemDataList.length > 0;
     };
     Inventory.prototype.validateItems = function () {
         var toSplice = [];
@@ -260,6 +260,24 @@ var Inventory = /** @class */ (function () {
             }
         }
     };
+    Inventory.prototype.getSlotInfo = function (slot) {
+        var item = this.getItemAtSlot(slot);
+        if (item) {
+            return { "id": item.id, "count": item.count, "slot": slot };
+        }
+        else {
+            return { "slot": slot };
+        }
+    };
+    Inventory.prototype.setSlotInfo = function (info) {
+        if (info.id) {
+            this.setIdAtSlot(info.slot, info.id);
+            this.setCountAtSlot(info.slot, info.count);
+        }
+        else {
+            this.removeItemAtSlot(info.slot);
+        }
+    };
     Inventory.prototype.addItem = function (item) {
         for (var i = 0; i < this.itemDataList.length; i++) {
             var item2 = this.itemDataList[i];
@@ -291,7 +309,8 @@ var Inventory = /** @class */ (function () {
         newInventory.filePath = this.filePath;
         return newInventory;
     };
-    Inventory.prototype.visualize = function (images, slotSize) {
+    Inventory.prototype.visualize = function (images, slotSize, world) {
+        if (world === void 0) { world = null; }
         //find elements
         var rootElement = document.querySelector(":root");
         var inventoryElement = document.getElementById("inventory");
@@ -326,28 +345,71 @@ var Inventory = /** @class */ (function () {
                 var originalSlot = evt.dataTransfer.getData("originalSlot");
                 var originalCount = Number(evt.dataTransfer.getData("originalCount"));
                 var currentSlot = Number(slot.getAttribute("slot"));
+                var currentSlotInfo = inventory.getSlotInfo(currentSlot);
                 if (originalSlot != "") { //if dragging one item in inventory to another place
                     var currentItem = inventory.getItemAtSlot(currentSlot);
                     originalSlot = Number(originalSlot);
+                    var originalSlotInfo_1 = inventory.getSlotInfo(originalSlot);
                     if (currentItem) {
-                        var currentId = currentItem.id;
-                        var currentCount = currentItem.count;
+                        var currentId_1 = currentItem.id;
+                        var currentCount_1 = currentItem.count;
                         inventory.setIdAtSlot(currentSlot, originalId);
                         inventory.setCountAtSlot(currentSlot, originalCount);
-                        inventory.setIdAtSlot(originalSlot, currentId);
-                        inventory.setCountAtSlot(originalSlot, currentCount);
+                        inventory.setIdAtSlot(originalSlot, currentId_1);
+                        inventory.setCountAtSlot(originalSlot, currentCount_1);
+                        if (world) {
+                            world.addHistory(new ToolHistory(function () {
+                                inventory.setSlotInfo(currentSlotInfo);
+                                inventory.setSlotInfo(originalSlotInfo_1);
+                                inventory.visualize(images, slotSize, world);
+                                inventory.getEditor().positionInventory();
+                            }, function () {
+                                inventory.setIdAtSlot(currentSlot, originalId);
+                                inventory.setCountAtSlot(currentSlot, originalCount);
+                                inventory.setIdAtSlot(originalSlot, currentId_1);
+                                inventory.setCountAtSlot(originalSlot, currentCount_1);
+                                inventory.visualize(images, slotSize, world);
+                                inventory.getEditor().positionInventory();
+                            }));
+                        }
                     }
                     else {
                         inventory.removeItemAtSlot(originalSlot);
                         inventory.setIdAtSlot(currentSlot, originalId);
                         inventory.setCountAtSlot(currentSlot, originalCount);
+                        if (world) {
+                            world.addHistory(new ToolHistory(function () {
+                                inventory.setSlotInfo(currentSlotInfo);
+                                inventory.setSlotInfo(originalSlotInfo_1);
+                                inventory.visualize(images, slotSize, world);
+                                inventory.getEditor().positionInventory();
+                            }, function () {
+                                inventory.removeItemAtSlot(originalSlot);
+                                inventory.setIdAtSlot(currentSlot, originalId);
+                                inventory.setCountAtSlot(currentSlot, originalCount);
+                                inventory.visualize(images, slotSize, world);
+                                inventory.getEditor().positionInventory();
+                            }));
+                        }
                     }
                 }
                 else { //if youre dragging from item list
                     inventory.setCountAtSlot(currentSlot, 1);
                     inventory.setIdAtSlot(currentSlot, originalId);
+                    if (world) {
+                        world.addHistory(new ToolHistory(function () {
+                            inventory.setSlotInfo(currentSlotInfo);
+                            inventory.visualize(images, slotSize, world);
+                            inventory.getEditor().positionInventory();
+                        }, function () {
+                            inventory.setCountAtSlot(currentSlot, 1);
+                            inventory.setIdAtSlot(currentSlot, originalId);
+                            inventory.visualize(images, slotSize, world);
+                            inventory.getEditor().positionInventory();
+                        }));
+                    }
                 }
-                inventory.visualize(images, slotSize);
+                inventory.visualize(images, slotSize, world);
             };
             slot.ondragover = function (evt) {
                 evt.preventDefault();
@@ -379,11 +441,34 @@ var Inventory = /** @class */ (function () {
                     itemAmountElement_1.value = String(item.count);
                     //item amount change event listener
                     var inventory_1 = this_2;
+                    var originalCount_1 = item.count;
                     itemAmountElement_1.addEventListener("change", function (e) {
                         inventory_1.setCountAtSlot(item.slot, Number(itemAmountElement_1.value));
+                        if (world) {
+                            world.addHistory(new ToolHistory(function () {
+                                inventory_1.setCountAtSlot(item.slot, originalCount_1);
+                                inventory_1.visualize(images, slotSize, world);
+                                inventory_1.getEditor().positionInventory();
+                            }, function () {
+                                inventory_1.setCountAtSlot(item.slot, Number(itemAmountElement_1.value));
+                                inventory_1.visualize(images, slotSize, world);
+                                inventory_1.getEditor().positionInventory();
+                            }));
+                        }
                     });
                     itemAmountElement_1.addEventListener("keyup", function (e) {
                         inventory_1.setCountAtSlot(item.slot, Number(itemAmountElement_1.value));
+                        if (world) {
+                            world.addHistory(new ToolHistory(function () {
+                                inventory_1.setCountAtSlot(item.slot, originalCount_1);
+                                inventory_1.visualize(images, slotSize, world);
+                                inventory_1.getEditor().positionInventory();
+                            }, function () {
+                                inventory_1.setCountAtSlot(item.slot, Number(itemAmountElement_1.value));
+                                inventory_1.visualize(images, slotSize, world);
+                                inventory_1.getEditor().positionInventory();
+                            }));
+                        }
                     });
                     //add image
                     var itemImage = document.createElement("img");

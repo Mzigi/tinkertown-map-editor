@@ -18,15 +18,21 @@ var Application = /** @class */ (function () {
         this.renderer = new Renderer(this.imageHolder, this.loader, this.canvasElement, this.editor);
         //tile list
         this.tileList = new TileList(this.imageHolder, this.editor);
+        this.loader.editor = this.editor;
         this.imageHolder.loadImages(this.tileList);
         this.tick(this);
     };
     Application.prototype.tick = function (application) {
-        application.editor.tick();
-        application.renderer.render();
-        window.requestAnimationFrame(function () {
-            application.tick(application);
-        });
+        try {
+            application.editor.tick();
+            application.renderer.render();
+            window.requestAnimationFrame(function () {
+                application.tick(application);
+            });
+        }
+        catch (error) {
+            this.loader.alertText("The map editor has crashed: " + error, true, 99999);
+        }
     };
     return Application;
 }());

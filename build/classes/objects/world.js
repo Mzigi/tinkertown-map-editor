@@ -1344,6 +1344,7 @@ var World = /** @class */ (function () {
         });
     };
     World.prototype.addHistory = function (toolHistory) {
+        console.log("ADDED HISTORY");
         this.history.splice(this.historyIndex + 1);
         this.history.push(toolHistory);
         this.historyIndex = this.history.length - 1;

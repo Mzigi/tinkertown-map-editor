@@ -69,7 +69,7 @@ export class AddItem extends Tool {
     
                     chunkAtMouse.edited()
     
-                    console.log(chunkAtMouse)
+                    //console.log(chunkAtMouse)
                 }
             }
         }

@@ -1,3 +1,4 @@
+import { ToolHistory } from "../classes/tools/tool-info.js";
 import { assetInfoHelper } from "../libraries/assetInfoHelper.js";
 import { item_assetInfoHelper } from "../libraries/item-assetInfoHelper.js";
 var TileList = /** @class */ (function () {
@@ -26,11 +27,25 @@ var TileList = /** @class */ (function () {
         };
         this.smallItemList.ondrop = function (e) {
             var originalSlot = e.dataTransfer.getData("originalSlot");
+            var inventory = _this.editor.openedStorage;
+            var world = _this.editor.loader.getCurrentWorld();
             if (originalSlot != "") {
                 originalSlot = Number(originalSlot);
-                if (_this.editor.openedStorage) {
-                    _this.editor.openedStorage.removeItemAtSlot(originalSlot);
-                    _this.editor.openedStorage.visualize(_this.images, _this.editor.slotSize);
+                if (inventory) {
+                    var originalSlotInfo_1 = inventory.getSlotInfo(originalSlot);
+                    inventory.removeItemAtSlot(originalSlot);
+                    inventory.visualize(_this.images, _this.editor.slotSize);
+                    if (world) {
+                        world.addHistory(new ToolHistory(function () {
+                            inventory.setSlotInfo(originalSlotInfo_1);
+                            inventory.visualize(_this.images, _this.editor.slotSize, world);
+                            _this.editor.positionInventory();
+                        }, function () {
+                            inventory.removeItemAtSlot(originalSlot);
+                            inventory.visualize(_this.images, _this.editor.slotSize, world);
+                            _this.editor.positionInventory();
+                        }));
+                    }
                 }
                 else if (_this.editor.openedItemStorage) {
                     _this.editor.openedItemStorage.removeItemAtSlot(originalSlot);

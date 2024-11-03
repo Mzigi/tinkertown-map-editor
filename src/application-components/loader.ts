@@ -250,14 +250,16 @@ export class Loader {
             document.getElementById("remove-world-title").innerText = "Remove " + thisWorld.name + "?";
             (<HTMLDialogElement>document.getElementById("dialog-confirm-close")).showModal()
     
+            let loader = this
+
             function RemoveWorld() {
                 thisWorld.reset()
                 thisWorld.hidden = true
                 
-                if (worldId == this.loader.currentWorld) {
-                    this.findFirstVisibleWorld()
+                if (worldId == loader.currentWorld) {
+                    loader.editor.findFirstVisibleWorld()
                 }
-                this.loader.updateWorldList();
+                loader.updateWorldList();
     
                 (<HTMLDialogElement>document.getElementById("dialog-confirm-close")).close()
     

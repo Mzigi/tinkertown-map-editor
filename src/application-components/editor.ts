@@ -11,7 +11,7 @@ import { Erase } from "../classes/tools/erase.js";
 import { Fill } from "../classes/tools/fill.js";
 import { Pick } from "../classes/tools/pick.js";
 import { SelectTool } from "../classes/tools/select.js";
-import { ToolInfo } from "../classes/tools/tool-info.js";
+import { ToolHistory, ToolInfo } from "../classes/tools/tool-info.js";
 import { Tool } from "../classes/tools/tool.js";
 import { ImageHolder } from "./image-loader.js";
 import { Loader } from "./loader.js";
@@ -220,7 +220,9 @@ export class Editor {
         
             //set item properties
             if (this.openedItem && this.openedItemStorage) {
-                let chunkAtItem = loader.worlds[loader.currentWorld].getChunkAt(this.openedItem.chunkX, this.openedItem.chunkY)
+                let world = this.loader.getCurrentWorld()
+
+                let chunkAtItem = world.getChunkAt(this.openedItem.chunkX, this.openedItem.chunkY)
         
                 let shouldDelete = false
         
@@ -232,17 +234,56 @@ export class Editor {
                     shouldDelete = true
                 }
         
+                let openedItem = this.openedItem
+
                 if (!shouldDelete) {
-                    this.openedItem.id = this.openedItemStorage.itemDataList[0].id
-                    this.openedItem.count = this.openedItemStorage.itemDataList[0].count
+                    let originalId = this.openedItem.id
+                    let originalCount = this.openedItem.count
+
+                    let newId = this.openedItemStorage.itemDataList[0].id
+                    let newCount = this.openedItemStorage.itemDataList[0].count
+
+                    if (this.openedItem.id != newId || this.openedItem.count != newCount) {
+                        world.addHistory(new ToolHistory(
+                            () => { //undo
+                                openedItem.id = originalId
+                                openedItem.count = originalCount
+                                chunkAtItem.edited()
+                            },
+                            () => { //redo
+                                openedItem.id = newId
+                                openedItem.count = newCount
+                                chunkAtItem.edited()
+                            }
+                        ))
+                    }
+
+                    this.openedItem.id = newId
+                    this.openedItem.count = newCount
                 } else {
+                    world.addHistory(new ToolHistory(
+                        () => { //undo
+                            chunkAtItem.itemDataList.push(openedItem)
+                            chunkAtItem.edited()
+                        },
+                        () => { //redo
+                            if (chunkAtItem) {
+                                for (let i = 0; i < chunkAtItem.itemDataList.length; i++) {
+                                    if (chunkAtItem.itemDataList[i] == openedItem) {
+                                        chunkAtItem.itemDataList.splice(i,1)
+                                        chunkAtItem.edited()
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    ))
+
                     if (chunkAtItem) {
                         for (let i = 0; i < chunkAtItem.itemDataList.length; i++) {
                             if (chunkAtItem.itemDataList[i] == this.openedItem) {
                                 chunkAtItem.itemDataList.splice(i,1)
-                                chunkAtItem.chunkHasBeenEdited = true
-                                chunkAtItem.undoEdited = true
-                                chunkAtItem.resetCacheImage()
+                                chunkAtItem.edited()
                                 break
                             }
                         }
@@ -250,9 +291,7 @@ export class Editor {
                 }
         
                 if (chunkAtItem) {
-                    chunkAtItem.chunkHasBeenEdited = true
-                    chunkAtItem.undoEdited = true
-                    chunkAtItem.resetCacheImage()
+                    chunkAtItem.edited()
                 }
             }
             this.openedItem = null
@@ -266,7 +305,7 @@ export class Editor {
             if (e.button === 0) {
                 if (this.hoveredStorage) {
                     this.openedStorage = this.hoveredStorage
-                    this.hoveredStorage.visualize(this.images, this.slotSize)
+                    this.hoveredStorage.visualize(this.images, this.slotSize, this.loader.getCurrentWorld())
         
                     this.positionInventory()
                 } else if (this.hoveredItem) {
@@ -298,7 +337,7 @@ export class Editor {
         })
         
         document.body.addEventListener("keydown", (e) => {
-            console.log(e)
+            //console.log(e)
             this.pressedKeys[e.key] = true
             if (e.ctrlKey) {
                 this.pressedKeys["ctrlKey"] = true

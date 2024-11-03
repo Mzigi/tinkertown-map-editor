@@ -80,6 +80,10 @@ export class Camera {
             newZoom = Math.max(0.06, newZoom)
             newZoom = Math.min(6, newZoom)
 
+            let posFromCenter: Vector2 = {"x": e.offsetX - canvas.clientWidth / 2, "y": e.offsetY - canvas.clientHeight / 2}
+            //posFromCenter = this.screenPosToWorldPos(canvas, posFromCenter.x, posFromCenter.y)
+            //console.log(posFromCenter)
+
             camera.zoom = newZoom
 
             /*if (newZoom < 6 && newZoom> 0.1) {

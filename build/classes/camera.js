@@ -56,6 +56,9 @@ var Camera = /** @class */ (function () {
             newZoom = Math.floor(newZoom * 100) / 100;
             newZoom = Math.max(0.06, newZoom);
             newZoom = Math.min(6, newZoom);
+            var posFromCenter = { "x": e.offsetX - canvas.clientWidth / 2, "y": e.offsetY - canvas.clientHeight / 2 };
+            //posFromCenter = this.screenPosToWorldPos(canvas, posFromCenter.x, posFromCenter.y)
+            //console.log(posFromCenter)
             camera.zoom = newZoom;
             /*if (newZoom < 6 && newZoom> 0.1) {
                 camera.zoom = newZoom

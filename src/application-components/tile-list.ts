@@ -1,3 +1,4 @@
+import { ToolHistory } from "../classes/tools/tool-info.js"
 import { assetInfoHelper } from "../libraries/assetInfoHelper.js"
 import { item_assetInfoHelper } from "../libraries/item-assetInfoHelper.js"
 import { Editor } from "./editor.js"
@@ -38,13 +39,32 @@ export class TileList {
 
         this.smallItemList.ondrop = (e) => {
             let originalSlot: any = e.dataTransfer.getData("originalSlot")
+            let inventory = this.editor.openedStorage
+            let world = this.editor.loader.getCurrentWorld()
 
             if (originalSlot != "") {
                 originalSlot = Number(originalSlot)
         
-                if (this.editor.openedStorage) {
-                    this.editor.openedStorage.removeItemAtSlot(originalSlot)
-                    this.editor.openedStorage.visualize(this.images, this.editor.slotSize)
+                if (inventory) {
+                    let originalSlotInfo = inventory.getSlotInfo(originalSlot)
+
+                    inventory.removeItemAtSlot(originalSlot)
+                    inventory.visualize(this.images, this.editor.slotSize)
+
+                    if (world) {
+                        world.addHistory(new ToolHistory(
+                            () => {
+                                inventory.setSlotInfo(originalSlotInfo)
+                                inventory.visualize(this.images, this.editor.slotSize, world)
+                                this.editor.positionInventory()
+                            },
+                            () => {
+                                inventory.removeItemAtSlot(originalSlot)
+                                inventory.visualize(this.images, this.editor.slotSize, world)
+                                this.editor.positionInventory()
+                            }
+                        ))
+                    }
                 } else if (this.editor.openedItemStorage) {
                     this.editor.openedItemStorage.removeItemAtSlot(originalSlot)
                     this.editor.openedItemStorage.visualize(this.images, this.editor.slotSize)
