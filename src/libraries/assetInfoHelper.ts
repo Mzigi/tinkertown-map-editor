@@ -1,5 +1,4 @@
-"use-strict";
-// @ts-check
+import { assetInfo, assetInfoLoaded } from "./assetInfoToJson.js";
 
 var assetInfoHelper = {
     "idExists": function(id: number) {
@@ -115,3 +114,5 @@ var assetInfoHelper = {
         return categories
     }
 }
+
+export {assetInfoHelper}

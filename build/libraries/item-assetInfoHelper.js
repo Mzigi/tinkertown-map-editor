@@ -1,3 +1,4 @@
+import { item_assetInfo, item_assetInfoLoaded } from "./item-assetInfoToJson.js";
 var item_assetInfoHelper = {
     "idExists": function (id) {
         if (item_assetInfoLoaded) {
@@ -102,4 +103,5 @@ var item_assetInfoHelper = {
         return categories;
     }
 };
+export { item_assetInfoHelper };
 //# sourceMappingURL=item-assetInfoHelper.js.map

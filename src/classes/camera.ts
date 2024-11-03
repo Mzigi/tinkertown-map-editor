@@ -1,3 +1,6 @@
+import { Loader } from "../application-components/loader.js";
+import { World } from "./objects/world.js";
+
 function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent): Vector2 {
     var rect = canvas.getBoundingClientRect();
     return {
@@ -6,16 +9,19 @@ function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent): Vector2 {
     };
 }
 
-class Camera {
-    x: number;
-    y: number;
-    zoom: number;
-    world: World;
+export class Camera {
+    x: number
+    y: number
+    zoom: number
+    world: World
+    loader: Loader
 
-    rightButtonPressed: boolean;
-    lastPosition: Vector2;
+    rightButtonPressed: boolean
+    lastPosition: Vector2
 
-    constructor(x?: number,y?: number,zoom?: number) {
+    constructor(loader: Loader, x?: number, y?: number, zoom?: number) {
+        this.loader = loader
+
         if (!x) {
             x = 0
         }
@@ -37,8 +43,8 @@ class Camera {
 
         let camera = this
 
-        window.addEventListener('mousemove', function (e) {
-            if (camera.world.getId() != currentWorld) {
+        window.addEventListener('mousemove', (e) => {
+            if (camera.world.getId() != this.loader.currentWorld) {
                 return
             }
 
@@ -64,8 +70,8 @@ class Camera {
             /*MouseX = MousePosition.x
             MouseY = MousePosition.y*/
         }, false);
-        canvas.addEventListener("wheel", function(e: WheelEvent) {
-            if (camera.world.getId() != currentWorld) {
+        canvas.addEventListener("wheel", (e: WheelEvent) => {
+            if (camera.world.getId() != this.loader.currentWorld) {
                 return
             }
 

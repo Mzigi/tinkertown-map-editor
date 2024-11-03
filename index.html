@@ -18,16 +18,19 @@
         <script src="src/libraries/jszip.min.js" defer></script>
         <script src="src/libraries/FileSaver.min.js" defer></script>
         <script src="src/libraries/sql-wasm.js" defer></script>
-        
+        <!--<script src="src/libraries/require.js" defer></script>-->
+
+        <script type="module" src="build/application.js" defer></script>
+        <!--<script data-main="main" type="text/javascript" src="src/main.js" defer></script>-->
         <!--custom libraries-->
-        <script src="build/libraries/assetInfoToJson.js" defer></script>
+        <!--<script src="build/libraries/assetInfoToJson.js" defer></script>
         <script src="build/libraries/assetInfoHelper.js" defer></script>
 
         <script src="build/libraries/item-assetInfoToJson.js" defer></script>
-        <script src="build/libraries/item-assetInfoHelper.js" defer></script>
+        <script src="build/libraries/item-assetInfoHelper.js" defer></script>-->
 
         <!--classes-->
-        <script src="build/classes/simpleView.js" defer></script>
+        <!--<script src="build/classes/simpleView.js" defer></script>
         
 
         <script src="build/classes/camera.js" defer></script>
@@ -38,14 +41,14 @@
         <script src="build/classes/item.js" defer></script>
         <script src="build/classes/tile.js" defer></script>
         <script src="build/classes/chunk.js" defer></script>
-        <script src="build/classes/world.js" defer></script>
+        <script src="build/classes/world.js" defer></script>-->
 
         <!--scripts-->
-        <script src="build/scripts/loader.js" defer></script>
-        <script src="build/scripts/editor.js" defer></script>
+        <!--<script src="build/scripts/loader.js" defer></script>
+        <script type="module" src="build/scripts/editor.js" defer></script>
         <script src="build/scripts/tile-list.js" defer></script>
         <script src="build/scripts/image-loader.js" defer></script>
-        <script src="build/scripts/2d-renderer.js" defer></script>
+        <script src="build/scripts/2d-renderer.js" defer></script>-->
     </head>
     <body>
         <div id="page-container">
@@ -94,7 +97,7 @@
                             <button id="navbar-view" class="navbar-li navbar-button" parentnav="navbar-preferences">View<span class="material-symbols-outlined">chevron_right</span></button>
                             <ul id="navbar-view-buttons" class="navbar-dropdown navbar-dropdown-parented">
                                 <button id="navbar-view-tilelist" class="navbar-li">Tile List<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
-                                <button id="navbar-view-canvasdebug" class="navbar-li">Canvas Debug<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
+                                <button id="navbar-view-canvasdebug" class="navbar-li">Debug Info<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
                                 <button id="navbar-view-show-poi" class="navbar-li">Show Points Of Interest<span class="material-symbols-outlined" style="display: inline-block;">done</span></button>
                             </ul>
                         </div>
@@ -119,6 +122,11 @@
                     <span class="tool-name">Erase</span>
                 </button>
 
+                <button id="tool-7" onclick="setTool(7)" class="tool-container">
+                    <img class="tool-img" src="assets/tool-select2.png" title="Select">
+                    <span class="tool-name">Select</span>
+                </button>
+
                 <button id="tool-2" onclick="setTool(2)" class="tool-container">
                     <img class="tool-img" src="assets/tool-pick1.png" title="Pick">
                     <span class="tool-name">Pick</span>
@@ -139,10 +147,10 @@
                     <span class="tool-name">Item</span>
                 </button>
 
-                <!--<button id="tool-6" onclick="setTool(6)" class="tool-container">
+                <button id="tool-6" onclick="setTool(6)" class="tool-container">
                     <img class="tool-img" src="">
                     <span class="tool-name">Chunk</span>
-                </button>-->
+                </button>
             </div>
 
             <dialog id="dialog-help">

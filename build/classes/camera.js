@@ -6,7 +6,9 @@ function getMousePos(canvas, evt) {
     };
 }
 var Camera = /** @class */ (function () {
-    function Camera(x, y, zoom) {
+    function Camera(loader, x, y, zoom) {
+        var _this = this;
+        this.loader = loader;
         if (!x) {
             x = 0;
         }
@@ -24,7 +26,7 @@ var Camera = /** @class */ (function () {
         var canvas = document.getElementById("2Dcanvas");
         var camera = this;
         window.addEventListener('mousemove', function (e) {
-            if (camera.world.getId() != currentWorld) {
+            if (camera.world.getId() != _this.loader.currentWorld) {
                 return;
             }
             var MousePosition = getMousePos(canvas, e);
@@ -47,7 +49,7 @@ var Camera = /** @class */ (function () {
             MouseY = MousePosition.y*/
         }, false);
         canvas.addEventListener("wheel", function (e) {
-            if (camera.world.getId() != currentWorld) {
+            if (camera.world.getId() != _this.loader.currentWorld) {
                 return;
             }
             var newZoom = camera.zoom + camera.zoom / (-e.deltaY / 32); //e.wheelDeltaY
@@ -160,4 +162,5 @@ var Camera = /** @class */ (function () {
     };
     return Camera;
 }());
+export { Camera };
 //# sourceMappingURL=camera.js.map

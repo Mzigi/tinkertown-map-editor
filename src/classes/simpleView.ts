@@ -1,4 +1,4 @@
-class simpleView {
+export class simpleView {
     view: DataView
     viewOffset: number
     buffer: ArrayBuffer

@@ -143,4 +143,5 @@ var simpleView = /** @class */ (function () {
     };
     return simpleView;
 }());
+export { simpleView };
 //# sourceMappingURL=simpleView.js.map
