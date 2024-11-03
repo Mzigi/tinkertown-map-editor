@@ -6,12 +6,14 @@ import { Tile } from "../classes/objects/tile.js"
 import { World } from "../classes/objects/world.js"
 import { assetInfo } from "../libraries/assetInfoToJson.js"
 import { item_assetInfo } from "../libraries/item-assetInfoToJson.js"
+import { Editor } from "./editor.js"
 import { ImageHolder } from "./image-loader.js"
 import { Loader } from "./loader.js"
 
 export class Renderer {
     loader: Loader
     imageHolder: ImageHolder
+    editor: Editor
 
     worlds: Array<World>
     images: {[key: string]: HTMLImageElement}
@@ -33,9 +35,10 @@ export class Renderer {
         useChunkCache: true,
     }
 
-    constructor(imageHolder: ImageHolder, loader: Loader, canvasElement: HTMLCanvasElement) {
+    constructor(imageHolder: ImageHolder, loader: Loader, canvasElement: HTMLCanvasElement, editor: Editor) {
         //this.canvasElement = <HTMLCanvasElement>document.getElementById("2Dcanvas")
         this.loader = loader
+        this.editor = editor
         this.worlds = this.loader.worlds
         this.imageHolder = imageHolder
         this.images = imageHolder.images
@@ -554,12 +557,20 @@ export class Renderer {
     
                 let highestTile = null
                 let highestZ = 0
+
                 for (let i = 0; i < chunkAtMouse.layers; i++) {
                     let testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)
                     
                     if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
                         highestZ = i
                         highestTile = testTile
+                    }
+                }
+
+                if (this.editor.selectedLayer != -1) { //if layer isnt auto
+                    highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer)
+                    if (highestTile) {
+                        highestZ = this.editor.selectedLayer
                     }
                 }
     

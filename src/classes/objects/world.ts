@@ -2,6 +2,7 @@ import { Loader } from "../../application-components/loader.js";
 import { item_assetInfo } from "../../libraries/item-assetInfoToJson.js";
 import { Camera } from "../camera.js";
 import { simpleView } from "../simpleView.js";
+import { ToolHistory } from "../tools/tool-info.js";
 import { Chunk } from "./chunk.js";
 import { Inventory, InventoryFormat } from "./inventory.js";
 import { InventoryItem } from "./inventoryItem.js";
@@ -212,7 +213,9 @@ export class World {
 
     //editor only
     chunkCache: Object
-    toolHistory: any
+    toolHistory: any //deprecated
+    private history: Array<ToolHistory>
+    private historyIndex: number
     hidden: boolean
     highlightedChunk: Chunk | null
     camera: Camera
@@ -221,6 +224,7 @@ export class World {
     selection: Array<Vector2>
     id: number
     loader: Loader
+    recentlyEdited: boolean
 
     constructor(id: number, loader: Loader) {
         this.id = id
@@ -270,6 +274,8 @@ export class World {
         this.toolHistory = [
             {"chunks": []},
         ]
+        this.history = []
+        this.historyIndex = 0
         this.hidden = false
         this.highlightedChunk = null
         this.camera = new Camera(this.loader)
@@ -277,6 +283,7 @@ export class World {
         this.format = WorldFormat.Database
         this.uneditedFiles = {}
         this.selection = []
+        this.recentlyEdited = false
     }
 
     getId(): number {
@@ -429,7 +436,7 @@ export class World {
         }
     }
 
-    setTileAtGlobalPos(tile: Tile, x: number, y: number) {
+    setTileAtGlobalPos(tile: Tile, x: number, y: number): [Chunk, boolean] {
         let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y)
         let chunkPos = chunkAndTilePos[0]
         let tilePos = chunkAndTilePos[1]
@@ -437,43 +444,54 @@ export class World {
         tile.x = tilePos.x
         tile.y = tilePos.y
 
-        this.setTile(tile, chunkPos.x, chunkPos.y)
+        let newTileInfo = this.setTile(tile, chunkPos.x, chunkPos.y)
+
+        return newTileInfo
     }
 
-    removeTileAtGlobalPos(x: number, y: number, z: number) {
+    removeTileAtGlobalPos(x: number, y: number, z: number): Tile | null {
         let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y)
         let tilePos = chunkAndTilePos[1]
 
         let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y)
 
         if (chunk) {
-            chunk.removeTileAt(tilePos.x, tilePos.y, z)
+            return chunk.removeTileAt(tilePos.x, tilePos.y, z)
         }
     }
 
-    removeTilesAtGlobalPosXY(x: number, y: number) {
+    removeTilesAtGlobalPosXY(x: number, y: number): Array<Tile> {
         let chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y)
         let tilePos = chunkAndTilePos[1]
 
         let chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y)
+
+        let removedTiles = []
 
         if (chunk) {
             for (let tile of chunk.findTilesAtXY(tilePos.x, tilePos.y)) {
-                chunk.removeTileAt(tile.x, tile.y, tile.z)
+                removedTiles.push(chunk.removeTileAt(tile.x, tile.y, tile.z))
             }
         }
+
+        return removedTiles
     }
 
-    setTile(tile: Tile, chunkX: number, chunkY: number) {
+    setTile(tile: Tile, chunkX: number, chunkY: number): [Chunk, boolean] {
+        let createdChunk = false
+
         let chunk = this.getChunkAt(chunkX, chunkY)
         if (!chunk) {
             chunk = new Chunk()
             chunk.x = chunkX
             chunk.y = chunkY
             this.addChunk(chunk)
+            createdChunk = true
         }
 
         chunk.setTile(tile)
+
+        return [chunk, createdChunk]
     }
 
     setItem(item: Item) {
@@ -756,6 +774,8 @@ export class World {
                 // see FileSaver.js
                 saveAs(content, world.name + ".zip");
             });
+
+            this.recentlyEdited = false
         } catch (error) {
             if (this.loader) {
                 this.loader.alertText("Failed to export world: " + error, true, 6)
@@ -1352,8 +1372,16 @@ export class World {
         return null
     }
 
-    undoOnce() {
-        for (let i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
+    addHistory(toolHistory: ToolHistory) {
+        this.history.splice(this.historyIndex + 1)
+        this.history.push(toolHistory)
+        this.historyIndex = this.history.length - 1
+        
+        this.recentlyEdited = true
+    }
+
+    undo() {
+        /*for (let i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
             let chunk = this.toolHistory[this.toolHistory.length - 2].chunks[i]
             console.log(chunk)
             this.addChunk(chunk.clone())
@@ -1362,10 +1390,25 @@ export class World {
         this.toolHistory.pop()
         this.toolHistory.pop()
 
-        this.toolHistory.push({"chunks":[]})
+        this.toolHistory.push({"chunks":[]})*/
+        if (this.canUndo()) {
+            this.history[this.historyIndex].undo()
+            this.historyIndex--
+        }
     }
-}
 
-function async() {
-    throw new Error("Function not implemented.");
+    redo() {
+        if (this.canRedo()) {
+            this.history[this.historyIndex + 1].redo()
+            this.historyIndex++
+        }
+    }
+
+    canUndo(): boolean {
+        return this.history.length > this.historyIndex && this.historyIndex >= 0
+    }
+
+    canRedo(): boolean {
+        return this.history.length > this.historyIndex + 1
+    }
 }

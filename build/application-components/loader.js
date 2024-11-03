@@ -53,6 +53,7 @@ var Loader = /** @class */ (function () {
         this.closeExamplesDialogButton = document.getElementById("close-dialog-examples");
         this.closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
         this.alertElement = document.getElementById("alert");
+        this.worldSettingsIsOpen = false;
         this.NEWUI = !(window.location.href.endsWith("old-index.html"));
         this.examples = [
             {
@@ -203,6 +204,7 @@ var Loader = /** @class */ (function () {
             document.getElementById("dialog-help").close();
         });
         this.worldSettingsButton.addEventListener("click", function () {
+            _this.worldSettingsIsOpen = true;
             for (var key in _this.worlds[_this.currentWorld]) {
                 if (document.getElementById("world-settings-" + key)) {
                     if (typeof (_this.worlds[_this.currentWorld][key]) != "object") {
@@ -216,6 +218,7 @@ var Loader = /** @class */ (function () {
             document.getElementById("dialog-world-settings").showModal();
         });
         this.closeWorldSettingsDialogButton.addEventListener("click", function () {
+            _this.worldSettingsIsOpen = false;
             document.getElementById("dialog-world-settings").close();
         });
         this.examplesButton.addEventListener("click", function () {
@@ -428,6 +431,9 @@ var Loader = /** @class */ (function () {
         setTimeout(function () {
             loader.alertElement.classList.remove("alertOn");
         }, time * 1000);
+    };
+    Loader.prototype.getCurrentWorld = function () {
+        return this.worlds[this.currentWorld];
     };
     return Loader;
 }());

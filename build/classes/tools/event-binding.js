@@ -8,4 +8,5 @@ var EventBinding = /** @class */ (function () {
     };
     return EventBinding;
 }());
+export { EventBinding };
 //# sourceMappingURL=event-binding.js.map

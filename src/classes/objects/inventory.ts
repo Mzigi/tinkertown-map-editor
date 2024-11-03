@@ -111,6 +111,7 @@ export class Inventory {
 
     constructor() {
         this.reset()
+        window["preventDrop"] = preventDrop
     }
 
     reset() {

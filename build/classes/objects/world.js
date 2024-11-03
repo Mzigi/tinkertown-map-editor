@@ -203,6 +203,8 @@ var World = /** @class */ (function () {
         this.toolHistory = [
             { "chunks": [] },
         ];
+        this.history = [];
+        this.historyIndex = 0;
         this.hidden = false;
         this.highlightedChunk = null;
         this.camera = new Camera(this.loader);
@@ -210,6 +212,7 @@ var World = /** @class */ (function () {
         this.format = WorldFormat.Database;
         this.uneditedFiles = {};
         this.selection = [];
+        this.recentlyEdited = false;
     };
     World.prototype.getId = function () {
         return this.id;
@@ -335,36 +338,42 @@ var World = /** @class */ (function () {
         var tilePos = chunkAndTilePos[1];
         tile.x = tilePos.x;
         tile.y = tilePos.y;
-        this.setTile(tile, chunkPos.x, chunkPos.y);
+        var newTileInfo = this.setTile(tile, chunkPos.x, chunkPos.y);
+        return newTileInfo;
     };
     World.prototype.removeTileAtGlobalPos = function (x, y, z) {
         var chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y);
         var tilePos = chunkAndTilePos[1];
         var chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y);
         if (chunk) {
-            chunk.removeTileAt(tilePos.x, tilePos.y, z);
+            return chunk.removeTileAt(tilePos.x, tilePos.y, z);
         }
     };
     World.prototype.removeTilesAtGlobalPosXY = function (x, y) {
         var chunkAndTilePos = this.getChunkAndTilePosAtGlobalPos(x, y);
         var tilePos = chunkAndTilePos[1];
         var chunk = this.getChunkAt(chunkAndTilePos[0].x, chunkAndTilePos[0].y);
+        var removedTiles = [];
         if (chunk) {
             for (var _i = 0, _a = chunk.findTilesAtXY(tilePos.x, tilePos.y); _i < _a.length; _i++) {
                 var tile = _a[_i];
-                chunk.removeTileAt(tile.x, tile.y, tile.z);
+                removedTiles.push(chunk.removeTileAt(tile.x, tile.y, tile.z));
             }
         }
+        return removedTiles;
     };
     World.prototype.setTile = function (tile, chunkX, chunkY) {
+        var createdChunk = false;
         var chunk = this.getChunkAt(chunkX, chunkY);
         if (!chunk) {
             chunk = new Chunk();
             chunk.x = chunkX;
             chunk.y = chunkY;
             this.addChunk(chunk);
+            createdChunk = true;
         }
         chunk.setTile(tile);
+        return [chunk, createdChunk];
     };
     World.prototype.setItem = function (item) {
         var chunk = this.getChunkAt(item.chunkX, item.chunkY);
@@ -603,6 +612,7 @@ var World = /** @class */ (function () {
                             // see FileSaver.js
                             saveAs(content, world_1.name + ".zip");
                         });
+                        this.recentlyEdited = false;
                         return [3 /*break*/, 5];
                     case 4:
                         error_1 = _a.sent();
@@ -1333,20 +1343,41 @@ var World = /** @class */ (function () {
             });
         });
     };
-    World.prototype.undoOnce = function () {
-        for (var i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
-            var chunk = this.toolHistory[this.toolHistory.length - 2].chunks[i];
-            console.log(chunk);
-            this.addChunk(chunk.clone());
+    World.prototype.addHistory = function (toolHistory) {
+        this.history.splice(this.historyIndex + 1);
+        this.history.push(toolHistory);
+        this.historyIndex = this.history.length - 1;
+        this.recentlyEdited = true;
+    };
+    World.prototype.undo = function () {
+        /*for (let i = 0; i < this.toolHistory[this.toolHistory.length - 2].chunks.length; i++) {
+            let chunk = this.toolHistory[this.toolHistory.length - 2].chunks[i]
+            console.log(chunk)
+            this.addChunk(chunk.clone())
         }
-        this.toolHistory.pop();
-        this.toolHistory.pop();
-        this.toolHistory.push({ "chunks": [] });
+
+        this.toolHistory.pop()
+        this.toolHistory.pop()
+
+        this.toolHistory.push({"chunks":[]})*/
+        if (this.canUndo()) {
+            this.history[this.historyIndex].undo();
+            this.historyIndex--;
+        }
+    };
+    World.prototype.redo = function () {
+        if (this.canRedo()) {
+            this.history[this.historyIndex + 1].redo();
+            this.historyIndex++;
+        }
+    };
+    World.prototype.canUndo = function () {
+        return this.history.length > this.historyIndex && this.historyIndex >= 0;
+    };
+    World.prototype.canRedo = function () {
+        return this.history.length > this.historyIndex + 1;
     };
     return World;
 }());
 export { World };
-function async() {
-    throw new Error("Function not implemented.");
-}
 //# sourceMappingURL=world.js.map

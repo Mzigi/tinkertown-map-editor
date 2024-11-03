@@ -24,11 +24,11 @@ export class Application {
         //images
         this.imageHolder = new ImageHolder()
 
-        //renderer
-        this.renderer = new Renderer(this.imageHolder, this.loader, this.canvasElement)
-
         //editor
         this.editor = new Editor(this.loader, this.imageHolder)
+
+        //renderer
+        this.renderer = new Renderer(this.imageHolder, this.loader, this.canvasElement, this.editor)
 
         //tile list
         this.tileList = new TileList(this.imageHolder, this.editor)

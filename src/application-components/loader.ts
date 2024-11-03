@@ -31,6 +31,8 @@ export class Loader {
 
     alertElement: HTMLElement = document.getElementById("alert")
 
+    worldSettingsIsOpen: boolean = false
+
     NEWUI = !(window.location.href.endsWith("old-index.html"))
 
     examples: Array<worldLink> = [
@@ -195,6 +197,8 @@ export class Loader {
         })
     
         this.worldSettingsButton.addEventListener("click", () => {
+            this.worldSettingsIsOpen = true
+
             for (let key in this.worlds[this.currentWorld]) {
                 if (document.getElementById("world-settings-" + key)) {
                     if (typeof(this.worlds[this.currentWorld][key]) != "object") {
@@ -208,6 +212,8 @@ export class Loader {
         })
     
         this.closeWorldSettingsDialogButton.addEventListener("click", () => {
+            this.worldSettingsIsOpen = false;
+
             (<HTMLDialogElement>document.getElementById("dialog-world-settings")).close()
         })
     
@@ -443,6 +449,10 @@ export class Loader {
         setTimeout(() => {
             loader.alertElement.classList.remove("alertOn")
         }, time * 1000)
+    }
+
+    getCurrentWorld(): World {
+        return this.worlds[this.currentWorld]
     }
 
     /*loadButton.addEventListener("mousedown",() => {

@@ -1,4 +1,5 @@
 import { Chunk } from "../objects/chunk.js"
+import { EventBinding } from "./event-binding.js"
 import { ToolInfo } from "./tool-info.js"
 
 export class Tool {
@@ -8,9 +9,11 @@ export class Tool {
     toolInfo: ToolInfo
     events: Array<EventBinding>
     
-    constructor(toolId: number, toolName: string) {
+    constructor(toolId: number, toolName: string, toolInfo: ToolInfo) {
         this.id = toolId
         this.name = toolName
+        this.toolInfo = toolInfo
+        this.events = []
     }
 
     getWorldMousePos(): Vector2 {

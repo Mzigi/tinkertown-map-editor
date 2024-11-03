@@ -80,6 +80,7 @@ export var InventoryFormat;
 var Inventory = /** @class */ (function () {
     function Inventory() {
         this.reset();
+        window["preventDrop"] = preventDrop;
     }
     Inventory.prototype.reset = function () {
         this.width = 5;

@@ -1,5 +1,6 @@
 import { Chunk } from "../objects/chunk.js"
 import { Tile } from "../objects/tile.js"
+import { ToolHistory, ToolInfo } from "./tool-info.js"
 import { Tool } from "./tool.js"
 
 export class Draw extends Tool {
@@ -7,8 +8,8 @@ export class Draw extends Tool {
     lastTileAtMouse: Vector2
     lastWorldMousePos: Vector2
 
-    constructor(id: number, name: string) {
-        super(id, name)
+    constructor(id: number, name: string, toolInfo: ToolInfo) {
+        super(id, name, toolInfo)
 
         this.lastChunkAtMouse = null
         this.lastTileAtMouse = null
@@ -16,8 +17,20 @@ export class Draw extends Tool {
     }
 
     tick() {
-        let selectedLayer = this.toolInfo.selectedLayer
-        let selectedTile = this.toolInfo.selectedTile
+        //history info
+        let didCreateNewChunk = false
+        let originalTile = null
+        let didChangeSomething = false
+
+        //main
+        let ti = this.toolInfo
+
+        if (ti.selectedTool !== this.id) return
+        if (!ti.mouseButtonPressed[0]) return
+        if (ti.isHoveringOverObject) return
+
+        let selectedLayer = ti.selectedLayer
+        let selectedTile = ti.selectedTile
 
         let chunkAtMouse = this.getChunkAtMouse()
         let worldMousePos = this.getWorldMousePos()
@@ -28,11 +41,13 @@ export class Draw extends Tool {
 
         //create new chunk if there is none
         if (chunkAtMouse == null) {
-            let chunkPos = this.toolInfo.world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y)
+            didCreateNewChunk = true
+            didChangeSomething = true
+            let chunkPos = ti.world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y)
             chunkAtMouse = new Chunk()
             chunkAtMouse.x = chunkPos.x
             chunkAtMouse.y = chunkPos.y
-            this.toolInfo.world.addChunk(chunkAtMouse)
+            ti.world.addChunk(chunkAtMouse)
         }
         let tileAtMouse = chunkAtMouse.getTilePosAtWorldPos(worldMousePos.x, worldMousePos.y)
 
@@ -46,8 +61,10 @@ export class Draw extends Tool {
         }
 
         //replace the tile with the selected one
-        if (tileAtMouse && shouldPlaceAgain || !this.toolInfo.lastMouseButtonPressed[0]) {
-            let replacementTile = new Tile()
+        let replacementTile = null
+
+        if (tileAtMouse && shouldPlaceAgain || !ti.lastMouseButtonPressed[0]) {
+            replacementTile = new Tile()
             replacementTile.x = tileAtMouse.x
             replacementTile.y = tileAtMouse.y
             replacementTile.tileAssetId = selectedTile
@@ -76,11 +93,40 @@ export class Draw extends Tool {
             //make sure same tile type arent placed on top of eachother
             if (highestTile) {
                 if (highestTile.tileAssetId != replacementTile.tileAssetId) {
-                    chunkAtMouse.setTile(replacementTile)
+                    originalTile = chunkAtMouse.setTile(replacementTile)
+                    didChangeSomething = true
                 }
             } else {
-                chunkAtMouse.setTile(replacementTile)
+                originalTile = chunkAtMouse.setTile(replacementTile)
+                didChangeSomething = true
             }
+        }
+
+        //add to history stack
+        if (didChangeSomething) {
+            let undo = () => {
+                if (originalTile) {
+                    chunkAtMouse.setTile(originalTile)
+                } else if (replacementTile) {
+                    chunkAtMouse.removeTileAt(replacementTile.x, replacementTile.y, replacementTile.z)
+                }
+
+                if (didCreateNewChunk) {
+                    ti.world.removeChunkAt(chunkAtMouse.x, chunkAtMouse.y)
+                }
+            }
+
+            let redo = () => {
+                if (didCreateNewChunk) {
+                    ti.world.addChunk(chunkAtMouse)
+                }
+
+                if (replacementTile) {
+                    chunkAtMouse.setTile(replacementTile)
+                }
+            }
+
+            ti.world.addHistory(new ToolHistory(undo, redo))
         }
 
         this.lastChunkAtMouse = chunkAtMouse

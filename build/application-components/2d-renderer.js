@@ -1,7 +1,7 @@
 import { assetInfo } from "../libraries/assetInfoToJson.js";
 import { item_assetInfo } from "../libraries/item-assetInfoToJson.js";
 var Renderer = /** @class */ (function () {
-    function Renderer(imageHolder, loader, canvasElement) {
+    function Renderer(imageHolder, loader, canvasElement, editor) {
         this.chunksDrawnThisFrame = 0;
         this.chunkDrawLimit = 128;
         this.maxCacheTimeout = 128;
@@ -15,6 +15,7 @@ var Renderer = /** @class */ (function () {
         };
         //this.canvasElement = <HTMLCanvasElement>document.getElementById("2Dcanvas")
         this.loader = loader;
+        this.editor = editor;
         this.worlds = this.loader.worlds;
         this.imageHolder = imageHolder;
         this.images = imageHolder.images;
@@ -461,6 +462,12 @@ var Renderer = /** @class */ (function () {
                     if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
                         highestZ = i;
                         highestTile = testTile;
+                    }
+                }
+                if (this.editor.selectedLayer != -1) { //if layer isnt auto
+                    highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer);
+                    if (highestTile) {
+                        highestZ = this.editor.selectedLayer;
                     }
                 }
                 if (highestTile) {

@@ -15,19 +15,32 @@ var __extends = (this && this.__extends) || (function () {
 })();
 import { Chunk } from "../objects/chunk.js";
 import { Tile } from "../objects/tile.js";
+import { ToolHistory } from "./tool-info.js";
 import { Tool } from "./tool.js";
 var Draw = /** @class */ (function (_super) {
     __extends(Draw, _super);
-    function Draw(id, name) {
-        var _this = _super.call(this, id, name) || this;
+    function Draw(id, name, toolInfo) {
+        var _this = _super.call(this, id, name, toolInfo) || this;
         _this.lastChunkAtMouse = null;
         _this.lastTileAtMouse = null;
         _this.lastWorldMousePos = null;
         return _this;
     }
     Draw.prototype.tick = function () {
-        var selectedLayer = this.toolInfo.selectedLayer;
-        var selectedTile = this.toolInfo.selectedTile;
+        //history info
+        var didCreateNewChunk = false;
+        var originalTile = null;
+        var didChangeSomething = false;
+        //main
+        var ti = this.toolInfo;
+        if (ti.selectedTool !== this.id)
+            return;
+        if (!ti.mouseButtonPressed[0])
+            return;
+        if (ti.isHoveringOverObject)
+            return;
+        var selectedLayer = ti.selectedLayer;
+        var selectedTile = ti.selectedTile;
         var chunkAtMouse = this.getChunkAtMouse();
         var worldMousePos = this.getWorldMousePos();
         if (this.lastChunkAtMouse) {
@@ -35,11 +48,13 @@ var Draw = /** @class */ (function (_super) {
         }
         //create new chunk if there is none
         if (chunkAtMouse == null) {
-            var chunkPos = this.toolInfo.world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
+            didCreateNewChunk = true;
+            didChangeSomething = true;
+            var chunkPos = ti.world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
             chunkAtMouse = new Chunk();
             chunkAtMouse.x = chunkPos.x;
             chunkAtMouse.y = chunkPos.y;
-            this.toolInfo.world.addChunk(chunkAtMouse);
+            ti.world.addChunk(chunkAtMouse);
         }
         var tileAtMouse = chunkAtMouse.getTilePosAtWorldPos(worldMousePos.x, worldMousePos.y);
         //check if tile was already just placed here
@@ -50,8 +65,9 @@ var Draw = /** @class */ (function (_super) {
             }
         }
         //replace the tile with the selected one
-        if (tileAtMouse && shouldPlaceAgain || !this.toolInfo.lastMouseButtonPressed[0]) {
-            var replacementTile = new Tile();
+        var replacementTile = null;
+        if (tileAtMouse && shouldPlaceAgain || !ti.lastMouseButtonPressed[0]) {
+            replacementTile = new Tile();
             replacementTile.x = tileAtMouse.x;
             replacementTile.y = tileAtMouse.y;
             replacementTile.tileAssetId = selectedTile;
@@ -77,12 +93,37 @@ var Draw = /** @class */ (function (_super) {
             //make sure same tile type arent placed on top of eachother
             if (highestTile) {
                 if (highestTile.tileAssetId != replacementTile.tileAssetId) {
-                    chunkAtMouse.setTile(replacementTile);
+                    originalTile = chunkAtMouse.setTile(replacementTile);
+                    didChangeSomething = true;
                 }
             }
             else {
-                chunkAtMouse.setTile(replacementTile);
+                originalTile = chunkAtMouse.setTile(replacementTile);
+                didChangeSomething = true;
             }
+        }
+        //add to history stack
+        if (didChangeSomething) {
+            var undo = function () {
+                if (originalTile) {
+                    chunkAtMouse.setTile(originalTile);
+                }
+                else if (replacementTile) {
+                    chunkAtMouse.removeTileAt(replacementTile.x, replacementTile.y, replacementTile.z);
+                }
+                if (didCreateNewChunk) {
+                    ti.world.removeChunkAt(chunkAtMouse.x, chunkAtMouse.y);
+                }
+            };
+            var redo = function () {
+                if (didCreateNewChunk) {
+                    ti.world.addChunk(chunkAtMouse);
+                }
+                if (replacementTile) {
+                    chunkAtMouse.setTile(replacementTile);
+                }
+            };
+            ti.world.addHistory(new ToolHistory(undo, redo));
         }
         this.lastChunkAtMouse = chunkAtMouse;
         this.lastWorldMousePos = worldMousePos;

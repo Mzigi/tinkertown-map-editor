@@ -1,39 +1,29 @@
-import { Chunk } from "../classes/objects/chunk.js";
-import { Inventory, InventoryFormat } from "../classes/objects/inventory.js";
-import { Item } from "../classes/objects/item.js";
-import { Tile } from "../classes/objects/tile.js";
+import { Inventory } from "../classes/objects/inventory.js";
 import { World } from "../classes/objects/world.js";
+import { AddContainer } from "../classes/tools/add-container.js";
+import { AddItem } from "../classes/tools/add-item.js";
+import { ChunkTool } from "../classes/tools/chunk-tool.js";
 import { Draw } from "../classes/tools/draw.js";
-var SelectToolState;
-(function (SelectToolState) {
-    SelectToolState[SelectToolState["None"] = 0] = "None";
-    SelectToolState[SelectToolState["Selecting"] = 1] = "Selecting";
-    SelectToolState[SelectToolState["Selected"] = 2] = "Selected";
-    SelectToolState[SelectToolState["Move"] = 3] = "Move";
-})(SelectToolState || (SelectToolState = {}));
-var MouseButtonState;
-(function (MouseButtonState) {
-    MouseButtonState[MouseButtonState["None"] = 0] = "None";
-    MouseButtonState[MouseButtonState["Down"] = 1] = "Down";
-    MouseButtonState[MouseButtonState["Held"] = 2] = "Held";
-    MouseButtonState[MouseButtonState["Up"] = 3] = "Up";
-})(MouseButtonState || (MouseButtonState = {}));
+import { Erase } from "../classes/tools/erase.js";
+import { Fill } from "../classes/tools/fill.js";
+import { Pick } from "../classes/tools/pick.js";
+import { SelectTool } from "../classes/tools/select.js";
+import { ToolInfo } from "../classes/tools/tool-info.js";
 var Editor = /** @class */ (function () {
     function Editor(loader, imageHolder) {
         var _this = this;
-        this.tools = {
-            0: new Draw(0, "Draw")
-        };
         this.slotSize = 64;
-        this.mouseDownStartPos = null;
-        this.selectToolState = SelectToolState.None;
-        this.originalSelection = null;
+        //mouseDownStartPos = null //deprecated
+        //selectToolState = SelectToolState.None //deprecated
+        //originalSelection = null //deprecated
         this.selectedTile = 0;
         this.selectedTool = 0;
         this.selectedLayer = -1; //-1 == auto layer
         this.lastWorldMousePos = { "x": null, "y": null };
         this.mouseButtonPressed = {};
         this.lastMouseButtonPressed = {};
+        this.pressedKeys = {};
+        this.lastPressedKeys = {};
         this.hoveredItem = null;
         this.hoveredStorage = null;
         this.openedStorage = null;
@@ -246,12 +236,42 @@ var Editor = /** @class */ (function () {
                 console.log(worlds[currentWorld].toolHistory)
             }*/
         });
+        document.body.addEventListener("keydown", function (e) {
+            console.log(e);
+            _this.pressedKeys[e.key] = true;
+            if (e.ctrlKey) {
+                _this.pressedKeys["ctrlKey"] = true;
+            }
+            if (e.ctrlKey && e.key == "z" && !e.shiftKey && !_this.loader.worldSettingsIsOpen) {
+                _this.loader.getCurrentWorld().undo();
+            }
+            if (e.ctrlKey && e.key == "y" && !_this.loader.worldSettingsIsOpen) {
+                _this.loader.getCurrentWorld().redo();
+            }
+            if (e.key == "Delete" || e.key == "Backspace") {
+                for (var toolId in _this.tools) {
+                    var tool = _this.tools[toolId];
+                    for (var _i = 0, _a = tool.events; _i < _a.length; _i++) {
+                        var eventBinding = _a[_i];
+                        if (eventBinding.name == "Delete") {
+                            eventBinding.call(tool);
+                        }
+                    }
+                }
+            }
+        });
+        document.body.addEventListener("keyup", function (e) {
+            _this.pressedKeys[e.key] = false;
+            if (e.ctrlKey) {
+                _this.pressedKeys["ctrlKey"] = false;
+            }
+        });
         //are you sure alert
         window.onbeforeunload = function () {
             for (var _i = 0, _a = loader.worlds; _i < _a.length; _i++) {
                 var world = _a[_i];
-                if (world.chunks.length > 0) {
-                    return "Are you sure you want to exit the editor?";
+                if (world.recentlyEdited) {
+                    return "You have unsaved changes";
                 }
             }
         };
@@ -266,501 +286,18 @@ var Editor = /** @class */ (function () {
             editor.changeSetting(settingName);
         };
         this.loader.updateWorldList();
+        this.toolInfo = new ToolInfo(this.loader.worlds[this.loader.currentWorld], document.getElementById("2Dcanvas"), this.selectedTile, this.selectedLayer, function (tileId, editor) { editor.selectedTile = tileId; }, function (layerId, editor) { editor.setLayer(layerId, editor); }, this, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, false);
+        this.tools = {
+            0: new Draw(0, "Draw", this.toolInfo),
+            1: new Erase(1, "Erase", this.toolInfo),
+            2: new Pick(2, "Pick", this.toolInfo),
+            3: new Fill(3, "Fill", this.toolInfo),
+            4: new AddContainer(4, "Add Container", this.toolInfo),
+            5: new AddItem(5, "Add Item", this.toolInfo),
+            6: new ChunkTool(6, "Chunk Tool", this.toolInfo),
+            7: new SelectTool(7, "Select", this.toolInfo)
+        };
     }
-    Editor.prototype.drawToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        var world = this.loader.worlds[this.loader.currentWorld];
-        //create new chunk if there is none
-        if (chunkAtMouse == null) {
-            var chunkPos = world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
-            chunkAtMouse = new Chunk();
-            chunkAtMouse.x = chunkPos.x;
-            chunkAtMouse.y = chunkPos.y;
-            world.addChunk(chunkAtMouse);
-        }
-        tileAtMouse = chunkAtMouse.getTilePosAtWorldPos(worldMousePos.x, worldMousePos.y);
-        //check if tile was already just placed here
-        var shouldPlaceAgain = true;
-        if (chunkAtMouse.x == lastChunkAtMouse.x && chunkAtMouse.y == lastChunkAtMouse.y) {
-            if (tileAtMouse.x == lastTileAtMouse.x && tileAtMouse.y == lastTileAtMouse.y) {
-                shouldPlaceAgain = false;
-            }
-        }
-        //replace the tile with the selected one
-        if (tileAtMouse && shouldPlaceAgain || !lastMouseButtonPressed[0]) {
-            var replacementTile = new Tile();
-            replacementTile.x = tileAtMouse.x;
-            replacementTile.y = tileAtMouse.y;
-            replacementTile.tileAssetId = selectedTile;
-            var highestTile = null;
-            if (selectedLayer > -1) {
-                replacementTile.z = selectedLayer;
-            }
-            else { //get highest layer if auto layer is on
-                var highestZ = 0;
-                for (var i = 0; i < chunkAtMouse.layers; i++) {
-                    var testTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i);
-                    if (chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)) {
-                        highestZ = i;
-                        highestTile = testTile;
-                    }
-                }
-                if (highestTile) {
-                    highestZ += 1;
-                }
-                highestZ = Math.min(highestZ, chunkAtMouse.layers);
-                replacementTile.z = highestZ;
-            }
-            //make sure same tile type arent placed on top of eachother
-            if (highestTile) {
-                if (highestTile.tileAssetId != replacementTile.tileAssetId) {
-                    chunkAtMouse.setTile(replacementTile);
-                }
-            }
-            else {
-                chunkAtMouse.setTile(replacementTile);
-            }
-        }
-    };
-    Editor.prototype.eraseToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        if (tileAtMouse) {
-            //check if tile was already just erased here
-            var shouldPlaceAgain = true;
-            if (chunkAtMouse.x == lastChunkAtMouse.x && chunkAtMouse.y == lastChunkAtMouse.y) {
-                if (tileAtMouse.x == lastTileAtMouse.x && tileAtMouse.y == lastTileAtMouse.y) {
-                    shouldPlaceAgain = false;
-                }
-            }
-            //delete the tile
-            if (tileAtMouse && shouldPlaceAgain || !lastMouseButtonPressed[0]) {
-                var zPos = selectedLayer;
-                var highestTile = null;
-                if (selectedLayer > -1) {
-                    zPos = selectedLayer;
-                }
-                else { //get highest layer if auto layer is on
-                    var highestZ = 0;
-                    for (var i = 0; i < chunkAtMouse.layers; i++) {
-                        var testTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i);
-                        if (chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)) {
-                            highestZ = i;
-                            highestTile = testTile;
-                        }
-                    }
-                    highestZ = Math.min(highestZ, chunkAtMouse.layers);
-                    zPos = highestZ;
-                }
-                chunkAtMouse.removeTileAt(tileAtMouse.x, tileAtMouse.y, zPos);
-            }
-        }
-    };
-    Editor.prototype.pickToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        if (tileAtMouse) {
-            //delete the tile
-            if (tileAtMouse && !lastMouseButtonPressed[0]) {
-                var zPos = selectedLayer;
-                var highestTile = null;
-                if (selectedLayer > -1) {
-                    zPos = selectedLayer;
-                }
-                else { //get highest layer if auto layer is on
-                    var highestZ = 0;
-                    for (var i = 0; i < chunkAtMouse.layers; i++) {
-                        var testTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i);
-                        if (chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)) {
-                            highestZ = i;
-                            highestTile = testTile;
-                        }
-                    }
-                    highestZ = Math.min(highestZ, chunkAtMouse.layers);
-                    zPos = highestZ;
-                }
-                var tileToPick = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, zPos);
-                if (tileToPick != null) {
-                    var previousSlot = document.getElementById("list-slot-" + selectedTile);
-                    if (previousSlot) {
-                        previousSlot.classList.remove("selected-slot");
-                    }
-                    var slot = document.getElementById("list-slot-" + tileToPick.tileAssetId);
-                    if (slot) {
-                        slot.classList.add("selected-slot");
-                    }
-                    return tileToPick.tileAssetId;
-                }
-            }
-        }
-    };
-    Editor.prototype.listIncludesTilePos = function (arr, x, y) {
-        for (var i = 0; i < arr.length; i++) {
-            if (arr[i][0] == x && arr[i][1] == y) {
-                return true;
-            }
-        }
-        return false;
-    };
-    Editor.prototype.objectIncludesTilePos = function (obj, x, y) {
-        if (!obj[x]) {
-            return false;
-        }
-        return obj[x][y] == true;
-    };
-    Editor.prototype.tilePosIsValid = function (tilePos) {
-        return (tilePos.x >= 0 && tilePos.x <= 9 && tilePos.y >= 0 && tilePos.y <= 9);
-    };
-    Editor.prototype.fillToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        var _a, _b, _c, _d;
-        var world = this.loader.worlds[this.loader.currentWorld];
-        //create new chunk if there is none
-        if (chunkAtMouse == null) {
-            var chunkPos = world.getChunkPosAtWorldPos(worldMousePos.x, worldMousePos.y);
-            chunkAtMouse = new Chunk();
-            chunkAtMouse.x = chunkPos.x;
-            chunkAtMouse.y = chunkPos.y;
-            chunkAtMouse.fillWithId(selectedTile);
-            world.addChunk(chunkAtMouse);
-        }
-        else {
-            tileAtMouse = chunkAtMouse.getTilePosAtWorldPos(worldMousePos.x, worldMousePos.y);
-            var tileIdToFlood = -1;
-            var layerIdToFlood = 0;
-            var highestTile = null;
-            if (selectedLayer > -1) {
-                layerIdToFlood = selectedLayer;
-            }
-            else { //get highest layer if auto layer is on
-                var highestZ = 0;
-                for (var i = 0; i < chunkAtMouse.layers; i++) {
-                    var testTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i);
-                    if (chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, i)) {
-                        highestZ = i;
-                        highestTile = testTile;
-                    }
-                }
-                highestZ = Math.min(highestZ, chunkAtMouse.layers);
-                layerIdToFlood = highestZ;
-            }
-            if (!highestTile) {
-                highestTile = chunkAtMouse.findTileAt(tileAtMouse.x, tileAtMouse.y, layerIdToFlood);
-            }
-            tileIdToFlood = highestTile === null || highestTile === void 0 ? void 0 : highestTile.tileAssetId;
-            if (!highestTile) {
-                highestTile = { "x": tileAtMouse.x, "y": tileAtMouse.y, "z": layerIdToFlood, "tileAssetId": undefined };
-                tileIdToFlood = undefined;
-            }
-            var openTiles = [highestTile];
-            var closedTiles = {};
-            while (openTiles.length > 0) {
-                var newOpenTiles = [];
-                for (var i = 0; i < openTiles.length; i++) {
-                    var currentTile = openTiles[i];
-                    if (currentTile.tileAssetId == tileIdToFlood && currentTile.z == layerIdToFlood) {
-                        var replacementTile = new Tile();
-                        replacementTile.x = currentTile.x;
-                        replacementTile.y = currentTile.y;
-                        replacementTile.z = layerIdToFlood;
-                        replacementTile.tileAssetId = selectedTile;
-                        chunkAtMouse.setTile(replacementTile);
-                        if (!closedTiles[currentTile.x]) {
-                            closedTiles[currentTile.x] = {};
-                        }
-                        closedTiles[currentTile.x][currentTile.y] = true;
-                        //west
-                        var westTile = { "x": currentTile.x - 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined };
-                        westTile.tileAssetId = (_a = chunkAtMouse.findTileAt(currentTile.x - 1, currentTile.y, currentTile.z)) === null || _a === void 0 ? void 0 : _a.tileAssetId;
-                        if (this.tilePosIsValid(westTile)) {
-                            if (!this.objectIncludesTilePos(closedTiles, westTile.x, westTile.y)) {
-                                newOpenTiles.push(westTile);
-                            }
-                        }
-                        //east
-                        var eastTile = { "x": currentTile.x + 1, "y": currentTile.y, "z": currentTile.z, "tileAssetId": undefined };
-                        eastTile.tileAssetId = (_b = chunkAtMouse.findTileAt(currentTile.x + 1, currentTile.y, currentTile.z)) === null || _b === void 0 ? void 0 : _b.tileAssetId;
-                        if (this.tilePosIsValid(eastTile)) {
-                            if (!this.objectIncludesTilePos(closedTiles, eastTile.x, eastTile.y)) {
-                                newOpenTiles.push(eastTile);
-                            }
-                        }
-                        //north
-                        var northTile = { "x": currentTile.x, "y": currentTile.y + 1, "z": currentTile.z, "tileAssetId": undefined };
-                        northTile.tileAssetId = (_c = chunkAtMouse.findTileAt(currentTile.x, currentTile.y + 1, currentTile.z)) === null || _c === void 0 ? void 0 : _c.tileAssetId;
-                        if (this.tilePosIsValid(northTile)) {
-                            if (!this.objectIncludesTilePos(closedTiles, northTile.x, northTile.y)) {
-                                newOpenTiles.push(northTile);
-                            }
-                        }
-                        //south
-                        var southTile = { "x": currentTile.x, "y": currentTile.y - 1, "z": currentTile.z, "tileAssetId": undefined };
-                        southTile.tileAssetId = (_d = chunkAtMouse.findTileAt(currentTile.x, currentTile.y - 1, currentTile.z)) === null || _d === void 0 ? void 0 : _d.tileAssetId;
-                        if (this.tilePosIsValid(southTile)) {
-                            if (!this.objectIncludesTilePos(closedTiles, southTile.x, southTile.y)) {
-                                newOpenTiles.push(southTile);
-                            }
-                        }
-                    }
-                }
-                openTiles = newOpenTiles;
-            }
-        }
-    };
-    Editor.prototype.addContainerToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        var world = this.loader.worlds[this.loader.currentWorld];
-        if (chunkAtMouse) {
-            if (tileAtMouse) {
-                var alreadyPlaced = false;
-                for (var i = 0; i < world.containers.length; i++) {
-                    var container = world.containers[i];
-                    if (container.x == tileAtMouse.x && container.y == tileAtMouse.y && container.chunkX == chunkAtMouse.x && container.chunkY == chunkAtMouse.y) {
-                        alreadyPlaced = true;
-                    }
-                }
-                if (!alreadyPlaced) {
-                    var newContainer = new Inventory();
-                    newContainer.chunkX = chunkAtMouse.x;
-                    newContainer.chunkY = chunkAtMouse.y;
-                    newContainer.x = tileAtMouse.x;
-                    newContainer.y = tileAtMouse.y;
-                    newContainer.z = tileAtMouse.z;
-                    newContainer.target = InventoryFormat.Container;
-                    world.containers.push(newContainer);
-                }
-            }
-        }
-    };
-    Editor.prototype.addItemToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        if (chunkAtMouse) {
-            if (tileAtMouse) {
-                var alreadyPlaced = false;
-                for (var i = 0; i < chunkAtMouse.itemDataList.length; i++) {
-                    var item = chunkAtMouse.itemDataList[i];
-                    if (Math.floor(item.x) == tileAtMouse.x && Math.floor(item.y) == tileAtMouse.y && item.chunkX == chunkAtMouse.x && item.chunkY == chunkAtMouse.y) {
-                        alreadyPlaced = true;
-                    }
-                }
-                if (!alreadyPlaced) {
-                    var newItem = new Item();
-                    newItem.chunkX = chunkAtMouse.x;
-                    newItem.chunkY = chunkAtMouse.y;
-                    var exactTileAtMouse = chunkAtMouse.getExactTilePosAtWorldPos(worldMousePos.x, worldMousePos.y);
-                    newItem.x = tileAtMouse.x;
-                    newItem.y = tileAtMouse.y;
-                    chunkAtMouse.itemDataList.push(newItem);
-                    chunkAtMouse.chunkHasBeenEdited = true;
-                    chunkAtMouse.undoEdited = true;
-                    chunkAtMouse.resetCacheImage();
-                    console.log(chunkAtMouse);
-                }
-            }
-        }
-    };
-    Editor.prototype.chunkToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        if (chunkAtMouse) {
-            this.loader.worlds[this.loader.currentWorld].highlightedChunk = chunkAtMouse;
-        }
-    };
-    Editor.prototype.chunkToolPressed = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile) {
-        if (chunkAtMouse) {
-            console.log("cli");
-        }
-    };
-    Editor.prototype.selectToolTick = function (chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, lastMouseButtonPressed, selectedLayer, selectedTile, isMouseButtonPressed) {
-        var world = this.loader.worlds[this.loader.currentWorld];
-        var camera = world.camera;
-        var globalMousePos = { "x": Math.floor(worldMousePos.x / 16), "y": Math.floor((worldMousePos.y / 16) * -1) };
-        //let chunkAndTilePos = worlds[currentWorld].getChunkAndTilePosAtGlobalPos(worldMousePos.x / 16, (worldMousePos.y / 16) * -1)
-        var mouseIsInSelection = false;
-        var mouseButtonState = MouseButtonState.None;
-        if (isMouseButtonPressed && !lastMouseButtonPressed[0])
-            mouseButtonState = MouseButtonState.Down;
-        if (isMouseButtonPressed && lastMouseButtonPressed[0])
-            mouseButtonState = MouseButtonState.Held;
-        if (!isMouseButtonPressed && lastMouseButtonPressed[0])
-            mouseButtonState = MouseButtonState.Up;
-        if (world.selection.length == 2) {
-            var lowX = Math.min(world.selection[0].x, world.selection[1].x);
-            var highX = Math.max(world.selection[0].x, world.selection[1].x);
-            var lowY = Math.min(world.selection[0].y, world.selection[1].y);
-            var highY = Math.max(world.selection[0].y, world.selection[1].y);
-            if (globalMousePos.x >= lowX && globalMousePos.x <= highX && globalMousePos.y >= lowY && globalMousePos.y <= highY) {
-                mouseIsInSelection = true;
-            }
-        }
-        //logic
-        switch (mouseButtonState) {
-            case MouseButtonState.None:
-                break;
-            case MouseButtonState.Down:
-                this.mouseDownStartPos = globalMousePos;
-                switch (this.selectToolState) {
-                    case SelectToolState.None:
-                        this.selectToolState = SelectToolState.Selecting;
-                        break;
-                    case SelectToolState.Selected:
-                        if (mouseIsInSelection) {
-                            this.selectToolState = SelectToolState.Move;
-                            this.originalSelection = [{ "x": world.selection[0].x, "y": world.selection[0].y }, { "x": world.selection[1].x, "y": world.selection[1].y }];
-                        }
-                        else {
-                            this.selectToolState = SelectToolState.None;
-                        }
-                        break;
-                }
-                break;
-            case MouseButtonState.Held:
-                switch (this.selectToolState) {
-                    case SelectToolState.None:
-                        if (this.mouseDownStartPos && this.mouseDownStartPos.x !== globalMousePos.x && this.mouseDownStartPos.y !== globalMousePos.y) {
-                            this.selectToolState = SelectToolState.Selecting;
-                        }
-                        break;
-                }
-                break;
-            case MouseButtonState.Up:
-                switch (this.selectToolState) {
-                    case SelectToolState.Selecting:
-                        this.selectToolState = SelectToolState.Selected;
-                        break;
-                    case SelectToolState.Move:
-                        //calulate stuff
-                        var lowXold = Math.min(this.originalSelection[0].x, this.originalSelection[1].x);
-                        var highXold = Math.max(this.originalSelection[0].x, this.originalSelection[1].x);
-                        var lowYold = Math.min(this.originalSelection[0].y, this.originalSelection[1].y);
-                        var highYold = Math.max(this.originalSelection[0].y, this.originalSelection[1].y);
-                        var lowX = Math.min(world.selection[0].x, world.selection[1].x);
-                        var highX = Math.max(world.selection[0].x, world.selection[1].x);
-                        var lowY = Math.min(world.selection[0].y, world.selection[1].y);
-                        var highY = Math.max(world.selection[0].y, world.selection[1].y);
-                        var lowChunkPosOld = world.getChunkAndTilePosAtGlobalPos(lowXold, lowYold)[0];
-                        var highChunkPosOld = world.getChunkAndTilePosAtGlobalPos(highXold, highYold)[0];
-                        var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
-                        var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
-                        var xDiff = lowX - lowXold;
-                        var yDiff = lowY - lowYold;
-                        //get all tiles to copy and delete them
-                        var tilesToCopy = [];
-                        for (var x = lowXold; x <= highXold; x++) {
-                            for (var y = lowYold; y <= highYold; y++) {
-                                if (selectedLayer === -1) { //layer auto
-                                    for (var _i = 0, _a = world.findTilesAtGlobalPos(x, y); _i < _a.length; _i++) {
-                                        var tile = _a[_i];
-                                        tilesToCopy.push([tile.clone(), { "x": x, "y": y }]);
-                                        world.removeTileAtGlobalPos(x, y, tile.z);
-                                    }
-                                }
-                            }
-                        }
-                        //delete tiles in new area
-                        for (var x = lowX; x <= highX; x++) {
-                            for (var y = lowY; y <= highY; y++) {
-                                if (selectedLayer === -1) { //layer auto
-                                    world.removeTilesAtGlobalPosXY(x, y);
-                                }
-                            }
-                        }
-                        //put the old tiles in the new place
-                        for (var _b = 0, tilesToCopy_1 = tilesToCopy; _b < tilesToCopy_1.length; _b++) {
-                            var tileInfo = tilesToCopy_1[_b];
-                            var tile = tileInfo[0];
-                            var tileGlobalPos = { "x": tileInfo[1].x + xDiff, "y": tileInfo[1].y + yDiff };
-                            world.setTileAtGlobalPos(tile, tileGlobalPos.x, tileGlobalPos.y);
-                        }
-                        //move items
-                        var itemsToCopy = [];
-                        for (var chunkX = lowChunkPosOld.x; chunkX <= highChunkPosOld.x; chunkX++) { //copy old items
-                            for (var chunkY = lowChunkPosOld.y; chunkY <= highChunkPosOld.y; chunkY++) {
-                                var chunk = world.getChunkAt(chunkX, chunkY);
-                                if (chunk) {
-                                    for (var i = 0; i < chunk.itemDataList.length; i++) {
-                                        var item = chunk.itemDataList[i];
-                                        var itemGlobalPos = world.getGlobalPosAtChunkAndTilePos(chunkX, chunkY, item.x, item.y);
-                                        if (itemGlobalPos.x >= lowXold && itemGlobalPos.x <= highXold && itemGlobalPos.y >= lowYold && itemGlobalPos.y <= highYold) {
-                                            itemsToCopy.push([item.clone(), itemGlobalPos]);
-                                            chunk.itemDataList.splice(i, 1);
-                                            chunk.edited();
-                                            i--;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        //delete items in new area
-                        for (var chunkX = lowChunkPos.x; chunkX <= highChunkPos.x; chunkX++) {
-                            for (var chunkY = lowChunkPos.y; chunkY <= highChunkPos.y; chunkY++) {
-                                var chunk = world.getChunkAt(chunkX, chunkY);
-                                if (chunk) {
-                                    for (var i = 0; i < chunk.itemDataList.length; i++) {
-                                        var item = chunk.itemDataList[i];
-                                        var itemGlobalPos = world.getGlobalPosAtChunkAndTilePos(chunkX, chunkY, item.x, item.y);
-                                        if (itemGlobalPos.x > lowX && itemGlobalPos.x <= highX && itemGlobalPos.y > lowY && itemGlobalPos.y <= highY) {
-                                            chunk.itemDataList.splice(i, 1);
-                                            chunk.edited();
-                                            i--;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        for (var _c = 0, itemsToCopy_1 = itemsToCopy; _c < itemsToCopy_1.length; _c++) { //put old items in new area
-                            var itemInfo = itemsToCopy_1[_c];
-                            var item = itemInfo[0];
-                            var newGlobalPos = { "x": itemInfo[1].x + xDiff, "y": itemInfo[1].y + yDiff };
-                            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
-                            var chunkPos = chunkAndTilePos[0];
-                            var tilePos = chunkAndTilePos[1];
-                            item.chunkX = chunkPos.x;
-                            item.chunkY = chunkPos.y;
-                            item.x = tilePos.x;
-                            item.y = tilePos.y;
-                            world.setItem(item);
-                        }
-                        //containers
-                        var containersToCopy = [];
-                        //copy and delete containers in old area
-                        for (var i = 0; i < world.containers.length; i++) {
-                            var container = world.containers[i];
-                            var globalPos = world.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
-                            if (globalPos.x >= lowXold && globalPos.x <= highXold && globalPos.y >= lowYold && globalPos.y <= highYold) {
-                                containersToCopy.push([container.clone(), globalPos]);
-                                world.containers.splice(i, 1);
-                                i--;
-                            }
-                        }
-                        //put containers in new are
-                        for (var _d = 0, containersToCopy_1 = containersToCopy; _d < containersToCopy_1.length; _d++) {
-                            var containerInfo = containersToCopy_1[_d];
-                            var container = containerInfo[0];
-                            var newGlobalPos = { "x": containerInfo[1].x + xDiff, "y": containerInfo[1].y + yDiff };
-                            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
-                            var chunkPos = chunkAndTilePos[0];
-                            var tilePos = chunkAndTilePos[1];
-                            container.chunkX = chunkPos.x;
-                            container.chunkY = chunkPos.y;
-                            container.x = tilePos.x;
-                            container.y = tilePos.y;
-                            world.containers.push(container);
-                        }
-                        this.selectToolState = SelectToolState.None;
-                        break;
-                }
-                break;
-        }
-        //update selection
-        if (this.selectToolState === SelectToolState.Selecting) {
-            if (!world.selection[0]) {
-                world.selection[0] = this.mouseDownStartPos;
-            }
-            world.selection[1] = globalMousePos;
-        }
-        //remove seletion when click outside
-        if (this.selectToolState === SelectToolState.None) {
-            world.selection = [];
-        }
-        //move selection
-        if (this.selectToolState === SelectToolState.Move) {
-            var xOffset = globalMousePos.x - this.mouseDownStartPos.x;
-            var yOffset = globalMousePos.y - this.mouseDownStartPos.y;
-            world.selection[0] = { "x": this.originalSelection[0].x + xOffset, "y": this.originalSelection[0].y + yOffset };
-            world.selection[1] = { "x": this.originalSelection[1].x + xOffset, "y": this.originalSelection[1].y + yOffset };
-        }
-    };
     Editor.prototype.updateTheme = function (cssTheme) {
         var cssThemeElement = document.getElementById("css-theme");
         this.loader.setPreference("theme", cssTheme);
@@ -863,7 +400,6 @@ var Editor = /** @class */ (function () {
         editor.selectedTool = tool;
         document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected");
         editor.loader.worlds[editor.loader.currentWorld].selection = [];
-        editor.selectToolState = SelectToolState.None;
     };
     //world settings
     Editor.prototype.changeSetting = function (settingName) {
@@ -982,74 +518,13 @@ var Editor = /** @class */ (function () {
             document.getElementById("2Dcanvas").style.cursor = "";
         }
         //Tools
-        if (!isHoveringOverObject) {
-            if (this.mouseButtonPressed[0]) { //mouse pressed
-                switch (this.selectedTool) {
-                    case 0: //draw
-                        this.drawToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 1: //erase
-                        this.eraseToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 2: //pick
-                        var tileToSet = this.pickToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        if (tileToSet) {
-                            console.log(tileToSet);
-                            this.selectedTile = tileToSet;
-                        }
-                        break;
-                    case 3: //fill
-                        this.fillToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 4: //container
-                        this.addContainerToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 5: //item
-                        this.addItemToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 6: //chunk
-                        if (!this.lastMouseButtonPressed[0])
-                            this.chunkToolPressed(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 7: //select
-                        this.selectToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile, true);
-                    default:
-                        break;
-                }
-            }
-            else { //mouse not pressed
-                switch (this.selectedTool) {
-                    case 6: //chunk
-                        this.chunkToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile);
-                        break;
-                    case 7: //select
-                        this.selectToolTick(chunkAtMouse, tileAtMouse, lastChunkAtMouse, lastTileAtMouse, worldMousePos, this.lastMouseButtonPressed, this.selectedLayer, this.selectedTile, false);
-                    default:
-                        break;
-                }
-            }
-        }
-        else if (this.hoveredStorage && this.mouseButtonPressed[0] && this.selectedTool === 1) { //erase storage
-            for (var i = 0; i < world.containers.length; i++) {
-                if (world.containers[i] == this.hoveredStorage) {
-                    world.containers.splice(i, 1);
-                    break;
-                }
-            }
-        }
-        else if (this.hoveredItem && this.mouseButtonPressed[0] && this.selectedTool === 1 && chunkAtMouse) { //erase item
-            for (var i = 0; i < chunkAtMouse.itemDataList.length; i++) {
-                if (chunkAtMouse.itemDataList[i] == this.hoveredItem) {
-                    chunkAtMouse.itemDataList.splice(i, 1);
-                    chunkAtMouse.chunkHasBeenEdited = true;
-                    chunkAtMouse.undoEdited = true;
-                    chunkAtMouse.resetCacheImage();
-                    break;
-                }
-            }
+        this.toolInfo.update(this.loader.worlds[this.loader.currentWorld], this.selectedTile, this.selectedLayer, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, isHoveringOverObject, this.hoveredStorage, this.hoveredItem);
+        if (this.tools[this.selectedTool]) {
+            this.tools[this.selectedTool].tick();
         }
         this.lastWorldMousePos = { "x": worldMousePos.x, "y": worldMousePos.y };
         this.lastMouseButtonPressed = JSON.parse(JSON.stringify(this.mouseButtonPressed));
+        this.lastPressedKeys = JSON.parse(JSON.stringify(this.pressedKeys));
         //window.requestAnimationFrame(tick)
     };
     return Editor;

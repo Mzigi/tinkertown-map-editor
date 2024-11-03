@@ -1,7 +1,9 @@
 var Tool = /** @class */ (function () {
-    function Tool(toolId, toolName) {
+    function Tool(toolId, toolName, toolInfo) {
         this.id = toolId;
         this.name = toolName;
+        this.toolInfo = toolInfo;
+        this.events = [];
     }
     Tool.prototype.getWorldMousePos = function () {
         return this.toolInfo.camera.screenPosToWorldPos(document.getElementById("2Dcanvas"), this.toolInfo.camera.lastPosition.x, this.toolInfo.camera.lastPosition.y);
