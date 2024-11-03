@@ -248,16 +248,46 @@ var Editor = /** @class */ (function () {
             if (e.ctrlKey && e.key == "y" && !_this.loader.worldSettingsIsOpen) {
                 _this.loader.getCurrentWorld().redo();
             }
+            //tool keybind
+            switch (e.key) {
+                case "1":
+                    _this.setTool(0, _this);
+                    break;
+                case "2":
+                    _this.setTool(1, _this);
+                    break;
+                case "3":
+                    _this.setTool(7, _this);
+                    break;
+                case "4":
+                    _this.setTool(2, _this);
+                    break;
+                case "5":
+                    _this.setTool(3, _this);
+                    break;
+                case "6":
+                    _this.setTool(4, _this);
+                    break;
+                case "7":
+                    _this.setTool(5, _this);
+                    break;
+                case "8":
+                    _this.setTool(6, _this);
+                default:
+                    break;
+            }
+            //event bindings
             if (e.key == "Delete" || e.key == "Backspace") {
-                for (var toolId in _this.tools) {
-                    var tool = _this.tools[toolId];
-                    for (var _i = 0, _a = tool.events; _i < _a.length; _i++) {
-                        var eventBinding = _a[_i];
-                        if (eventBinding.name == "Delete") {
-                            eventBinding.call(tool);
-                        }
-                    }
-                }
+                _this.callToolEvents("Delete");
+            }
+            if (e.ctrlKey && e.key == "c") {
+                _this.callToolEvents("Copy");
+            }
+            if (e.ctrlKey && e.key == "x") {
+                _this.callToolEvents("Cut");
+            }
+            if (e.ctrlKey && e.key == "v") {
+                _this.callToolEvents("Paste");
             }
         });
         document.body.addEventListener("keyup", function (e) {
@@ -298,6 +328,17 @@ var Editor = /** @class */ (function () {
             7: new SelectTool(7, "Select", this.toolInfo)
         };
     }
+    Editor.prototype.callToolEvents = function (eventName) {
+        for (var toolId in this.tools) {
+            var tool = this.tools[toolId];
+            for (var _i = 0, _a = tool.events; _i < _a.length; _i++) {
+                var eventBinding = _a[_i];
+                if (eventBinding.name == eventName) {
+                    eventBinding.call(tool);
+                }
+            }
+        }
+    };
     Editor.prototype.updateTheme = function (cssTheme) {
         var cssThemeElement = document.getElementById("css-theme");
         this.loader.setPreference("theme", cssTheme);

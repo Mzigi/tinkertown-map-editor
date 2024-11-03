@@ -453,41 +453,50 @@ var Renderer = /** @class */ (function () {
             this.ctx.fillText("BIOME: ".concat((chunkAtMouse === null || chunkAtMouse === void 0 ? void 0 : chunkAtMouse.biomeID) || "N/A"), 0, this.canvasElement.height - 96);
             this.ctx.fillText("CHUNK REVEALED: ".concat((chunkAtMouse === null || chunkAtMouse === void 0 ? void 0 : chunkAtMouse.revealed) ? "TRUE" : "FALSE"), 0, this.canvasElement.height - 64);
             this.ctx.fillText("CHUNK: [".concat(chunkPos.x, ", ").concat(chunkPos.y, "]"), 0, this.canvasElement.height);
-            if (chunkAtMouse) {
-                tilePos = { "x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y) };
-                var highestTile = null;
-                var highestZ = 0;
-                for (var i = 0; i < chunkAtMouse.layers; i++) {
-                    var testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i);
-                    if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
-                        highestZ = i;
-                        highestTile = testTile;
+            if (world.selection.length == 0) {
+                if (chunkAtMouse) {
+                    tilePos = { "x": Math.floor(tilePos.x), "y": Math.floor(tilePos.y) };
+                    var highestTile = null;
+                    var highestZ = 0;
+                    for (var i = 0; i < chunkAtMouse.layers; i++) {
+                        var testTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i);
+                        if (chunkAtMouse.findTileAt(tilePos.x, tilePos.y, i)) {
+                            highestZ = i;
+                            highestTile = testTile;
+                        }
                     }
-                }
-                if (this.editor.selectedLayer != -1) { //if layer isnt auto
-                    highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer);
+                    if (this.editor.selectedLayer != -1) { //if layer isnt auto
+                        highestTile = chunkAtMouse.findTileAt(tilePos.x, tilePos.y, this.editor.selectedLayer);
+                        if (highestTile) {
+                            highestZ = this.editor.selectedLayer;
+                        }
+                    }
                     if (highestTile) {
-                        highestZ = this.editor.selectedLayer;
+                        this.ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, ", ").concat(highestZ, "]"), 0, this.canvasElement.height - 32);
+                        highestZ += 1;
+                        var tileNameAndId = "#" + highestTile.tileAssetID;
+                        if (assetInfo[highestTile.tileAssetId]) {
+                            var tileInfo = assetInfo[highestTile.tileAssetId];
+                            tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId;
+                        }
+                        //console.log(tileNameAndId)
+                        this.ctx.fillText(tileNameAndId, camera.lastPosition.x, camera.lastPosition.y);
+                        this.ctx.fillText("HP: ".concat(highestTile.health, " ROT: ").concat(highestTile.rotation, " A: ").concat(highestTile.memoryA, " B: ").concat(highestTile.memoryB), camera.lastPosition.x, camera.lastPosition.y + 32);
                     }
-                }
-                if (highestTile) {
-                    this.ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, ", ").concat(highestZ, "]"), 0, this.canvasElement.height - 32);
-                    highestZ += 1;
-                    var tileNameAndId = "#" + highestTile.tileAssetID;
-                    if (assetInfo[highestTile.tileAssetId]) {
-                        var tileInfo = assetInfo[highestTile.tileAssetId];
-                        tileNameAndId = tileInfo.name + "#" + highestTile.tileAssetId;
+                    else {
+                        this.ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, "]"), 0, this.canvasElement.height - 32);
                     }
-                    //console.log(tileNameAndId)
-                    this.ctx.fillText(tileNameAndId, camera.lastPosition.x, camera.lastPosition.y);
-                    this.ctx.fillText("HP: ".concat(highestTile.health, " ROT: ").concat(highestTile.rotation, " A: ").concat(highestTile.memoryA, " B: ").concat(highestTile.memoryB), camera.lastPosition.x, camera.lastPosition.y + 32);
                 }
                 else {
                     this.ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, "]"), 0, this.canvasElement.height - 32);
                 }
             }
             else {
-                this.ctx.fillText("TILE: [".concat(globalTilePos.x, ", ").concat(globalTilePos.y, "]"), 0, this.canvasElement.height - 32);
+                var lowX = Math.min(world.selection[0].x, world.selection[1].x);
+                var highX = Math.max(world.selection[0].x, world.selection[1].x);
+                var lowY = Math.min(world.selection[0].y, world.selection[1].y);
+                var highY = Math.max(world.selection[0].y, world.selection[1].y);
+                this.ctx.fillText("".concat(highX - lowX + 1, "x").concat(highY - lowY + 1), camera.lastPosition.x, camera.lastPosition.y);
             }
         }
         /*worlds[currentWorld].camera.drawRect(canvasElement, ctx, placeToDrawCorner.x, placeToDrawCorner.y, 100, 100)

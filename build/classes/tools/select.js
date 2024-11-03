@@ -22,6 +22,7 @@ var SelectToolState;
     SelectToolState[SelectToolState["Selecting"] = 1] = "Selecting";
     SelectToolState[SelectToolState["Selected"] = 2] = "Selected";
     SelectToolState[SelectToolState["Move"] = 3] = "Move";
+    SelectToolState[SelectToolState["Paste"] = 4] = "Paste";
 })(SelectToolState || (SelectToolState = {}));
 var MouseButtonState;
 (function (MouseButtonState) {
@@ -42,128 +43,346 @@ var SelectTool = /** @class */ (function (_super) {
         _this.lastWorldMousePos = null;
         _this.events = [
             new EventBinding("Delete", function (tool) {
-                //history info
-                var removedTiles = [];
-                var removedContainers = [];
-                var removedItems = [];
-                //tool info
-                var ti = tool.toolInfo;
-                var world = ti.world;
-                var selectedLayer = ti.selectedLayer;
-                //main
-                var lowX = Math.min(world.selection[0].x, world.selection[1].x);
-                var highX = Math.max(world.selection[0].x, world.selection[1].x);
-                var lowY = Math.min(world.selection[0].y, world.selection[1].y);
-                var highY = Math.max(world.selection[0].y, world.selection[1].y);
-                var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
-                var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
-                //delete tiles in selection
-                removedTiles = tool.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world);
-                //delete containers in selection
-                removedContainers = tool.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world);
-                //delete items in selection
-                removedItems = tool.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world);
-                //add to history stack
-                var undoInstructions = [];
-                var redoInstructions = [];
+                tool.onDelete();
+            }),
+            new EventBinding("Copy", function (tool) {
+                tool.onCopy(false);
+            }),
+            new EventBinding("Cut", function (tool) {
+                tool.onCopy(true);
+            }),
+            new EventBinding("Paste", function (tool) {
+                tool.onPaste();
+            })
+        ];
+        return _this;
+    }
+    SelectTool.prototype.onPaste = function () {
+        //tool info
+        var ti = this.toolInfo;
+        var world = ti.world;
+        var selectedLayer = ti.selectedLayer;
+        //main
+        if (ti.selectedTool !== this.id)
+            return;
+        if (!this.clipboard)
+            return;
+        this.selectToolState = SelectToolState.Paste;
+        console.log("starting paste");
+    };
+    SelectTool.prototype.onCopy = function (shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = false; }
+        //tool info
+        var ti = this.toolInfo;
+        var world = ti.world;
+        var selectedLayer = ti.selectedLayer;
+        //main
+        if (ti.selectedTool !== this.id) {
+            this.clipboard = null;
+            return;
+        }
+        if (world.selection.length < 2)
+            return;
+        var lowX = Math.min(world.selection[0].x, world.selection[1].x);
+        var highX = Math.max(world.selection[0].x, world.selection[1].x);
+        var lowY = Math.min(world.selection[0].y, world.selection[1].y);
+        var highY = Math.max(world.selection[0].y, world.selection[1].y);
+        var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
+        var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
+        //TILES
+        //copy & remove tiles
+        var tilesToCopyAndRemoved = this.getTilesToCopyAndRemoved(lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        var tilesToCopy = tilesToCopyAndRemoved[0];
+        var removedTiles = tilesToCopyAndRemoved[1];
+        //ITEMS
+        //copy & remove items
+        var itemsToCopyAndRemove = this.getItemsToCopyAndRemoved(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        var itemsToCopy = itemsToCopyAndRemove[0];
+        var removedItems = itemsToCopyAndRemove[1];
+        //CONTAINERS
+        //copy & remove containers
+        var containersToCopyAndRemove = this.getContainersToCopyAndRemoved(lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        var containersToCopy = containersToCopyAndRemove[0];
+        var removedContainers = containersToCopyAndRemove[1];
+        if (shouldRemove) {
+            //add to history stack
+            var undoInstructions_1 = [];
+            var redoInstructions_1 = [];
+            if (removedTiles.length > 0 || removedItems.length > 0 || removedContainers.length > 0) {
                 //tile and chunk
-                if (removedTiles.length > 0) {
-                    undoInstructions.push(function () {
-                        for (var _i = 0, removedTiles_1 = removedTiles; _i < removedTiles_1.length; _i++) {
-                            var removedTileInfo = removedTiles_1[_i];
-                            var removedTile = removedTileInfo[0];
-                            var removedTilePos = removedTileInfo[1];
-                            world.setTileAtGlobalPos(removedTile, removedTilePos.x, removedTilePos.y);
-                        }
-                    });
-                    redoInstructions.push(function () {
-                        for (var _i = 0, removedTiles_2 = removedTiles; _i < removedTiles_2.length; _i++) {
-                            var removedTileInfo = removedTiles_2[_i];
-                            var removedTilePos = removedTileInfo[1];
-                            world.removeTileAtGlobalPos(removedTilePos.x, removedTilePos.y, removedTilePos.z);
-                        }
-                    });
-                }
+                undoInstructions_1.push(this.getRemovedTileUndoInstruction(removedTiles, world));
+                redoInstructions_1.push(this.getRemovedTileRedoInstruction(removedTiles, world));
                 //items
-                if (removedItems.length > 0) {
-                    undoInstructions.push(function () {
-                        for (var _i = 0, removedItems_1 = removedItems; _i < removedItems_1.length; _i++) {
-                            var removedItem = removedItems_1[_i];
-                            world.setItem(removedItem);
-                        }
-                    });
-                    redoInstructions.push(function () {
-                        for (var _i = 0, removedItems_2 = removedItems; _i < removedItems_2.length; _i++) {
-                            var removedItem = removedItems_2[_i];
-                            var chunk = world.getChunkAt(removedItem.chunkX, removedItem.chunkY);
-                            if (chunk) {
-                                for (var i = 0; i < chunk.itemDataList.length; i++) {
-                                    var item = chunk.itemDataList[i];
-                                    if (item == removedItem) {
-                                        chunk.itemDataList.splice(i, 1);
-                                        chunk.edited();
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
+                undoInstructions_1.push(this.getRemovedItemsUndoInstruction(removedItems, world));
+                redoInstructions_1.push(this.getRemovedItemsRedoInstruction(removedItems, world));
                 //containers
-                if (removedContainers.length > 0) {
-                    undoInstructions.push(function () {
-                        for (var _i = 0, removedContainers_1 = removedContainers; _i < removedContainers_1.length; _i++) {
-                            var removedContainer = removedContainers_1[_i];
-                            world.containers.push(removedContainer);
-                        }
-                    });
-                    redoInstructions.push(function () {
-                        for (var _i = 0, removedContainers_2 = removedContainers; _i < removedContainers_2.length; _i++) {
-                            var removedContainer = removedContainers_2[_i];
-                            for (var i = 0; i < world.containers.length; i++) {
-                                var container = world.containers[i];
-                                if (container == removedContainer) {
-                                    world.containers.splice(i, 1);
-                                }
-                            }
-                        }
-                    });
-                }
+                undoInstructions_1.push(this.getRemovedContainersUndoInstruction(removedContainers, world));
+                redoInstructions_1.push(this.getRemovedContainersRedoInstruction(removedContainers, world));
                 //undo/redo final
-                if (undoInstructions.length > 0) {
+                if (undoInstructions_1.length > 0) {
                     var undo = function () {
-                        for (var _i = 0, undoInstructions_1 = undoInstructions; _i < undoInstructions_1.length; _i++) {
-                            var undoInstruction = undoInstructions_1[_i];
+                        for (var _i = 0, undoInstructions_2 = undoInstructions_1; _i < undoInstructions_2.length; _i++) {
+                            var undoInstruction = undoInstructions_2[_i];
                             undoInstruction();
                         }
                     };
                     var redo = function () {
-                        for (var _i = 0, redoInstructions_1 = redoInstructions; _i < redoInstructions_1.length; _i++) {
-                            var redoInstruction = redoInstructions_1[_i];
+                        for (var _i = 0, redoInstructions_2 = redoInstructions_1; _i < redoInstructions_2.length; _i++) {
+                            var redoInstruction = redoInstructions_2[_i];
                             redoInstruction();
                         }
                     };
                     ti.world.addHistory(new ToolHistory(undo, redo));
                 }
-                //remove selection
-                world.selection = [];
-                tool.selectToolState = SelectToolState.None;
-            })
-        ];
-        return _this;
-    }
-    SelectTool.prototype.removeTilesInSelection = function (lowX, highX, lowY, highY, selectedLayer, world) {
+            }
+        }
+        this.clipboard = {
+            "tilesToCopy": this.cloneTilesToCopy(tilesToCopy),
+            "itemsToCopy": this.cloneItemsToCopy(itemsToCopy),
+            "containersToCopy": this.cloneContainersToCopy(containersToCopy),
+            "lowX": lowX,
+            "lowY": lowY,
+            "highX": highX,
+            "highY": highY,
+            "width": highX - lowX,
+            "height": highY - lowY
+        };
+        this.selectToolState = SelectToolState.None;
+        world.selection = [];
+    };
+    SelectTool.prototype.onDelete = function () {
+        //history info
+        var removedTiles = [];
+        var removedContainers = [];
+        var removedItems = [];
+        //tool info
+        var ti = this.toolInfo;
+        var world = ti.world;
+        var selectedLayer = ti.selectedLayer;
+        if (ti.selectedTool !== this.id)
+            return;
+        if (world.selection.length < 2)
+            return;
+        //main
+        var lowX = Math.min(world.selection[0].x, world.selection[1].x);
+        var highX = Math.max(world.selection[0].x, world.selection[1].x);
+        var lowY = Math.min(world.selection[0].y, world.selection[1].y);
+        var highY = Math.max(world.selection[0].y, world.selection[1].y);
+        var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
+        var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
+        //delete tiles in selection
+        removedTiles = this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world);
+        //delete containers in selection
+        removedContainers = this.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world);
+        //delete items in selection
+        removedItems = this.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world);
+        //add to history stack
+        var undoInstructions = [];
+        var redoInstructions = [];
+        if (removedTiles.length > 0 || removedItems.length > 0 || removedContainers.length > 0) {
+            //tile and chunk
+            undoInstructions.push(this.getRemovedTileUndoInstruction(removedTiles, world));
+            redoInstructions.push(this.getRemovedTileRedoInstruction(removedTiles, world));
+            //items
+            undoInstructions.push(this.getRemovedItemsUndoInstruction(removedItems, world));
+            redoInstructions.push(this.getRemovedItemsRedoInstruction(removedItems, world));
+            //containers
+            undoInstructions.push(this.getRemovedContainersUndoInstruction(removedContainers, world));
+            redoInstructions.push(this.getRemovedContainersRedoInstruction(removedContainers, world));
+            //undo/redo final
+            if (undoInstructions.length > 0) {
+                var undo = function () {
+                    for (var _i = 0, undoInstructions_3 = undoInstructions; _i < undoInstructions_3.length; _i++) {
+                        var undoInstruction = undoInstructions_3[_i];
+                        undoInstruction();
+                    }
+                };
+                var redo = function () {
+                    for (var _i = 0, redoInstructions_3 = redoInstructions; _i < redoInstructions_3.length; _i++) {
+                        var redoInstruction = redoInstructions_3[_i];
+                        redoInstruction();
+                    }
+                };
+                ti.world.addHistory(new ToolHistory(undo, redo));
+            }
+        }
+        //remove selection
+        world.selection = [];
+        this.selectToolState = SelectToolState.None;
+    };
+    SelectTool.prototype.getAddedTilesUndoInstruction = function (addedTiles) {
+        return function () {
+            for (var _i = 0, addedTiles_1 = addedTiles; _i < addedTiles_1.length; _i++) {
+                var addedTileInfo = addedTiles_1[_i];
+                var tileChunk = addedTileInfo[1];
+                var tile = addedTileInfo[0];
+                tileChunk.removeTileAt(tile.x, tile.y, tile.z);
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedTileUndoInstruction = function (removedTiles, world) {
+        return function () {
+            for (var _i = 0, removedTiles_1 = removedTiles; _i < removedTiles_1.length; _i++) {
+                var removedTileInfo = removedTiles_1[_i];
+                var removedTile = removedTileInfo[0];
+                var removedTilePos = removedTileInfo[1];
+                world.setTileAtGlobalPos(removedTile, removedTilePos.x, removedTilePos.y);
+            }
+        };
+    };
+    SelectTool.prototype.getCreatedChunksUndoInstruction = function (createdChunks, world) {
+        return function () {
+            for (var _i = 0, createdChunks_1 = createdChunks; _i < createdChunks_1.length; _i++) {
+                var createdChunk = createdChunks_1[_i];
+                world.removeChunkAt(createdChunk.x, createdChunk.y);
+            }
+        };
+    };
+    SelectTool.prototype.getCreatedChunksRedoInstruction = function (createdChunks, world) {
+        return function () {
+            for (var _i = 0, createdChunks_2 = createdChunks; _i < createdChunks_2.length; _i++) {
+                var createdChunk = createdChunks_2[_i];
+                world.addChunk(createdChunk);
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedTileRedoInstruction = function (removedTiles, world) {
+        return function () {
+            for (var _i = 0, removedTiles_2 = removedTiles; _i < removedTiles_2.length; _i++) {
+                var removedTileInfo = removedTiles_2[_i];
+                var removedTilePos = removedTileInfo[1];
+                world.removeTileAtGlobalPos(removedTilePos.x, removedTilePos.y, removedTilePos.z);
+            }
+        };
+    };
+    SelectTool.prototype.getAddedTilesRedoInstruction = function (addedTiles) {
+        return function () {
+            for (var _i = 0, addedTiles_2 = addedTiles; _i < addedTiles_2.length; _i++) {
+                var addedTileInfo = addedTiles_2[_i];
+                var tileChunk = addedTileInfo[1];
+                var tile = addedTileInfo[0];
+                tileChunk.setTile(tile);
+            }
+        };
+    };
+    SelectTool.prototype.getAddedItemsUndoInstruction = function (addedItems, world) {
+        return function () {
+            for (var _i = 0, addedItems_1 = addedItems; _i < addedItems_1.length; _i++) {
+                var addedItem = addedItems_1[_i];
+                var chunk = world.getChunkAt(addedItem.chunkX, addedItem.chunkY);
+                if (chunk) {
+                    for (var i = 0; i < chunk.itemDataList.length; i++) {
+                        var item = chunk.itemDataList[i];
+                        if (item == addedItem) {
+                            chunk.itemDataList.splice(i, 1);
+                            chunk.edited();
+                        }
+                    }
+                }
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedItemsUndoInstruction = function (removedItems, world) {
+        return function () {
+            for (var _i = 0, removedItems_1 = removedItems; _i < removedItems_1.length; _i++) {
+                var removedItem = removedItems_1[_i];
+                world.setItem(removedItem);
+            }
+        };
+    };
+    SelectTool.prototype.getAddedItemsRedoInstruction = function (addedItems, world) {
+        return function () {
+            for (var _i = 0, addedItems_2 = addedItems; _i < addedItems_2.length; _i++) {
+                var addedItem = addedItems_2[_i];
+                world.setItem(addedItem);
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedItemsRedoInstruction = function (removedItems, world) {
+        return function () {
+            for (var _i = 0, removedItems_2 = removedItems; _i < removedItems_2.length; _i++) {
+                var removedItem = removedItems_2[_i];
+                var chunk = world.getChunkAt(removedItem.chunkX, removedItem.chunkY);
+                if (chunk) {
+                    for (var i = 0; i < chunk.itemDataList.length; i++) {
+                        var item = chunk.itemDataList[i];
+                        if (item == removedItem) {
+                            chunk.itemDataList.splice(i, 1);
+                            chunk.edited();
+                        }
+                    }
+                }
+            }
+        };
+    };
+    SelectTool.prototype.getAddedContainersUndoInstruction = function (addedContainers, world) {
+        return function () {
+            for (var _i = 0, addedContainers_1 = addedContainers; _i < addedContainers_1.length; _i++) {
+                var addedContainer = addedContainers_1[_i];
+                for (var i = 0; i < world.containers.length; i++) {
+                    var container = world.containers[i];
+                    if (container == addedContainer) {
+                        world.containers.splice(i, 1);
+                    }
+                }
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedContainersUndoInstruction = function (removedContainers, world) {
+        return function () {
+            for (var _i = 0, removedContainers_1 = removedContainers; _i < removedContainers_1.length; _i++) {
+                var removedContainer = removedContainers_1[_i];
+                world.containers.push(removedContainer);
+            }
+        };
+    };
+    SelectTool.prototype.getRemovedContainersRedoInstruction = function (removedContainers, world) {
+        return function () {
+            for (var _i = 0, removedContainers_2 = removedContainers; _i < removedContainers_2.length; _i++) {
+                var removedContainer = removedContainers_2[_i];
+                for (var i = 0; i < world.containers.length; i++) {
+                    var container = world.containers[i];
+                    if (container == removedContainer) {
+                        world.containers.splice(i, 1);
+                    }
+                }
+            }
+        };
+    };
+    SelectTool.prototype.getAddedContainersRedoInstruction = function (addedContainers, world) {
+        return function () {
+            for (var _i = 0, addedContainers_2 = addedContainers; _i < addedContainers_2.length; _i++) {
+                var addedContainer = addedContainers_2[_i];
+                world.containers.push(addedContainer);
+            }
+        };
+    };
+    SelectTool.prototype.removeTilesInSelection = function (lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
         var removedTiles = [];
         for (var x = lowX; x <= highX; x++) {
             for (var y = lowY; y <= highY; y++) {
                 if (selectedLayer === -1) { //layer auto
-                    var tempRemovedTiles = world.removeTilesAtGlobalPosXY(x, y);
+                    var tempRemovedTiles = [];
+                    if (shouldRemove) {
+                        tempRemovedTiles = world.removeTilesAtGlobalPosXY(x, y);
+                    }
+                    else {
+                        tempRemovedTiles = world.findTilesAtGlobalPos(x, y);
+                    }
                     for (var _i = 0, tempRemovedTiles_1 = tempRemovedTiles; _i < tempRemovedTiles_1.length; _i++) {
                         var removedTile = tempRemovedTiles_1[_i];
                         removedTiles.push([removedTile, { "x": x, "y": y, "z": removedTile.z }]);
                     }
                 }
                 else {
-                    var removedTile = world.removeTileAtGlobalPos(x, y, selectedLayer);
+                    var removedTile = null;
+                    if (shouldRemove) {
+                        removedTile = world.removeTileAtGlobalPos(x, y, selectedLayer);
+                    }
+                    else {
+                        removedTile = world.findTileAtGlobalPos(x, y, selectedLayer);
+                    }
                     if (removedTile) {
                         removedTiles.push([removedTile, { "x": x, "y": y, "z": removedTile.z }]);
                     }
@@ -172,22 +391,27 @@ var SelectTool = /** @class */ (function (_super) {
         }
         return removedTiles;
     };
-    SelectTool.prototype.removeContainersInSelection = function (lowX, highX, lowY, highY, selectedLayer, world) {
+    SelectTool.prototype.removeContainersInSelection = function (lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
         var removedContainers = [];
         for (var i = 0; i < world.containers.length; i++) {
             var container = world.containers[i];
             if (container.z === selectedLayer || selectedLayer === -1) {
                 var globalPos = world.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
                 if (globalPos.x >= lowX && globalPos.x <= highX && globalPos.y >= lowY && globalPos.y <= highY) {
-                    var removedContainer = world.containers.splice(i, 1)[0];
+                    var removedContainer = world.containers[i];
+                    if (shouldRemove) {
+                        removedContainer = world.containers.splice(i, 1)[0];
+                        i--;
+                    }
                     removedContainers.push(removedContainer);
-                    i--;
                 }
             }
         }
         return removedContainers;
     };
-    SelectTool.prototype.removeItemsInSelection = function (lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world) {
+    SelectTool.prototype.removeItemsInSelection = function (lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
         var removedItems = [];
         if (selectedLayer !== -1) {
             return removedItems;
@@ -200,16 +424,136 @@ var SelectTool = /** @class */ (function (_super) {
                         var item = chunk.itemDataList[i];
                         var itemGlobalPos = world.getGlobalPosAtChunkAndTilePos(chunkX, chunkY, item.x, item.y);
                         if (itemGlobalPos.x > lowX && itemGlobalPos.x <= highX && itemGlobalPos.y > lowY && itemGlobalPos.y <= highY) {
-                            var removedItem = chunk.itemDataList.splice(i, 1)[0];
+                            var removedItem = chunk.itemDataList[i];
+                            if (shouldRemove) {
+                                removedItem = chunk.itemDataList.splice(i, 1)[0];
+                                chunk.edited();
+                                i--;
+                            }
                             removedItems.push(removedItem);
-                            chunk.edited();
-                            i--;
                         }
                     }
                 }
             }
         }
         return removedItems;
+    };
+    SelectTool.prototype.getTilesToCopyAndRemoved = function (lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
+        var tilesToCopy = [];
+        var removedTiles = [];
+        var tempOldTiles = this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        for (var _i = 0, tempOldTiles_1 = tempOldTiles; _i < tempOldTiles_1.length; _i++) {
+            var tileInfo = tempOldTiles_1[_i];
+            var tile = tileInfo[0];
+            var globalTilePos = tileInfo[1];
+            tilesToCopy.push([tile.clone(), { "x": globalTilePos.x, "y": globalTilePos.y }]);
+            removedTiles.push([tile, { "x": globalTilePos.x, "y": globalTilePos.y, "z": tile.z }]);
+        }
+        return [tilesToCopy, removedTiles];
+    };
+    SelectTool.prototype.getContainersToCopyAndRemoved = function (lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
+        var containersToCopy = [];
+        var removedContainers = [];
+        //copy and delete containers in old area
+        var tempOldContainers = this.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        for (var _i = 0, tempOldContainers_1 = tempOldContainers; _i < tempOldContainers_1.length; _i++) {
+            var container = tempOldContainers_1[_i];
+            var globalPos = world.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
+            containersToCopy.push([container.clone(), globalPos]);
+            removedContainers.push(container);
+        }
+        return [containersToCopy, removedContainers];
+    };
+    SelectTool.prototype.getItemsToCopyAndRemoved = function (lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world, shouldRemove) {
+        if (shouldRemove === void 0) { shouldRemove = true; }
+        var removedItems = [];
+        var itemsToCopy = [];
+        //copy and delete old items
+        var tempOldItems = this.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world, shouldRemove);
+        for (var _i = 0, tempOldItems_1 = tempOldItems; _i < tempOldItems_1.length; _i++) {
+            var item = tempOldItems_1[_i];
+            var itemGlobalPos = world.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y);
+            itemsToCopy.push([item.clone(), itemGlobalPos]);
+            removedItems.push(item);
+        }
+        return [itemsToCopy, removedItems];
+    };
+    SelectTool.prototype.pasteTiles = function (tilesToCopy, xDiff, yDiff, world) {
+        var addedTiles = [];
+        var createdChunks = [];
+        for (var _i = 0, tilesToCopy_1 = tilesToCopy; _i < tilesToCopy_1.length; _i++) {
+            var tileInfo = tilesToCopy_1[_i];
+            var tile = tileInfo[0];
+            var tileGlobalPos = { "x": tileInfo[1].x + xDiff, "y": tileInfo[1].y + yDiff };
+            var chunkAddedInfo = world.setTileAtGlobalPos(tile, tileGlobalPos.x, tileGlobalPos.y);
+            addedTiles.push([tile, chunkAddedInfo[0]]);
+            if (chunkAddedInfo[1]) {
+                createdChunks.push(chunkAddedInfo[0]);
+            }
+        }
+        return [addedTiles, createdChunks];
+    };
+    SelectTool.prototype.pasteContainers = function (containersToCopy, xDiff, yDiff, world) {
+        var addedContainers = [];
+        for (var _i = 0, containersToCopy_1 = containersToCopy; _i < containersToCopy_1.length; _i++) {
+            var containerInfo = containersToCopy_1[_i];
+            var container = containerInfo[0];
+            var newGlobalPos = { "x": containerInfo[1].x + xDiff, "y": containerInfo[1].y + yDiff };
+            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
+            var chunkPos = chunkAndTilePos[0];
+            var tilePos = chunkAndTilePos[1];
+            container.chunkX = chunkPos.x;
+            container.chunkY = chunkPos.y;
+            container.x = tilePos.x;
+            container.y = tilePos.y;
+            world.containers.push(container);
+            addedContainers.push(container);
+        }
+        return addedContainers;
+    };
+    SelectTool.prototype.pasteItems = function (itemsToCopy, xDiff, yDiff, world) {
+        var addedItems = [];
+        for (var _i = 0, itemsToCopy_1 = itemsToCopy; _i < itemsToCopy_1.length; _i++) {
+            var itemInfo = itemsToCopy_1[_i];
+            var item = itemInfo[0];
+            var newGlobalPos = { "x": itemInfo[1].x + xDiff, "y": itemInfo[1].y + yDiff };
+            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
+            var chunkPos = chunkAndTilePos[0];
+            var tilePos = chunkAndTilePos[1];
+            item.chunkX = chunkPos.x;
+            item.chunkY = chunkPos.y;
+            item.x = tilePos.x;
+            item.y = tilePos.y;
+            world.setItem(item);
+            addedItems.push(item);
+        }
+        return addedItems;
+    };
+    SelectTool.prototype.cloneTilesToCopy = function (tilesToCopy) {
+        var newTilesToCopy = [];
+        for (var _i = 0, tilesToCopy_2 = tilesToCopy; _i < tilesToCopy_2.length; _i++) {
+            var tileInfo = tilesToCopy_2[_i];
+            newTilesToCopy.push([tileInfo[0].clone(), { "x": tileInfo[1].x, "y": tileInfo[1].y }]);
+        }
+        return newTilesToCopy;
+    };
+    SelectTool.prototype.cloneContainersToCopy = function (containersToCopy) {
+        var newContainersToCopy = [];
+        for (var _i = 0, containersToCopy_2 = containersToCopy; _i < containersToCopy_2.length; _i++) {
+            var containerInfo = containersToCopy_2[_i];
+            newContainersToCopy.push([containerInfo[0].clone(), { "x": containerInfo[1].x, "y": containerInfo[1].y }]);
+        }
+        return newContainersToCopy;
+    };
+    SelectTool.prototype.cloneItemsToCopy = function (itemsToCopy) {
+        var newItemsToCopy = [];
+        for (var _i = 0, itemsToCopy_2 = itemsToCopy; _i < itemsToCopy_2.length; _i++) {
+            var itemInfo = itemsToCopy_2[_i];
+            newItemsToCopy.push([itemInfo[0].clone(), { "x": itemInfo[1].x, "y": itemInfo[1].y }]);
+        }
+        return newItemsToCopy;
     };
     SelectTool.prototype.tick = function () {
         //history info
@@ -225,6 +569,7 @@ var SelectTool = /** @class */ (function (_super) {
         var world = ti.world;
         if (ti.selectedTool !== this.id) {
             this.selectToolState = SelectToolState.None;
+            world.selection = [];
             return;
         }
         if (ti.isHoveringOverObject)
@@ -255,11 +600,19 @@ var SelectTool = /** @class */ (function (_super) {
             mouseButtonState = MouseButtonState.Held;
         if (!isMouseButtonPressed && lastMouseButtonPressed[0])
             mouseButtonState = MouseButtonState.Up;
+        var lowX = null;
+        var highX = null;
+        var lowY = null;
+        var highY = null;
+        var lowChunkPos = null;
+        var highChunkPos = null;
         if (world.selection.length == 2) {
-            var lowX = Math.min(world.selection[0].x, world.selection[1].x);
-            var highX = Math.max(world.selection[0].x, world.selection[1].x);
-            var lowY = Math.min(world.selection[0].y, world.selection[1].y);
-            var highY = Math.max(world.selection[0].y, world.selection[1].y);
+            lowX = Math.min(world.selection[0].x, world.selection[1].x);
+            highX = Math.max(world.selection[0].x, world.selection[1].x);
+            lowY = Math.min(world.selection[0].y, world.selection[1].y);
+            highY = Math.max(world.selection[0].y, world.selection[1].y);
+            lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
+            highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
             if (globalMousePos.x >= lowX && globalMousePos.x <= highX && globalMousePos.y >= lowY && globalMousePos.y <= highY) {
                 mouseIsInSelection = true;
             }
@@ -267,8 +620,16 @@ var SelectTool = /** @class */ (function (_super) {
         //logic
         switch (mouseButtonState) {
             case MouseButtonState.None:
-                if (this.selectToolState == SelectToolState.Selected && mouseIsInSelection) {
-                    document.getElementById("2Dcanvas").style.cursor = "move";
+                switch (this.selectToolState) {
+                    case SelectToolState.Selected:
+                        if (mouseIsInSelection) {
+                            document.getElementById("2Dcanvas").style.cursor = "move";
+                        }
+                        break;
+                    case SelectToolState.Paste:
+                        world.selection = [];
+                        world.selection[0] = { "x": globalMousePos.x, "y": globalMousePos.y };
+                        world.selection[1] = { "x": globalMousePos.x + this.clipboard.width, "y": globalMousePos.y + this.clipboard.height };
                 }
                 break;
             case MouseButtonState.Down:
@@ -311,107 +672,61 @@ var SelectTool = /** @class */ (function (_super) {
                         var highXold = Math.max(this.originalSelection[0].x, this.originalSelection[1].x);
                         var lowYold = Math.min(this.originalSelection[0].y, this.originalSelection[1].y);
                         var highYold = Math.max(this.originalSelection[0].y, this.originalSelection[1].y);
-                        var lowX = Math.min(world.selection[0].x, world.selection[1].x);
-                        var highX = Math.max(world.selection[0].x, world.selection[1].x);
-                        var lowY = Math.min(world.selection[0].y, world.selection[1].y);
-                        var highY = Math.max(world.selection[0].y, world.selection[1].y);
                         var lowChunkPosOld = world.getChunkAndTilePosAtGlobalPos(lowXold, lowYold)[0];
                         var highChunkPosOld = world.getChunkAndTilePosAtGlobalPos(highXold, highYold)[0];
-                        var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
-                        var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
                         var xDiff = lowX - lowXold;
                         var yDiff = lowY - lowYold;
-                        //get all tiles to copy and delete them
-                        var tilesToCopy = [];
-                        var tempOldTiles = this.removeTilesInSelection(lowXold, highXold, lowYold, highYold, selectedLayer, world);
-                        for (var _i = 0, tempOldTiles_1 = tempOldTiles; _i < tempOldTiles_1.length; _i++) {
-                            var tileInfo = tempOldTiles_1[_i];
-                            var tile = tileInfo[0];
-                            var globalTilePos = tileInfo[1];
-                            tilesToCopy.push([tile.clone(), { "x": globalTilePos.x, "y": globalTilePos.y }]);
-                            removedTiles.push([tile, { "x": globalTilePos.x, "y": globalTilePos.y, "z": tile.z }]);
-                        }
+                        //TILES
+                        //copy & remove tiles
+                        var tilesToCopyAndRemoved = this.getTilesToCopyAndRemoved(lowXold, highXold, lowYold, highYold, selectedLayer, world);
+                        var tilesToCopy = tilesToCopyAndRemoved[0];
+                        removedTiles = removedTiles.concat(tilesToCopyAndRemoved[1]);
                         //delete tiles in new area
-                        var tempTiles = this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world);
-                        for (var _a = 0, tempTiles_1 = tempTiles; _a < tempTiles_1.length; _a++) {
-                            var tileInfo = tempTiles_1[_a];
-                            var tile = tileInfo[0];
-                            var globalTilePos = tileInfo[1];
-                            removedTiles.push([tile, { "x": globalTilePos.x, "y": globalTilePos.y, "z": tile.z }]);
-                        }
-                        //put the old tiles in the new place
-                        for (var _b = 0, tilesToCopy_1 = tilesToCopy; _b < tilesToCopy_1.length; _b++) {
-                            var tileInfo = tilesToCopy_1[_b];
-                            var tile = tileInfo[0];
-                            var tileGlobalPos = { "x": tileInfo[1].x + xDiff, "y": tileInfo[1].y + yDiff };
-                            var chunkAddedInfo = world.setTileAtGlobalPos(tile, tileGlobalPos.x, tileGlobalPos.y);
-                            addedTiles.push([tile, chunkAddedInfo[0]]);
-                            if (chunkAddedInfo[1]) {
-                                createdChunks.push(chunkAddedInfo[0]);
-                            }
-                        }
-                        //move items
-                        var itemsToCopy = [];
-                        //copy and delete old items
-                        var tempOldItems = this.removeItemsInSelection(lowChunkPosOld, highChunkPosOld, lowXold, highXold, lowYold, highYold, selectedLayer, world);
-                        for (var _c = 0, tempOldItems_1 = tempOldItems; _c < tempOldItems_1.length; _c++) {
-                            var item = tempOldItems_1[_c];
-                            var itemGlobalPos = world.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y);
-                            itemsToCopy.push([item.clone(), itemGlobalPos]);
-                            removedItems.push(item);
-                        }
+                        removedTiles = removedTiles.concat(this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste old tiles in new area
+                        var addedTilesAndCreatedChunks = this.pasteTiles(tilesToCopy, xDiff, yDiff, world);
+                        addedTiles = addedTiles.concat(addedTilesAndCreatedChunks[0]);
+                        createdChunks = createdChunks.concat(addedTilesAndCreatedChunks[1]);
+                        //ITEMS
+                        //copy & remove items
+                        var itemsToCopyAndRemove = this.getItemsToCopyAndRemoved(lowChunkPosOld, highChunkPosOld, lowXold, highXold, lowYold, highYold, selectedLayer, world);
+                        var itemsToCopy = itemsToCopyAndRemove[0];
+                        removedItems = removedItems.concat(itemsToCopyAndRemove[1]);
                         //delete items in new area
-                        var tempItems = this.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world);
-                        for (var _d = 0, tempItems_1 = tempItems; _d < tempItems_1.length; _d++) {
-                            var item = tempItems_1[_d];
-                            removedItems.push(item);
-                        }
-                        //put old items in new area
-                        for (var _e = 0, itemsToCopy_1 = itemsToCopy; _e < itemsToCopy_1.length; _e++) {
-                            var itemInfo = itemsToCopy_1[_e];
-                            var item = itemInfo[0];
-                            var newGlobalPos = { "x": itemInfo[1].x + xDiff, "y": itemInfo[1].y + yDiff };
-                            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
-                            var chunkPos = chunkAndTilePos[0];
-                            var tilePos = chunkAndTilePos[1];
-                            item.chunkX = chunkPos.x;
-                            item.chunkY = chunkPos.y;
-                            item.x = tilePos.x;
-                            item.y = tilePos.y;
-                            world.setItem(item);
-                            addedItems.push(item);
-                        }
-                        //containers
-                        var containersToCopy = [];
-                        //copy and delete containers in old area
-                        var tempOldContainers = this.removeContainersInSelection(lowXold, highXold, lowYold, highYold, selectedLayer, world);
-                        for (var _f = 0, tempOldContainers_1 = tempOldContainers; _f < tempOldContainers_1.length; _f++) {
-                            var container = tempOldContainers_1[_f];
-                            var globalPos = world.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
-                            containersToCopy.push([container.clone(), globalPos]);
-                            removedContainers.push(container);
-                        }
+                        removedItems = removedItems.concat(this.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste old items in new area
+                        addedItems = addedItems.concat(this.pasteItems(itemsToCopy, xDiff, yDiff, world));
+                        //CONTAINERS
+                        //copy & remove containers
+                        var containersToCopyAndRemove = this.getContainersToCopyAndRemoved(lowXold, highXold, lowYold, highYold, selectedLayer, world);
+                        var containersToCopy = containersToCopyAndRemove[0];
+                        removedContainers = removedContainers.concat(containersToCopyAndRemove[1]);
                         //delete containers in new area
-                        var tempContainers = this.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world);
-                        for (var _g = 0, tempContainers_1 = tempContainers; _g < tempContainers_1.length; _g++) {
-                            var container = tempContainers_1[_g];
-                            removedContainers.push(container);
-                        }
-                        //put containers in new are
-                        for (var _h = 0, containersToCopy_1 = containersToCopy; _h < containersToCopy_1.length; _h++) {
-                            var containerInfo = containersToCopy_1[_h];
-                            var container = containerInfo[0];
-                            var newGlobalPos = { "x": containerInfo[1].x + xDiff, "y": containerInfo[1].y + yDiff };
-                            var chunkAndTilePos = world.getChunkAndTilePosAtGlobalPos(newGlobalPos.x, newGlobalPos.y);
-                            var chunkPos = chunkAndTilePos[0];
-                            var tilePos = chunkAndTilePos[1];
-                            container.chunkX = chunkPos.x;
-                            container.chunkY = chunkPos.y;
-                            container.x = tilePos.x;
-                            container.y = tilePos.y;
-                            world.containers.push(container);
-                            addedContainers.push(container);
-                        }
+                        removedContainers = removedContainers.concat(this.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste containers in new area
+                        addedContainers = addedContainers.concat(this.pasteContainers(containersToCopy, xDiff, yDiff, world));
+                        this.selectToolState = SelectToolState.None;
+                        break;
+                    case SelectToolState.Paste:
+                        var xPasteDiff = lowX - this.clipboard.lowX;
+                        var yPasteDiff = lowY - this.clipboard.lowY;
+                        //TILES
+                        //delete tiles in new area
+                        removedTiles = removedTiles.concat(this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste old tiles in new area
+                        var pasteAddedTilesAndCreatedChunks = this.pasteTiles(this.cloneTilesToCopy(this.clipboard.tilesToCopy), xPasteDiff, yPasteDiff, world);
+                        addedTiles = addedTiles.concat(pasteAddedTilesAndCreatedChunks[0]);
+                        createdChunks = createdChunks.concat(pasteAddedTilesAndCreatedChunks[1]);
+                        //ITEMS
+                        //delete items in new area
+                        removedItems = removedItems.concat(this.removeItemsInSelection(lowChunkPos, highChunkPos, lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste old items in new area
+                        addedItems = addedItems.concat(this.pasteItems(this.cloneItemsToCopy(this.clipboard.itemsToCopy), xPasteDiff, yPasteDiff, world));
+                        //CONTAINERS
+                        //delete containers in new area
+                        removedContainers = removedContainers.concat(this.removeContainersInSelection(lowX, highX, lowY, highY, selectedLayer, world));
+                        //paste containers in new area
+                        addedContainers = addedContainers.concat(this.pasteContainers(this.cloneContainersToCopy(this.clipboard.containersToCopy), xPasteDiff, yPasteDiff, world));
                         this.selectToolState = SelectToolState.None;
                         break;
                 }
@@ -439,133 +754,46 @@ var SelectTool = /** @class */ (function (_super) {
         //add to history stack
         var undoInstructions = [];
         var redoInstructions = [];
-        //tile and chunk
-        if (removedTiles.length > 0 || addedTiles.length > 0 || createdChunks.length > 0) {
-            undoInstructions.push(function () {
-                for (var _i = 0, addedTiles_1 = addedTiles; _i < addedTiles_1.length; _i++) {
-                    var addedTileInfo = addedTiles_1[_i];
-                    var tileChunk = addedTileInfo[1];
-                    var tile = addedTileInfo[0];
-                    tileChunk.removeTileAt(tile.x, tile.y, tile.z);
-                }
-                for (var _a = 0, removedTiles_3 = removedTiles; _a < removedTiles_3.length; _a++) {
-                    var removedTileInfo = removedTiles_3[_a];
-                    var removedTile = removedTileInfo[0];
-                    var removedTilePos = removedTileInfo[1];
-                    world.setTileAtGlobalPos(removedTile, removedTilePos.x, removedTilePos.y);
-                }
-                for (var _b = 0, createdChunks_1 = createdChunks; _b < createdChunks_1.length; _b++) {
-                    var createdChunk = createdChunks_1[_b];
-                    world.removeChunkAt(createdChunk.x, createdChunk.y);
-                }
-            });
-            redoInstructions.push(function () {
-                for (var _i = 0, createdChunks_2 = createdChunks; _i < createdChunks_2.length; _i++) {
-                    var createdChunk = createdChunks_2[_i];
-                    world.addChunk(createdChunk);
-                }
-                for (var _a = 0, removedTiles_4 = removedTiles; _a < removedTiles_4.length; _a++) {
-                    var removedTileInfo = removedTiles_4[_a];
-                    var removedTilePos = removedTileInfo[1];
-                    world.removeTileAtGlobalPos(removedTilePos.x, removedTilePos.y, removedTilePos.z);
-                }
-                for (var _b = 0, addedTiles_2 = addedTiles; _b < addedTiles_2.length; _b++) {
-                    var addedTileInfo = addedTiles_2[_b];
-                    var tileChunk = addedTileInfo[1];
-                    var tile = addedTileInfo[0];
-                    tileChunk.setTile(tile);
-                }
-            });
-        }
-        //items
-        if (removedItems.length > 0 || addedItems.length > 0) {
-            undoInstructions.push(function () {
-                for (var _i = 0, addedItems_1 = addedItems; _i < addedItems_1.length; _i++) {
-                    var addedItem = addedItems_1[_i];
-                    var chunk = world.getChunkAt(addedItem.chunkX, addedItem.chunkY);
-                    if (chunk) {
-                        for (var i = 0; i < chunk.itemDataList.length; i++) {
-                            var item = chunk.itemDataList[i];
-                            if (item == addedItem) {
-                                chunk.itemDataList.splice(i, 1);
-                                chunk.edited();
-                            }
-                        }
+        if (addedTiles.length > 0 ||
+            removedTiles.length > 0 ||
+            createdChunks.length > 0 ||
+            addedItems.length > 0 ||
+            removedItems.length > 0 ||
+            addedContainers.length > 0 ||
+            removedContainers.length > 0) {
+            //tile and chunk
+            undoInstructions.push(this.getAddedTilesUndoInstruction(addedTiles));
+            undoInstructions.push(this.getRemovedTileUndoInstruction(removedTiles, world));
+            undoInstructions.push(this.getCreatedChunksUndoInstruction(createdChunks, world));
+            redoInstructions.push(this.getCreatedChunksRedoInstruction(createdChunks, world));
+            redoInstructions.push(this.getRemovedTileRedoInstruction(removedTiles, world));
+            redoInstructions.push(this.getAddedTilesRedoInstruction(addedTiles));
+            //items
+            undoInstructions.push(this.getAddedItemsUndoInstruction(addedItems, world));
+            undoInstructions.push(this.getRemovedItemsUndoInstruction(removedItems, world));
+            redoInstructions.push(this.getRemovedItemsRedoInstruction(removedItems, world));
+            redoInstructions.push(this.getAddedItemsRedoInstruction(addedItems, world));
+            //containers
+            undoInstructions.push(this.getAddedContainersUndoInstruction(addedContainers, world));
+            undoInstructions.push(this.getRemovedContainersUndoInstruction(removedContainers, world));
+            redoInstructions.push(this.getRemovedContainersRedoInstruction(removedContainers, world));
+            redoInstructions.push(this.getAddedContainersRedoInstruction(addedContainers, world));
+            //undo/redo final
+            if (undoInstructions.length > 0) {
+                var undo = function () {
+                    for (var _i = 0, undoInstructions_4 = undoInstructions; _i < undoInstructions_4.length; _i++) {
+                        var undoInstruction = undoInstructions_4[_i];
+                        undoInstruction();
                     }
-                }
-                for (var _a = 0, removedItems_3 = removedItems; _a < removedItems_3.length; _a++) {
-                    var removedItem = removedItems_3[_a];
-                    world.setItem(removedItem);
-                }
-            });
-            redoInstructions.push(function () {
-                for (var _i = 0, removedItems_4 = removedItems; _i < removedItems_4.length; _i++) {
-                    var removedItem = removedItems_4[_i];
-                    var chunk = world.getChunkAt(removedItem.chunkX, removedItem.chunkY);
-                    if (chunk) {
-                        for (var i = 0; i < chunk.itemDataList.length; i++) {
-                            var item = chunk.itemDataList[i];
-                            if (item == removedItem) {
-                                chunk.itemDataList.splice(i, 1);
-                                chunk.edited();
-                            }
-                        }
+                };
+                var redo = function () {
+                    for (var _i = 0, redoInstructions_4 = redoInstructions; _i < redoInstructions_4.length; _i++) {
+                        var redoInstruction = redoInstructions_4[_i];
+                        redoInstruction();
                     }
-                }
-                for (var _a = 0, addedItems_2 = addedItems; _a < addedItems_2.length; _a++) {
-                    var addedItem = addedItems_2[_a];
-                    world.setItem(addedItem);
-                }
-            });
-        }
-        //containers
-        if (removedContainers.length > 0 || addedContainers.length > 0) {
-            undoInstructions.push(function () {
-                for (var _i = 0, addedContainers_1 = addedContainers; _i < addedContainers_1.length; _i++) {
-                    var addedContainer = addedContainers_1[_i];
-                    for (var i = 0; i < world.containers.length; i++) {
-                        var container = world.containers[i];
-                        if (container == addedContainer) {
-                            world.containers.splice(i, 1);
-                        }
-                    }
-                }
-                for (var _a = 0, removedContainers_3 = removedContainers; _a < removedContainers_3.length; _a++) {
-                    var removedContainer = removedContainers_3[_a];
-                    world.containers.push(removedContainer);
-                }
-            });
-            redoInstructions.push(function () {
-                for (var _i = 0, removedContainers_4 = removedContainers; _i < removedContainers_4.length; _i++) {
-                    var removedContainer = removedContainers_4[_i];
-                    for (var i = 0; i < world.containers.length; i++) {
-                        var container = world.containers[i];
-                        if (container == removedContainer) {
-                            world.containers.splice(i, 1);
-                        }
-                    }
-                }
-                for (var _a = 0, addedContainers_2 = addedContainers; _a < addedContainers_2.length; _a++) {
-                    var addedContainer = addedContainers_2[_a];
-                    world.containers.push(addedContainer);
-                }
-            });
-        }
-        //undo/redo final
-        if (undoInstructions.length > 0) {
-            var undo = function () {
-                for (var _i = 0, undoInstructions_2 = undoInstructions; _i < undoInstructions_2.length; _i++) {
-                    var undoInstruction = undoInstructions_2[_i];
-                    undoInstruction();
-                }
-            };
-            var redo = function () {
-                for (var _i = 0, redoInstructions_2 = redoInstructions; _i < redoInstructions_2.length; _i++) {
-                    var redoInstruction = redoInstructions_2[_i];
-                    redoInstruction();
-                }
-            };
-            ti.world.addHistory(new ToolHistory(undo, redo));
+                };
+                ti.world.addHistory(new ToolHistory(undo, redo));
+            }
         }
         this.lastChunkAtMouse = chunkAtMouse;
         this.lastWorldMousePos = worldMousePos;

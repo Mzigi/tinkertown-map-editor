@@ -312,16 +312,50 @@ export class Editor {
                 this.loader.getCurrentWorld().redo()
             }
 
-            if (e.key == "Delete" || e.key == "Backspace") {
-                for (let toolId in this.tools) {
-                    let tool = this.tools[toolId]
+            //tool keybind
+            switch (e.key) {
+                case "1":
+                    this.setTool(0, this)
+                    break
+                case "2":
+                    this.setTool(1, this)
+                    break
+                case "3":
+                    this.setTool(7, this)
+                    break
+                case "4":
+                    this.setTool(2, this)
+                    break
+                case "5":
+                    this.setTool(3, this)
+                    break
+                case "6":
+                    this.setTool(4, this)
+                    break
+                case "7":
+                    this.setTool(5, this)
+                    break
+                case "8":
+                    this.setTool(6, this)
+                default:
+                    break
+            }
 
-                    for (let eventBinding of tool.events) {
-                        if (eventBinding.name == "Delete") {
-                            eventBinding.call(tool)
-                        }
-                    }
-                }
+            //event bindings
+            if (e.key == "Delete" || e.key == "Backspace") {
+                this.callToolEvents("Delete")
+            }
+
+            if (e.ctrlKey && e.key == "c") {
+                this.callToolEvents("Copy")
+            }
+
+            if (e.ctrlKey && e.key == "x") {
+                this.callToolEvents("Cut")
+            }
+
+            if (e.ctrlKey && e.key == "v") {
+                this.callToolEvents("Paste")
             }
         })
 
@@ -369,6 +403,18 @@ export class Editor {
         }
     }
     
+    callToolEvents(eventName: string) {
+        for (let toolId in this.tools) {
+            let tool = this.tools[toolId]
+
+            for (let eventBinding of tool.events) {
+                if (eventBinding.name == eventName) {
+                    eventBinding.call(tool)
+                }
+            }
+        }
+    }
+
     updateTheme(cssTheme: string) {
         let cssThemeElement: HTMLLinkElement = <HTMLLinkElement>document.getElementById("css-theme")
         this.loader.setPreference("theme", cssTheme)

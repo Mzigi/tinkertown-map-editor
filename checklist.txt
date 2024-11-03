@@ -1,5 +1,6 @@
 -- World
 ☑ Containers
+    ☐ Container sizes
 ☐ player saves
 ☐ buildingDTO
 ☐ Other containers (is this even useful?, the data is overwritten when the player joins anyway)
@@ -22,8 +23,8 @@
     ☑ Drag
     ☐ Copy and paste
     ☐ Between worlds
-    ☐ Support multiple layers
-☐ Undo/redo
+    ☑ Support multiple layers
+☑ Undo/redo
 
 -- Other
 ☐ Zoom to mouse instead of center of screen
