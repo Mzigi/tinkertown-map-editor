@@ -49,6 +49,12 @@ var Loader = /** @class */ (function () {
         this.helpButton = document.getElementById("navbar-help");
         this.worldSettingsButton = document.getElementById("navbar-world-settings");
         this.examplesButton = document.getElementById("navbar-examples");
+        this.undoButton = document.getElementById("navbar-undo");
+        this.redoButton = document.getElementById("navbar-redo");
+        this.cutButton = document.getElementById("navbar-cut");
+        this.copyButton = document.getElementById("navbar-copy");
+        this.pasteButton = document.getElementById("navbar-paste");
+        this.deselectButton = document.getElementById("navbar-deselect");
         this.closeDialogButton = document.getElementById("close-dialog-help");
         this.closeExamplesDialogButton = document.getElementById("close-dialog-examples");
         this.closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
@@ -194,9 +200,11 @@ var Loader = /** @class */ (function () {
         this.exportButton.addEventListener("click", function () {
             _this.worlds[_this.currentWorld].saveAsFile();
         });
-        this.exportButton2.addEventListener("click", function () {
-            _this.worlds[_this.currentWorld].saveAsFile(true);
-        });
+        if (this.NEWUI) {
+            this.exportButton2.addEventListener("click", function () {
+                _this.worlds[_this.currentWorld].saveAsFile(true);
+            });
+        }
         this.helpButton.addEventListener("click", function () {
             document.getElementById("dialog-help").showModal();
         });
@@ -227,6 +235,27 @@ var Loader = /** @class */ (function () {
         this.closeExamplesDialogButton.addEventListener("click", function () {
             document.getElementById("dialog-examples").close();
         });
+        this.undoButton.addEventListener("click", function () {
+            _this.getCurrentWorld().undo();
+        });
+        this.redoButton.addEventListener("click", function () {
+            _this.getCurrentWorld().redo();
+        });
+        this.cutButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Cut");
+        });
+        this.copyButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Copy");
+        });
+        this.pasteButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Paste");
+        });
+        this.deselectButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Deselect");
+        });
+        if (!window["chrome"]) {
+            this.alertText("This website was designed to be used on a Chromium-based browser like Edge or Chrome, exporting might take a while or not work on this browser", true, 10);
+        }
     }
     Loader.prototype.createWorldElement = function (worldId) {
         var _this = this;

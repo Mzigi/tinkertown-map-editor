@@ -35,16 +35,34 @@ var Editor = /** @class */ (function () {
         this.images = imageHolder.images;
         if (loader.NEWUI) {
             var navbarButtons_1 = document.getElementsByClassName("navbar-button");
+            var navbarLis_1 = document.getElementsByClassName("navbar-li");
             var hoveredButton_1 = null;
             var navButtonClicked_1 = false;
             var _loop_1 = function (i) {
+                navbarLis_1[i].addEventListener("click", function () {
+                    var dropdownList = navbarLis_1[i].parentElement;
+                    if (dropdownList && dropdownList.id != "navbar-view-buttons") {
+                        dropdownList.classList.remove("navbar-dropdown-active");
+                        navButtonClicked_1 = false;
+                    }
+                });
+            };
+            for (var i = 0; i < navbarLis_1.length; i++) {
+                _loop_1(i);
+            }
+            var _loop_2 = function (i) {
                 //BUTTON EVENT
                 navbarButtons_1[i].addEventListener("click", function () {
-                    navButtonClicked_1 = true;
                     var dropdownList = document.getElementById(navbarButtons_1[i].id + "-buttons");
                     if (dropdownList) {
-                        dropdownList.classList.add("navbar-dropdown-active");
+                        if (!navButtonClicked_1) {
+                            dropdownList.classList.add("navbar-dropdown-active");
+                        }
+                        else {
+                            dropdownList.classList.remove("navbar-dropdown-active");
+                        }
                     }
+                    navButtonClicked_1 = !navButtonClicked_1;
                 });
                 //DOCUMENT HOVEROVER
                 document.addEventListener("mouseover", function (e) {
@@ -106,7 +124,7 @@ var Editor = /** @class */ (function () {
                 });
             };
             for (var i = 0; i < navbarButtons_1.length; i++) {
-                _loop_1(i);
+                _loop_2(i);
             }
             //preferences ui
             var cssTheme = loader.getPreference("theme");
@@ -265,6 +283,7 @@ var Editor = /** @class */ (function () {
         });
         document.body.addEventListener("keydown", function (e) {
             //console.log(e)
+            //console.log(e.key)
             _this.pressedKeys[e.key] = true;
             if (e.ctrlKey) {
                 _this.pressedKeys["ctrlKey"] = true;
@@ -315,6 +334,9 @@ var Editor = /** @class */ (function () {
             }
             if (e.ctrlKey && e.key == "v") {
                 _this.callToolEvents("Paste");
+            }
+            if (e.key == "Escape") {
+                _this.callToolEvents("Deselect");
             }
         });
         document.body.addEventListener("keyup", function (e) {
@@ -464,9 +486,13 @@ var Editor = /** @class */ (function () {
         }
     };
     Editor.prototype.setTool = function (tool, editor) {
-        document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected");
+        if (document.getElementById("tool-" + editor.selectedTool)) {
+            document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected");
+        }
         editor.selectedTool = tool;
-        document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected");
+        if (document.getElementById("tool-" + editor.selectedTool)) {
+            document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected");
+        }
         editor.loader.worlds[editor.loader.currentWorld].selection = [];
     };
     //world settings

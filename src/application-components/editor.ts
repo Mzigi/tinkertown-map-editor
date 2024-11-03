@@ -61,20 +61,37 @@ export class Editor {
         
         if (loader.NEWUI) {
             let navbarButtons = document.getElementsByClassName("navbar-button")
+            let navbarLis = document.getElementsByClassName("navbar-li")
             
             let hoveredButton = null
         
             let navButtonClicked = false
         
+            for (let i = 0; i < navbarLis.length; i++) { //close list when clicking button in list
+                navbarLis[i].addEventListener("click", () => {
+                    let dropdownList = navbarLis[i].parentElement
+
+                    if (dropdownList && dropdownList.id != "navbar-view-buttons") {
+                        dropdownList.classList.remove("navbar-dropdown-active")
+                        navButtonClicked = false
+                    }
+                })
+            }
+
             for (let i = 0; i < navbarButtons.length; i++) {
                 //BUTTON EVENT
                 navbarButtons[i].addEventListener("click", () => {
-                    navButtonClicked = true
                     let dropdownList = document.getElementById(navbarButtons[i].id + "-buttons")
-        
+
                     if (dropdownList) {
-                        dropdownList.classList.add("navbar-dropdown-active")
+                        if (!navButtonClicked) {
+                            dropdownList.classList.add("navbar-dropdown-active")
+                        } else {
+                            dropdownList.classList.remove("navbar-dropdown-active")
+                        }
                     }
+
+                    navButtonClicked = !navButtonClicked
                 })
         
                 //DOCUMENT HOVEROVER
@@ -338,6 +355,7 @@ export class Editor {
         
         document.body.addEventListener("keydown", (e) => {
             //console.log(e)
+            //console.log(e.key)
             this.pressedKeys[e.key] = true
             if (e.ctrlKey) {
                 this.pressedKeys["ctrlKey"] = true
@@ -395,6 +413,10 @@ export class Editor {
 
             if (e.ctrlKey && e.key == "v") {
                 this.callToolEvents("Paste")
+            }
+
+            if (e.key == "Escape") {
+                this.callToolEvents("Deselect")
             }
         })
 
@@ -571,9 +593,13 @@ export class Editor {
     }
     
     setTool(tool: number, editor: Editor) {
-        document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected")
+        if (document.getElementById("tool-" + editor.selectedTool)) {
+            document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected")
+        }
         editor.selectedTool = tool
-        document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected")
+        if (document.getElementById("tool-" + editor.selectedTool)) {
+            document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected")
+        }
     
         editor.loader.worlds[editor.loader.currentWorld].selection = []
     }

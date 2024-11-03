@@ -53,18 +53,23 @@ var SelectTool = /** @class */ (function (_super) {
             }),
             new EventBinding("Paste", function (tool) {
                 tool.onPaste();
+            }),
+            new EventBinding("Deselect", function (tool) {
+                tool.onDeselect();
             })
         ];
         return _this;
     }
+    SelectTool.prototype.onDeselect = function () {
+        this.selectToolState = SelectToolState.None;
+    };
     SelectTool.prototype.onPaste = function () {
         //tool info
         var ti = this.toolInfo;
         var world = ti.world;
         var selectedLayer = ti.selectedLayer;
         //main
-        if (ti.selectedTool !== this.id)
-            return;
+        //if (ti.selectedTool !== this.id) return
         if (!this.clipboard)
             return;
         this.selectToolState = SelectToolState.Paste;
@@ -77,10 +82,10 @@ var SelectTool = /** @class */ (function (_super) {
         var world = ti.world;
         var selectedLayer = ti.selectedLayer;
         //main
-        if (ti.selectedTool !== this.id) {
-            this.clipboard = null;
-            return;
-        }
+        /*if (ti.selectedTool !== this.id) {
+            this.clipboard = null
+            return
+        }*/
         if (world.selection.length < 2)
             return;
         var lowX = Math.min(world.selection[0].x, world.selection[1].x);
@@ -572,7 +577,7 @@ var SelectTool = /** @class */ (function (_super) {
             world.selection = [];
             return;
         }
-        if (ti.isHoveringOverObject)
+        if (ti.isHoveringOverObject && !ti.lastMouseButtonPressed[0] && ti.mouseButtonPressed[0])
             return;
         var selectedLayer = ti.selectedLayer;
         var selectedTile = ti.selectedTile;

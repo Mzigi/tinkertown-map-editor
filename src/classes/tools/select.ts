@@ -66,8 +66,15 @@ export class SelectTool extends Tool {
             }),
             new EventBinding("Paste", (tool: SelectTool) => {
                 tool.onPaste()
+            }),
+            new EventBinding("Deselect", (tool: SelectTool) => {
+                tool.onDeselect()
             })
         ]
+    }
+
+    onDeselect() {
+        this.selectToolState = SelectToolState.None
     }
 
     onPaste() {
@@ -77,7 +84,7 @@ export class SelectTool extends Tool {
         let selectedLayer = ti.selectedLayer
 
         //main
-        if (ti.selectedTool !== this.id) return
+        //if (ti.selectedTool !== this.id) return
         if (!this.clipboard) return
 
         this.selectToolState = SelectToolState.Paste
@@ -91,10 +98,10 @@ export class SelectTool extends Tool {
         let selectedLayer = ti.selectedLayer
 
         //main
-        if (ti.selectedTool !== this.id) {
+        /*if (ti.selectedTool !== this.id) {
             this.clipboard = null
             return
-        }
+        }*/
         if (world.selection.length < 2) return
 
         let lowX = Math.min(world.selection[0].x, world.selection[1].x)
@@ -665,7 +672,7 @@ export class SelectTool extends Tool {
             return
         }
         
-        if (ti.isHoveringOverObject) return
+        if (ti.isHoveringOverObject && !ti.lastMouseButtonPressed[0] && ti.mouseButtonPressed[0]) return
 
         let selectedLayer = ti.selectedLayer
         let selectedTile = ti.selectedTile

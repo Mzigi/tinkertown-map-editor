@@ -25,6 +25,13 @@ export class Loader {
     worldSettingsButton: any = document.getElementById("navbar-world-settings")
     examplesButton: any = document.getElementById("navbar-examples")
 
+    undoButton: any = document.getElementById("navbar-undo")
+    redoButton: any = document.getElementById("navbar-redo")
+    cutButton: any = document.getElementById("navbar-cut")
+    copyButton: any = document.getElementById("navbar-copy")
+    pasteButton: any = document.getElementById("navbar-paste")
+    deselectButton: any = document.getElementById("navbar-deselect")
+
     closeDialogButton: any = document.getElementById("close-dialog-help")
     closeExamplesDialogButton: any = document.getElementById("close-dialog-examples")
     closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-world-settings")
@@ -184,9 +191,11 @@ export class Loader {
             this.worlds[this.currentWorld].saveAsFile()
         })
     
-        this.exportButton2.addEventListener("click", () => {
-            this.worlds[this.currentWorld].saveAsFile(true)
-        })
+        if (this.NEWUI) {
+            this.exportButton2.addEventListener("click", () => {
+                this.worlds[this.currentWorld].saveAsFile(true)
+            })
+        }
     
         this.helpButton.addEventListener("click", () => {
             (<HTMLDialogElement>document.getElementById("dialog-help")).showModal()
@@ -224,6 +233,34 @@ export class Loader {
         this.closeExamplesDialogButton.addEventListener("click", () => {
             (<HTMLDialogElement>document.getElementById("dialog-examples")).close()
         })
+
+        this.undoButton.addEventListener("click", () => {
+            this.getCurrentWorld().undo()
+        })
+
+        this.redoButton.addEventListener("click", () => {
+            this.getCurrentWorld().redo()
+        })
+
+        this.cutButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Cut")
+        })
+
+        this.copyButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Copy")
+        })
+
+        this.pasteButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Paste")
+        })
+
+        this.deselectButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Deselect")
+        })
+
+        if (!window["chrome"]) {
+            this.alertText("This website was designed to be used on a Chromium-based browser like Edge or Chrome, exporting might take a while or not work on this browser", true, 10)
+        }
     }
 
     createWorldElement(worldId: number): HTMLButtonElement {
