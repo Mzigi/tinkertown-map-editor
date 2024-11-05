@@ -29,7 +29,7 @@ export class Editor {
     //originalSelection = null //deprecated
 
     selectedTile: number = 0
-    selectedTool: number = 0
+    selectedTool: number = 7
     selectedLayer: number = -1 //-1 == auto layer
 
     lastWorldMousePos: Vector2 = {"x": null, "y": null}
@@ -53,6 +53,10 @@ export class Editor {
     tools: {[key: number]: Tool}
 
     alertElement: HTMLElement = document.getElementById("alert")
+
+    timeSinceInNavbar = new Date().getTime()
+    navbarButtons = document.getElementsByClassName("navbar-button")
+    preventClickElement = document.getElementById("prevent-click")
     
     constructor(loader: Loader, imageHolder: ImageHolder) {
         this.loader = loader
@@ -60,7 +64,6 @@ export class Editor {
         this.images = imageHolder.images
         
         if (loader.NEWUI) {
-            let navbarButtons = document.getElementsByClassName("navbar-button")
             let navbarLis = document.getElementsByClassName("navbar-li")
             
             let hoveredButton = null
@@ -78,10 +81,26 @@ export class Editor {
                 })
             }
 
-            for (let i = 0; i < navbarButtons.length; i++) {
+            //close list when clicking outside
+            document.addEventListener("mouseup", (e) => {
+                let target = e.target || document
+    
+                let newHoveredButton = this.getHoveredButton(target)
+    
+                if (!newHoveredButton) {
+                    navButtonClicked = false
+                }
+
+                //setTimeout(() => {
+                    this.setPreventClick(false)
+                //},100)
+                this.removeDropdowns()
+            })
+
+            for (let i = 0; i < this.navbarButtons.length; i++) {
                 //BUTTON EVENT
-                navbarButtons[i].addEventListener("click", () => {
-                    let dropdownList = document.getElementById(navbarButtons[i].id + "-buttons")
+                this.navbarButtons[i].addEventListener("click", () => {
+                    let dropdownList = document.getElementById(this.navbarButtons[i].id + "-buttons")
 
                     if (dropdownList) {
                         if (!navButtonClicked) {
@@ -93,38 +112,19 @@ export class Editor {
 
                     navButtonClicked = !navButtonClicked
                 })
-        
+
                 //DOCUMENT HOVEROVER
                 document.addEventListener("mouseover", (e) => {
                     //find hovered button
                     let target = e.target || document
         
-                    let newHoveredButton = null
-                    let lastCheckedElement: HTMLElement = target as HTMLElement
-                    
-                    while (lastCheckedElement != null) {
-                        if ((lastCheckedElement as HTMLElement).classList.contains("navbar-button")) {
-                            newHoveredButton = lastCheckedElement.id
-                            lastCheckedElement = null
-                        } else {
-                            lastCheckedElement = lastCheckedElement.parentElement
+                    let newHoveredButton = this.getHoveredButton(target)
         
-                            if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
-                                lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons",""))
-                            }
-                        }
+                    if (newHoveredButton) {
+                        hoveredButton = newHoveredButton
                     }
         
-                    hoveredButton = newHoveredButton
-        
-                    //remove dropdowns
-                    for (let i = 0; i < navbarButtons.length; i++) {
-                        let dropdownList = document.getElementById(navbarButtons[i].id + "-buttons")
-        
-                        if (dropdownList) {
-                            document.getElementById(navbarButtons[i].id + "-buttons").classList.remove("navbar-dropdown-active")
-                        }
-                    }
+                    this.removeDropdowns()
         
                     //stop click if no hovered button
                     if (!hoveredButton) {
@@ -138,10 +138,15 @@ export class Editor {
                         let parentNav = hoveredButtonElement.getAttribute("parentnav")
         
                         if (dropdownList) {
+                            this.setPreventClick(true)
                             dropdownList.classList.add("navbar-dropdown-active")
                             if (dropdownList.classList.contains("navbar-dropdown-parented")) {
-                                dropdownList.style.left = hoveredButtonElement.clientWidth + "px"
+                                
+                                dropdownList.style.left = hoveredButtonElement.getBoundingClientRect().right + "px"
+                                dropdownList.style.top = (hoveredButtonElement.getBoundingClientRect().top - 1) + "px"
                             }
+                        } else {
+                            this.setPreventClick(false)
                         }
         
                         let lastParentNav = parentNav
@@ -158,7 +163,8 @@ export class Editor {
         
                         if (dropdownList) {
                             if (dropdownList.classList.contains("navbar-dropdown-parented")) {
-                                dropdownList.style.left = hoveredButtonElement.clientWidth + "px"
+                                dropdownList.style.left = hoveredButtonElement.getBoundingClientRect().right + "px"
+                                dropdownList.style.top = (hoveredButtonElement.getBoundingClientRect().top - 1) + "px"
                             }
                         }
                     }
@@ -315,31 +321,39 @@ export class Editor {
         
             document.getElementById("inventory-container").style.display = "none"
             document.getElementById("small-item-list-container").style.display = "none"
+            if (this.loader.NEWUI && document.getElementById("chunk-popup")) {
+                document.getElementById("chunk-popup").style.display = "none"
+            }
         })
 
         document.getElementById("2Dcanvas").addEventListener('mouseup', (e) => {
             this.mouseButtonPressed[e.button] = false
             if (e.button === 0) {
-                if (this.hoveredStorage) {
-                    this.openedStorage = this.hoveredStorage
-                    this.hoveredStorage.visualize(this.images, this.slotSize, this.loader.getCurrentWorld())
-        
-                    this.positionInventory()
-                } else if (this.hoveredItem) {
-                    this.openedItem = this.hoveredItem
-        
-                    this.openedItemStorage = new Inventory()
-                    this.openedItemStorage.width = 1
-                    this.openedItemStorage.height = 1
-        
-                    this.openedItemStorage.setIdAtSlot(0, this.openedItem.id)
-                    this.openedItemStorage.setCountAtSlot(0, this.openedItem.count)
-        
-                    this.openedItemStorage.visualize(this.images, this.slotSize)
-        
-                    this.positionInventory()
+                if (this.selectedTool == 7) {
+                    if (this.hoveredStorage) {
+                        this.openedStorage = this.hoveredStorage
+                        this.hoveredStorage.visualize(this.images, this.slotSize, this.loader.getCurrentWorld())
+            
+                        this.positionInventory()
+                    } else if (this.hoveredItem) {
+                        this.openedItem = this.hoveredItem
+            
+                        this.openedItemStorage = new Inventory()
+                        this.openedItemStorage.width = 1
+                        this.openedItemStorage.height = 1
+            
+                        this.openedItemStorage.setIdAtSlot(0, this.openedItem.id)
+                        this.openedItemStorage.setCountAtSlot(0, this.openedItem.count)
+            
+                        this.openedItemStorage.visualize(this.images, this.slotSize)
+            
+                        this.positionInventory()
+                    }
                 }
+
+                this.callToolEvents("MouseButton0Up")
             }
+
             /*if (e.button === 0) {
                 for (let i = 0; i < worlds[currentWorld].chunks.length; i++) {
                     if (worlds[currentWorld].chunks[i].undoEdited) {
@@ -354,6 +368,10 @@ export class Editor {
         })
         
         document.body.addEventListener("keydown", (e) => {
+            //console.log((e.target as HTMLElement)?.tagName)
+            if ((e.target as HTMLElement)?.tagName == "INPUT") {
+                return
+            }
             //console.log(e)
             //console.log(e.key)
             this.pressedKeys[e.key] = true
@@ -362,38 +380,40 @@ export class Editor {
             }
 
             if (e.ctrlKey && e.key == "z" && !e.shiftKey && !this.loader.worldSettingsIsOpen) {
+                e.preventDefault()
                 this.loader.getCurrentWorld().undo()
             }
 
             if (e.ctrlKey && e.key == "y" && !this.loader.worldSettingsIsOpen) {
+                e.preventDefault()
                 this.loader.getCurrentWorld().redo()
             }
 
             //tool keybind
             switch (e.key) {
                 case "1":
-                    this.setTool(0, this)
+                    this.setTool(7, this, true)
                     break
                 case "2":
-                    this.setTool(1, this)
+                    this.setTool(0, this, true)
                     break
                 case "3":
-                    this.setTool(7, this)
+                    this.setTool(1, this, true)
                     break
                 case "4":
-                    this.setTool(2, this)
+                    this.setTool(2, this, true)
                     break
                 case "5":
-                    this.setTool(3, this)
+                    this.setTool(3, this, true)
                     break
                 case "6":
-                    this.setTool(4, this)
+                    this.setTool(4, this, true)
                     break
                 case "7":
-                    this.setTool(5, this)
+                    this.setTool(5, this, true)
                     break
                 case "8":
-                    this.setTool(6, this)
+                    this.setTool(6, this, true)
                 default:
                     break
             }
@@ -417,6 +437,10 @@ export class Editor {
 
             if (e.key == "Escape") {
                 this.callToolEvents("Deselect")
+            }
+
+            if (e.key == "f") {
+                this.callToolEvents("Fill")
             }
         })
 
@@ -464,6 +488,47 @@ export class Editor {
         }
     }
     
+    setPreventClick(shouldPrevent: boolean) {
+        //console.log(shouldPrevent)
+
+        if (shouldPrevent) {
+            this.preventClickElement.classList.add("prevent-click-active")
+        } else {
+            this.preventClickElement.classList.remove("prevent-click-active")
+        }
+    }
+
+    getHoveredButton(target: EventTarget) {
+        let newHoveredButton = null
+        let lastCheckedElement: HTMLElement = target as HTMLElement
+        
+        while (lastCheckedElement != null) {
+            if ((lastCheckedElement as HTMLElement).classList.contains("navbar-button")) {
+                newHoveredButton = lastCheckedElement.id
+                lastCheckedElement = null
+            } else {
+                lastCheckedElement = lastCheckedElement.parentElement
+
+                if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
+                    lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons",""))
+                }
+            }
+        }
+
+        return newHoveredButton
+    }
+
+    removeDropdowns() {
+        //remove dropdowns
+        for (let i = 0; i < this.navbarButtons.length; i++) {
+            let dropdownList = document.getElementById(this.navbarButtons[i].id + "-buttons")
+
+            if (dropdownList) {
+                document.getElementById(this.navbarButtons[i].id + "-buttons").classList.remove("navbar-dropdown-active")
+            }
+        }
+    }
+
     callToolEvents(eventName: string) {
         for (let toolId in this.tools) {
             let tool = this.tools[toolId]
@@ -592,11 +657,15 @@ export class Editor {
         }
     }
     
-    setTool(tool: number, editor: Editor) {
+    setTool(tool: number, editor: Editor, dontPrioritizeSelect: boolean = false) {
         if (document.getElementById("tool-" + editor.selectedTool)) {
             document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected")
         }
-        editor.selectedTool = tool
+        if (editor.selectedTool != tool || dontPrioritizeSelect) {
+            editor.selectedTool = tool
+        } else {
+            editor.selectedTool = 7
+        }
         if (document.getElementById("tool-" + editor.selectedTool)) {
             document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected")
         }
@@ -620,7 +689,7 @@ export class Editor {
             } else {
                 this.loader.worlds[this.loader.currentWorld][settingName] = num
             }
-        } else if (settingName == "version" || settingName == "highestUsedVersion" || settingName == "additionalParams") { //objects
+        } else if (settingName == "version" || settingName == "highestUsedVersion" || settingName == "additionalParams" || settingName == "entrancePoint") { //objects
             try {
                 let object = JSON.parse(worldSettingValue)
                 this.loader.worlds[this.loader.currentWorld][settingName] = object

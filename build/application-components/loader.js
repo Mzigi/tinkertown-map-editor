@@ -44,8 +44,9 @@ var Loader = /** @class */ (function () {
         this.currentWorld = 0;
         this.newButton = document.getElementById("navbar-new");
         this.importInput = document.getElementById("navbar-import");
-        this.exportButton = document.getElementById("navbar-export");
-        this.exportButton2 = document.getElementById("navbar-export-2");
+        this.exportButton = document.getElementById("navbar-export-old");
+        this.exportButton2 = document.getElementById("navbar-export-new");
+        this.exportDungeonButton = document.getElementById("navbar-export-dungeon");
         this.helpButton = document.getElementById("navbar-help");
         this.worldSettingsButton = document.getElementById("navbar-world-settings");
         this.examplesButton = document.getElementById("navbar-examples");
@@ -55,9 +56,12 @@ var Loader = /** @class */ (function () {
         this.copyButton = document.getElementById("navbar-copy");
         this.pasteButton = document.getElementById("navbar-paste");
         this.deselectButton = document.getElementById("navbar-deselect");
+        this.eraseButton = document.getElementById("navbar-erase");
+        this.fillButton = document.getElementById("navbar-fill");
         this.closeDialogButton = document.getElementById("close-dialog-help");
         this.closeExamplesDialogButton = document.getElementById("close-dialog-examples");
         this.closeWorldSettingsDialogButton = document.getElementById("close-dialog-world-settings");
+        this.fileDropDialog = document.getElementById("dialog-file-drop");
         this.alertElement = document.getElementById("alert");
         this.worldSettingsIsOpen = false;
         this.NEWUI = !(window.location.href.endsWith("old-index.html"));
@@ -67,7 +71,7 @@ var Loader = /** @class */ (function () {
                 "name": "House in Forest",
             },
             {
-                "file": "OneChunkChallenge",
+                "file": "10x10 Forest and House Cutout",
                 "name": "10x10 Forest and House Cutout",
             },
             {
@@ -77,14 +81,17 @@ var Loader = /** @class */ (function () {
             {
                 "file": "Statue Structure",
                 "name": "Statue Structure",
+                "hidden": true
             },
             {
                 "file": "Small House",
                 "name": "Small House",
+                "hidden": true
             },
             {
                 "file": "IslandSurvival",
                 "name": "Large Island Survival",
+                "hidden": true
             },
             {
                 "file": "test storage",
@@ -204,6 +211,9 @@ var Loader = /** @class */ (function () {
             this.exportButton2.addEventListener("click", function () {
                 _this.worlds[_this.currentWorld].saveAsFile(true);
             });
+            this.exportDungeonButton.addEventListener("click", function () {
+                _this.getCurrentWorld().saveAsFile(true, true);
+            });
         }
         this.helpButton.addEventListener("click", function () {
             document.getElementById("dialog-help").showModal();
@@ -235,6 +245,17 @@ var Loader = /** @class */ (function () {
         this.closeExamplesDialogButton.addEventListener("click", function () {
             document.getElementById("dialog-examples").close();
         });
+        /*document.getElementById("2Dcanvas").addEventListener("dragenter", (e) => {
+            console.log(e)
+            this.fileDropDialog.classList.add("dialog-active")
+        })
+
+        document.getElementById("2Dcanvas").addEventListener("dragleave", (e) => {
+            if (e.relatedTarget != this.fileDropDialog && !this.fileDropDialog.contains(e.relatedTarget)) {
+                console.log(e)
+                this.fileDropDialog.classList.remove("dialog-active")
+            }
+        })*/
         this.undoButton.addEventListener("click", function () {
             _this.getCurrentWorld().undo();
         });
@@ -252,6 +273,12 @@ var Loader = /** @class */ (function () {
         });
         this.deselectButton.addEventListener("click", function () {
             _this.editor.callToolEvents("Deselect");
+        });
+        this.eraseButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Delete");
+        });
+        this.fillButton.addEventListener("click", function () {
+            _this.editor.callToolEvents("Fill");
         });
         if (!window["chrome"]) {
             this.alertText("This website was designed to be used on a Chromium-based browser like Edge or Chrome, exporting might take a while or not work on this browser", true, 10);
@@ -378,7 +405,7 @@ var Loader = /** @class */ (function () {
     };
     Loader.prototype.readBinaryFile = function (file, filePath, worldId) {
         return __awaiter(this, void 0, void 0, function () {
-            var buffer, loadedChunk, worldMeta, settingsMeta, buffer, loadedInventory, buffer;
+            var buffer, loadedChunk, worldMeta, settingsMeta, buffer, loadedInventory, plainTextData, dungeonMeta, buffer;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -396,7 +423,7 @@ var Loader = /** @class */ (function () {
                             console.warn("Attempted to load chunk file while world is in the Database format");
                             this.worlds[worldId].uneditedFiles[filePath] = buffer;
                         }
-                        return [3 /*break*/, 8];
+                        return [3 /*break*/, 10];
                     case 2:
                         if (!filePath.endsWith("world.meta")) return [3 /*break*/, 3];
                         worldMeta = JSON.parse(file);
@@ -409,7 +436,7 @@ var Loader = /** @class */ (function () {
                         }
                         this.worlds[worldId].hasBeenGenerated = worldMeta.hasBeenGenerated;
                         this.updateWorldList();
-                        return [3 /*break*/, 8];
+                        return [3 /*break*/, 10];
                     case 3:
                         if (!filePath.endsWith("settings.meta")) return [3 /*break*/, 4];
                         settingsMeta = JSON.parse(file);
@@ -419,7 +446,7 @@ var Loader = /** @class */ (function () {
                         this.worlds[worldId].timescale = settingsMeta.timescale;
                         this.worlds[worldId].NPCsOff = settingsMeta.NPCsOff;
                         this.worlds[worldId].additionalParams = settingsMeta.additionalParams;
-                        return [3 /*break*/, 8];
+                        return [3 /*break*/, 10];
                     case 4:
                         if (!filePath.endsWith("inventory.dat")) return [3 /*break*/, 6];
                         return [4 /*yield*/, file.arrayBuffer()];
@@ -435,14 +462,24 @@ var Loader = /** @class */ (function () {
                             console.warn("Attempted to load inventory file while world is in the Database format");
                             this.worlds[worldId].uneditedFiles[filePath] = buffer;
                         }
-                        return [3 /*break*/, 8];
-                    case 6: return [4 /*yield*/, file.arrayBuffer()];
+                        return [3 /*break*/, 10];
+                    case 6:
+                        if (!filePath.endsWith("DungeonMeta.metadat")) return [3 /*break*/, 8];
+                        return [4 /*yield*/, file.text()];
                     case 7:
+                        plainTextData = _a.sent();
+                        dungeonMeta = JSON.parse(plainTextData);
+                        this.getCurrentWorld().name = dungeonMeta.title;
+                        this.getCurrentWorld().entrancePoint = { "x": dungeonMeta.entrancePoint[0], "y": dungeonMeta.entrancePoint[1] };
+                        this.updateWorldList();
+                        return [3 /*break*/, 10];
+                    case 8: return [4 /*yield*/, file.arrayBuffer()];
+                    case 9:
                         buffer = _a.sent();
                         console.log("Editor doesn't know how to read " + filePath);
                         this.worlds[worldId].uneditedFiles[filePath] = buffer;
-                        _a.label = 8;
-                    case 8: return [2 /*return*/];
+                        _a.label = 10;
+                    case 10: return [2 /*return*/];
                 }
             });
         });

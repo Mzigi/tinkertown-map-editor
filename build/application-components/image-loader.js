@@ -14,6 +14,7 @@ var ImageHolder = /** @class */ (function () {
             "assets/Tilesets/Desert.png",
             "assets/Tilesets/DesertObjects.png",
             "assets/Tilesets/Dungeon.png",
+            "assets/Tilesets/Dungeon Black Large_697.png",
             "assets/Tilesets/DungeonDesert.png",
             "assets/Tilesets/DungeonForest.png",
             "assets/Tilesets/DungeonIce.png",

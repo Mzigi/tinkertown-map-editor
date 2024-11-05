@@ -69,8 +69,95 @@ export class SelectTool extends Tool {
             }),
             new EventBinding("Deselect", (tool: SelectTool) => {
                 tool.onDeselect()
+            }),
+            new EventBinding("Fill", (tool: SelectTool) => {
+                tool.onFill()
             })
         ]
+    }
+
+    onFill() {
+        //history info
+        let removedTiles: Array<[Tile, Vector3]> = []
+        let addedTiles: Array<[Tile, Chunk]> = []
+        let createdChunks: Chunk[] = []
+
+        //tool info
+        let ti = this.toolInfo
+        let world = ti.world
+        let selectedLayer = ti.selectedLayer
+
+        //main
+        /*if (ti.selectedTool !== this.id) {
+            this.clipboard = null
+            return
+        }*/
+        if (world.selection.length < 2) return
+
+        let lowX = Math.min(world.selection[0].x, world.selection[1].x)
+        let highX = Math.max(world.selection[0].x, world.selection[1].x)
+
+        let lowY = Math.min(world.selection[0].y, world.selection[1].y)
+        let highY = Math.max(world.selection[0].y, world.selection[1].y)
+
+        let lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0]
+        let highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0]
+
+        let tileId = ti.selectedTile
+
+        let fillTiles: [Tile, Vector2][] = []
+
+        for (let x = lowX; x <= highX; x++) {
+            for (let y = lowY; y <= highY; y++) {
+                let replacementTile = new Tile()
+                /*replacementTile.x = x
+                replacementTile.y = y*/
+                replacementTile.z = Math.max(0, selectedLayer)
+                replacementTile.tileAssetId = tileId
+
+                fillTiles.push([replacementTile, {"x": x, "y": y}])
+            }
+        }
+
+        //TILES
+            //delete tiles in new area
+            removedTiles = removedTiles.concat(this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world))
+
+            //paste old tiles in new area
+            let pasteAddedTilesAndCreatedChunks = this.pasteTiles(fillTiles, 0, 0, world)
+            addedTiles = addedTiles.concat(pasteAddedTilesAndCreatedChunks[0])
+            createdChunks = createdChunks.concat(pasteAddedTilesAndCreatedChunks[1])
+
+        let undoInstructions: Function[] = []
+        let redoInstructions: Function[] = []
+        
+        //tile and chunk
+        undoInstructions.push(this.getAddedTilesUndoInstruction(addedTiles))
+        undoInstructions.push(this.getRemovedTileUndoInstruction(removedTiles, world))
+        undoInstructions.push(this.getCreatedChunksUndoInstruction(createdChunks, world))
+
+        redoInstructions.push(this.getCreatedChunksRedoInstruction(createdChunks, world))
+        redoInstructions.push(this.getRemovedTileRedoInstruction(removedTiles, world))
+        redoInstructions.push(this.getAddedTilesRedoInstruction(addedTiles))
+
+        //undo/redo final
+        if (undoInstructions.length > 0) {
+            let undo = () => {
+                for (let undoInstruction of undoInstructions) {
+                    undoInstruction()
+                }
+            }
+
+            let redo = () => {
+                for (let redoInstruction of redoInstructions) {
+                    redoInstruction()
+                }
+            }
+
+            ti.world.addHistory(new ToolHistory(undo, redo))
+        }
+
+        this.selectToolState = SelectToolState.None
     }
 
     onDeselect() {
@@ -671,8 +758,6 @@ export class SelectTool extends Tool {
             world.selection = []
             return
         }
-        
-        if (ti.isHoveringOverObject && !ti.lastMouseButtonPressed[0] && ti.mouseButtonPressed[0]) return
 
         let selectedLayer = ti.selectedLayer
         let selectedTile = ti.selectedTile
@@ -705,6 +790,12 @@ export class SelectTool extends Tool {
         if (isMouseButtonPressed && !lastMouseButtonPressed[0]) mouseButtonState = MouseButtonState.Down
         if (isMouseButtonPressed && lastMouseButtonPressed[0]) mouseButtonState = MouseButtonState.Held
         if (!isMouseButtonPressed && lastMouseButtonPressed[0]) mouseButtonState = MouseButtonState.Up
+
+        if ((ti.isHoveringOverObject && mouseButtonState == MouseButtonState.Down) || (mouseButtonState > MouseButtonState.Down && this.selectToolState == SelectToolState.None && ti.isHoveringOverObject)) {
+            this.selectToolState = SelectToolState.None
+            world.selection = []
+            return
+        }
     
         let lowX = null
         let highX = null

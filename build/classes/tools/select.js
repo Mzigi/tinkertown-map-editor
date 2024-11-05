@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+import { Tile } from "../objects/tile.js";
 import { EventBinding } from "./event-binding.js";
 import { ToolHistory } from "./tool-info.js";
 import { Tool } from "./tool.js";
@@ -56,10 +57,81 @@ var SelectTool = /** @class */ (function (_super) {
             }),
             new EventBinding("Deselect", function (tool) {
                 tool.onDeselect();
+            }),
+            new EventBinding("Fill", function (tool) {
+                tool.onFill();
             })
         ];
         return _this;
     }
+    SelectTool.prototype.onFill = function () {
+        //history info
+        var removedTiles = [];
+        var addedTiles = [];
+        var createdChunks = [];
+        //tool info
+        var ti = this.toolInfo;
+        var world = ti.world;
+        var selectedLayer = ti.selectedLayer;
+        //main
+        /*if (ti.selectedTool !== this.id) {
+            this.clipboard = null
+            return
+        }*/
+        if (world.selection.length < 2)
+            return;
+        var lowX = Math.min(world.selection[0].x, world.selection[1].x);
+        var highX = Math.max(world.selection[0].x, world.selection[1].x);
+        var lowY = Math.min(world.selection[0].y, world.selection[1].y);
+        var highY = Math.max(world.selection[0].y, world.selection[1].y);
+        var lowChunkPos = world.getChunkAndTilePosAtGlobalPos(lowX, lowY)[0];
+        var highChunkPos = world.getChunkAndTilePosAtGlobalPos(highX, highY)[0];
+        var tileId = ti.selectedTile;
+        var fillTiles = [];
+        for (var x = lowX; x <= highX; x++) {
+            for (var y = lowY; y <= highY; y++) {
+                var replacementTile = new Tile();
+                /*replacementTile.x = x
+                replacementTile.y = y*/
+                replacementTile.z = Math.max(0, selectedLayer);
+                replacementTile.tileAssetId = tileId;
+                fillTiles.push([replacementTile, { "x": x, "y": y }]);
+            }
+        }
+        //TILES
+        //delete tiles in new area
+        removedTiles = removedTiles.concat(this.removeTilesInSelection(lowX, highX, lowY, highY, selectedLayer, world));
+        //paste old tiles in new area
+        var pasteAddedTilesAndCreatedChunks = this.pasteTiles(fillTiles, 0, 0, world);
+        addedTiles = addedTiles.concat(pasteAddedTilesAndCreatedChunks[0]);
+        createdChunks = createdChunks.concat(pasteAddedTilesAndCreatedChunks[1]);
+        var undoInstructions = [];
+        var redoInstructions = [];
+        //tile and chunk
+        undoInstructions.push(this.getAddedTilesUndoInstruction(addedTiles));
+        undoInstructions.push(this.getRemovedTileUndoInstruction(removedTiles, world));
+        undoInstructions.push(this.getCreatedChunksUndoInstruction(createdChunks, world));
+        redoInstructions.push(this.getCreatedChunksRedoInstruction(createdChunks, world));
+        redoInstructions.push(this.getRemovedTileRedoInstruction(removedTiles, world));
+        redoInstructions.push(this.getAddedTilesRedoInstruction(addedTiles));
+        //undo/redo final
+        if (undoInstructions.length > 0) {
+            var undo = function () {
+                for (var _i = 0, undoInstructions_1 = undoInstructions; _i < undoInstructions_1.length; _i++) {
+                    var undoInstruction = undoInstructions_1[_i];
+                    undoInstruction();
+                }
+            };
+            var redo = function () {
+                for (var _i = 0, redoInstructions_1 = redoInstructions; _i < redoInstructions_1.length; _i++) {
+                    var redoInstruction = redoInstructions_1[_i];
+                    redoInstruction();
+                }
+            };
+            ti.world.addHistory(new ToolHistory(undo, redo));
+        }
+        this.selectToolState = SelectToolState.None;
+    };
     SelectTool.prototype.onDeselect = function () {
         this.selectToolState = SelectToolState.None;
     };
@@ -111,29 +183,29 @@ var SelectTool = /** @class */ (function (_super) {
         var removedContainers = containersToCopyAndRemove[1];
         if (shouldRemove) {
             //add to history stack
-            var undoInstructions_1 = [];
-            var redoInstructions_1 = [];
+            var undoInstructions_2 = [];
+            var redoInstructions_2 = [];
             if (removedTiles.length > 0 || removedItems.length > 0 || removedContainers.length > 0) {
                 //tile and chunk
-                undoInstructions_1.push(this.getRemovedTileUndoInstruction(removedTiles, world));
-                redoInstructions_1.push(this.getRemovedTileRedoInstruction(removedTiles, world));
+                undoInstructions_2.push(this.getRemovedTileUndoInstruction(removedTiles, world));
+                redoInstructions_2.push(this.getRemovedTileRedoInstruction(removedTiles, world));
                 //items
-                undoInstructions_1.push(this.getRemovedItemsUndoInstruction(removedItems, world));
-                redoInstructions_1.push(this.getRemovedItemsRedoInstruction(removedItems, world));
+                undoInstructions_2.push(this.getRemovedItemsUndoInstruction(removedItems, world));
+                redoInstructions_2.push(this.getRemovedItemsRedoInstruction(removedItems, world));
                 //containers
-                undoInstructions_1.push(this.getRemovedContainersUndoInstruction(removedContainers, world));
-                redoInstructions_1.push(this.getRemovedContainersRedoInstruction(removedContainers, world));
+                undoInstructions_2.push(this.getRemovedContainersUndoInstruction(removedContainers, world));
+                redoInstructions_2.push(this.getRemovedContainersRedoInstruction(removedContainers, world));
                 //undo/redo final
-                if (undoInstructions_1.length > 0) {
+                if (undoInstructions_2.length > 0) {
                     var undo = function () {
-                        for (var _i = 0, undoInstructions_2 = undoInstructions_1; _i < undoInstructions_2.length; _i++) {
-                            var undoInstruction = undoInstructions_2[_i];
+                        for (var _i = 0, undoInstructions_3 = undoInstructions_2; _i < undoInstructions_3.length; _i++) {
+                            var undoInstruction = undoInstructions_3[_i];
                             undoInstruction();
                         }
                     };
                     var redo = function () {
-                        for (var _i = 0, redoInstructions_2 = redoInstructions_1; _i < redoInstructions_2.length; _i++) {
-                            var redoInstruction = redoInstructions_2[_i];
+                        for (var _i = 0, redoInstructions_3 = redoInstructions_2; _i < redoInstructions_3.length; _i++) {
+                            var redoInstruction = redoInstructions_3[_i];
                             redoInstruction();
                         }
                     };
@@ -197,14 +269,14 @@ var SelectTool = /** @class */ (function (_super) {
             //undo/redo final
             if (undoInstructions.length > 0) {
                 var undo = function () {
-                    for (var _i = 0, undoInstructions_3 = undoInstructions; _i < undoInstructions_3.length; _i++) {
-                        var undoInstruction = undoInstructions_3[_i];
+                    for (var _i = 0, undoInstructions_4 = undoInstructions; _i < undoInstructions_4.length; _i++) {
+                        var undoInstruction = undoInstructions_4[_i];
                         undoInstruction();
                     }
                 };
                 var redo = function () {
-                    for (var _i = 0, redoInstructions_3 = redoInstructions; _i < redoInstructions_3.length; _i++) {
-                        var redoInstruction = redoInstructions_3[_i];
+                    for (var _i = 0, redoInstructions_4 = redoInstructions; _i < redoInstructions_4.length; _i++) {
+                        var redoInstruction = redoInstructions_4[_i];
                         redoInstruction();
                     }
                 };
@@ -577,8 +649,6 @@ var SelectTool = /** @class */ (function (_super) {
             world.selection = [];
             return;
         }
-        if (ti.isHoveringOverObject && !ti.lastMouseButtonPressed[0] && ti.mouseButtonPressed[0])
-            return;
         var selectedLayer = ti.selectedLayer;
         var selectedTile = ti.selectedTile;
         var chunkAtMouse = this.getChunkAtMouse();
@@ -605,6 +675,11 @@ var SelectTool = /** @class */ (function (_super) {
             mouseButtonState = MouseButtonState.Held;
         if (!isMouseButtonPressed && lastMouseButtonPressed[0])
             mouseButtonState = MouseButtonState.Up;
+        if ((ti.isHoveringOverObject && mouseButtonState == MouseButtonState.Down) || (mouseButtonState > MouseButtonState.Down && this.selectToolState == SelectToolState.None && ti.isHoveringOverObject)) {
+            this.selectToolState = SelectToolState.None;
+            world.selection = [];
+            return;
+        }
         var lowX = null;
         var highX = null;
         var lowY = null;
@@ -786,14 +861,14 @@ var SelectTool = /** @class */ (function (_super) {
             //undo/redo final
             if (undoInstructions.length > 0) {
                 var undo = function () {
-                    for (var _i = 0, undoInstructions_4 = undoInstructions; _i < undoInstructions_4.length; _i++) {
-                        var undoInstruction = undoInstructions_4[_i];
+                    for (var _i = 0, undoInstructions_5 = undoInstructions; _i < undoInstructions_5.length; _i++) {
+                        var undoInstruction = undoInstructions_5[_i];
                         undoInstruction();
                     }
                 };
                 var redo = function () {
-                    for (var _i = 0, redoInstructions_4 = redoInstructions; _i < redoInstructions_4.length; _i++) {
-                        var redoInstruction = redoInstructions_4[_i];
+                    for (var _i = 0, redoInstructions_5 = redoInstructions; _i < redoInstructions_5.length; _i++) {
+                        var redoInstruction = redoInstructions_5[_i];
                         redoInstruction();
                     }
                 };

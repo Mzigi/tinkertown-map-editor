@@ -56,6 +56,7 @@
                 Successfully wore outfit
             </div>
 
+            
             <div id="worldlist">
                 <button class="world" world-id="0">
                     <span class="world-name">world0</span>
@@ -70,9 +71,13 @@
                     <button id="navbar-file" class="navbar-button">File</button>
                     <ul id="navbar-file-buttons" class="navbar-dropdown">
                         <button id="navbar-new" class="navbar-li">New</button>
-                        <label for="navbar-import" class="navbar-li import-label" id="import-label">Import folder</label><input type="file" webkitdirectory mozdirectory id="navbar-import" class="navbar-import">
-                        <button id="navbar-export-2" class="navbar-li">Export</button>
-                        <button id="navbar-export" class="navbar-li">Export (Pre 2.0)</button>
+                        <label for="navbar-import" class="navbar-li import-label" id="import-label">Import</label><input type="file" webkitdirectory mozdirectory id="navbar-import" class="navbar-import">
+                        <button id="navbar-export" class="navbar-li navbar-button" parentnav="navbar-file">Export As<span class="material-symbols-outlined">chevron_right</span></button>
+                        <ul id="navbar-export-buttons" class="navbar-dropdown navbar-dropdown-parented">
+                            <button id="navbar-export-new" class="navbar-li">World</button>
+                            <button id="navbar-export-old" class="navbar-li">World (pre 2.0)</button>
+                            <button id="navbar-export-dungeon" class="navbar-li">Dungeon</button>
+                        </ul>
                         <!--<button id="navbar-export-dungeon" class="navbar-li">Export as Dungeon</button>-->
                         <button id="navbar-examples" class="navbar-li navbar-button" parentnav="navbar-file">Examples<span class="material-symbols-outlined">chevron_right</span></button>
                         <ul id="navbar-examples-buttons" class="navbar-dropdown navbar-dropdown-parented">
@@ -85,9 +90,13 @@
                     <ul id="navbar-edit-buttons" class="navbar-dropdown">
                         <button id="navbar-undo" class="navbar-li">Undo</button>
                         <button id="navbar-redo" class="navbar-li">Redo</button>
+                        <div class="navbar-divide"></div>
                         <button id="navbar-cut" class="navbar-li">Cut</button>
                         <button id="navbar-copy" class="navbar-li">Copy</button>
                         <button id="navbar-paste" class="navbar-li">Paste</button>
+                        <div class="navbar-divide"></div>
+                        <button id="navbar-erase" class="navbar-li">Erase selection</button>
+                        <button id="navbar-fill" class="navbar-li">Fill selection</button>
                         <button id="navbar-deselect" class="navbar-li">Deselect</button>
                     </ul>
                 </div>
@@ -122,9 +131,17 @@
                 <!--<button id="navbar-examples" class="navbar-button">Examples</button>
                 <button id="navbar-help" class="navbar-button" style="float: right;">Help</button>-->
             </div>
+            
+
+            <div id="prevent-click"></div>
 
             <div id="tool-list">
-                <button id="tool-0" onclick="setTool(0)" class="tool-container tool-selected">
+                <button id="tool-7" onclick="setTool(7)" class="tool-container tool-selected">
+                    <img class="tool-img" src="assets/tool-select2.png" title="Select">
+                    <span class="tool-name">Select</span>
+                </button>
+
+                <button id="tool-0" onclick="setTool(0)" class="tool-container">
                     <img class="tool-img" src="assets/tool-draw.png" title="Draw">
                     <span class="tool-name">Draw</span>
                 </button>
@@ -132,11 +149,6 @@
                 <button id="tool-1" onclick="setTool(1)" class="tool-container">
                     <img class="tool-img" src="assets/tool-erase0.png" title="Erase">
                     <span class="tool-name">Erase</span>
-                </button>
-
-                <button id="tool-7" onclick="setTool(7)" class="tool-container">
-                    <img class="tool-img" src="assets/tool-select2.png" title="Select">
-                    <span class="tool-name">Select</span>
                 </button>
 
                 <button id="tool-2" onclick="setTool(2)" class="tool-container">
@@ -223,12 +235,26 @@
                         <li>NPCsOff: <input id="world-settings-NPCsOff" onchange="changeSetting('NPCsOff')"></li>
                         <li>additionalParams: <input id="world-settings-additionalParams" onchange="changeSetting('additionalParams')"></li>
                     </ul>
+                    <br>
+                    DUNGEONMETA.METADAT
+                    <ul>
+                        <li>entrancePoint: <input id="world-settings-entrancePoint" onchange="changeSetting('entrancePoint')"></li>
+                    </ul>
                 <button id="close-dialog-world-settings" class="dialog-close">Close</button>
             </dialog>
     
-            <dialog id="dialog-chunk">
-
+            <dialog id="dialog-file-drop">
+                <div id="dialog-file-drop-img"></div>
+                <span id="dialog-file-drop-text" class="title">Drop folder here</span>
             </dialog>
+            
+            <div id="chunk-popup" style="display: none;">
+                <span class="title" id="chunk-popup-title">Chunk at [-50,-50]</span>
+                <ul>
+                    <li>Biome ID: <input id="chunk-popup-biomeid" type="number" onchange="editChunk('biomeid')"></li>
+                    <li>Is Revealed: <input id="chunk-popup-isrevealed" type="checkbox" onchange="editChunk('isrevealed')"></li>
+                </ul>
+            </div>
 
             <div id="item-list-side">
                 <span class="title window-title">Tiles</span>

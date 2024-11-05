@@ -14,4 +14,6 @@
     --text-weak: #e2e2e2;
 
     --body-color: #232527;
+
+    --file-drop: url(/assets/file-drop.svg)
 }

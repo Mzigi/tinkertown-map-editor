@@ -106,18 +106,17 @@ export class Chunk {
         return tiles
     }
 
-    removeTileAt(x: number,y: number,z: number) {
+    removeTileAt(x: number,y: number,z: number): Tile | null {
         let tileIndex = this.findTileIndexAt(x,y,z)
-        let tile = this.tileDataList[tileIndex]
         
         if (tileIndex != null) {
-            this.tileDataList.splice(tileIndex,1)
-            this.chunkHasBeenEdited = true
-            this.undoEdited = true
-            this.resetCacheImage()
+            let tile = this.tileDataList.splice(tileIndex,1)[0]
+            this.edited()
+
+            return tile
         }
 
-        return tile
+        return null
     }
 
     getTilePosAtWorldPos(x: number, y: number) {
@@ -167,16 +166,14 @@ export class Chunk {
         return this.findTileAt(tileX,tileY,z)
     }
 
-    setTile(tile: Tile) {
+    setTile(tile: Tile): Tile | null {
         let originalTile = this.removeTileAt(tile.x,tile.y,tile.z)
         this.tileDataList.push(tile)
         if (tile.z + 1 > this.layers) {
             this.layers = tile.z + 1
         }
 
-        this.chunkHasBeenEdited = true
-        this.undoEdited = true
-        this.resetCacheImage()
+        this.edited()
 
         return originalTile
     }

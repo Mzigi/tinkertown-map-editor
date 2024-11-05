@@ -22,7 +22,7 @@ export class Pick extends Tool {
 
         if (ti.selectedTool !== this.id) return
         if (!ti.mouseButtonPressed[0]) return
-        if (ti.isHoveringOverObject) return
+        //if (ti.isHoveringOverObject) return
 
         let selectedLayer = ti.selectedLayer
         let selectedTile = ti.selectedTile

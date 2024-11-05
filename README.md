@@ -12,9 +12,25 @@ or use this shortcut:
 %userprofile%\appdata\locallow\Headup\Tinkertown\map
 
 ## Controls
-- Hold down right click to move the camera
-- Use the scroll wheel to zoom in and out
-- Left click to use the tool you have selected or edit a container or an item
+### Camera
+- Move Camera (Right Click while moving mouse)
+- Zoom (Scroll Wheel)
+
+### Tools, Items and Containers
+- Select Tool/Item/Container (Left Click)
+- Select Tool (1-8)
+
+### Undo/Redo
+- Undo (Control + Z)
+- Redo (Control + Y)
+
+### Selection
+- Cut selection (Control + X)
+- Copy selection (Control + C)
+- Paste selection (Control + V)
+- Delete selection (Delete/Backspace)
+- Fill selection (F)
+- Deselect (Escape)
 
 ## Known Issues
 

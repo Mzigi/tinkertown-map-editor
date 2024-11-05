@@ -31,3 +31,4 @@
 ☐ Easier to select items near chunk borders
 ☑ Make the "Are you sure you want to reload?" less annoying
 ☐ View specific layers
+☐ Dungeon export support

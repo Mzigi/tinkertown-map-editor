@@ -17,7 +17,7 @@ var Editor = /** @class */ (function () {
         //selectToolState = SelectToolState.None //deprecated
         //originalSelection = null //deprecated
         this.selectedTile = 0;
-        this.selectedTool = 0;
+        this.selectedTool = 7;
         this.selectedLayer = -1; //-1 == auto layer
         this.lastWorldMousePos = { "x": null, "y": null };
         this.mouseButtonPressed = {};
@@ -30,11 +30,13 @@ var Editor = /** @class */ (function () {
         this.openedItem = null;
         this.openedItemStorage = null;
         this.alertElement = document.getElementById("alert");
+        this.timeSinceInNavbar = new Date().getTime();
+        this.navbarButtons = document.getElementsByClassName("navbar-button");
+        this.preventClickElement = document.getElementById("prevent-click");
         this.loader = loader;
         this.imageHolder = imageHolder;
         this.images = imageHolder.images;
         if (loader.NEWUI) {
-            var navbarButtons_1 = document.getElementsByClassName("navbar-button");
             var navbarLis_1 = document.getElementsByClassName("navbar-li");
             var hoveredButton_1 = null;
             var navButtonClicked_1 = false;
@@ -50,10 +52,22 @@ var Editor = /** @class */ (function () {
             for (var i = 0; i < navbarLis_1.length; i++) {
                 _loop_1(i);
             }
+            //close list when clicking outside
+            document.addEventListener("mouseup", function (e) {
+                var target = e.target || document;
+                var newHoveredButton = _this.getHoveredButton(target);
+                if (!newHoveredButton) {
+                    navButtonClicked_1 = false;
+                }
+                //setTimeout(() => {
+                _this.setPreventClick(false);
+                //},100)
+                _this.removeDropdowns();
+            });
             var _loop_2 = function (i) {
                 //BUTTON EVENT
-                navbarButtons_1[i].addEventListener("click", function () {
-                    var dropdownList = document.getElementById(navbarButtons_1[i].id + "-buttons");
+                this_1.navbarButtons[i].addEventListener("click", function () {
+                    var dropdownList = document.getElementById(_this.navbarButtons[i].id + "-buttons");
                     if (dropdownList) {
                         if (!navButtonClicked_1) {
                             dropdownList.classList.add("navbar-dropdown-active");
@@ -68,28 +82,11 @@ var Editor = /** @class */ (function () {
                 document.addEventListener("mouseover", function (e) {
                     //find hovered button
                     var target = e.target || document;
-                    var newHoveredButton = null;
-                    var lastCheckedElement = target;
-                    while (lastCheckedElement != null) {
-                        if (lastCheckedElement.classList.contains("navbar-button")) {
-                            newHoveredButton = lastCheckedElement.id;
-                            lastCheckedElement = null;
-                        }
-                        else {
-                            lastCheckedElement = lastCheckedElement.parentElement;
-                            if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
-                                lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons", ""));
-                            }
-                        }
+                    var newHoveredButton = _this.getHoveredButton(target);
+                    if (newHoveredButton) {
+                        hoveredButton_1 = newHoveredButton;
                     }
-                    hoveredButton_1 = newHoveredButton;
-                    //remove dropdowns
-                    for (var i_1 = 0; i_1 < navbarButtons_1.length; i_1++) {
-                        var dropdownList = document.getElementById(navbarButtons_1[i_1].id + "-buttons");
-                        if (dropdownList) {
-                            document.getElementById(navbarButtons_1[i_1].id + "-buttons").classList.remove("navbar-dropdown-active");
-                        }
-                    }
+                    _this.removeDropdowns();
                     //stop click if no hovered button
                     if (!hoveredButton_1) {
                         navButtonClicked_1 = false;
@@ -100,10 +97,15 @@ var Editor = /** @class */ (function () {
                         var dropdownList = document.getElementById(hoveredButton_1 + "-buttons");
                         var parentNav = hoveredButtonElement.getAttribute("parentnav");
                         if (dropdownList) {
+                            _this.setPreventClick(true);
                             dropdownList.classList.add("navbar-dropdown-active");
                             if (dropdownList.classList.contains("navbar-dropdown-parented")) {
-                                dropdownList.style.left = hoveredButtonElement.clientWidth + "px";
+                                dropdownList.style.left = hoveredButtonElement.getBoundingClientRect().right + "px";
+                                dropdownList.style.top = (hoveredButtonElement.getBoundingClientRect().top - 1) + "px";
                             }
+                        }
+                        else {
+                            _this.setPreventClick(false);
                         }
                         var lastParentNav = parentNav;
                         while (lastParentNav) {
@@ -117,13 +119,15 @@ var Editor = /** @class */ (function () {
                         }
                         if (dropdownList) {
                             if (dropdownList.classList.contains("navbar-dropdown-parented")) {
-                                dropdownList.style.left = hoveredButtonElement.clientWidth + "px";
+                                dropdownList.style.left = hoveredButtonElement.getBoundingClientRect().right + "px";
+                                dropdownList.style.top = (hoveredButtonElement.getBoundingClientRect().top - 1) + "px";
                             }
                         }
                     }
                 });
             };
-            for (var i = 0; i < navbarButtons_1.length; i++) {
+            var this_1 = this;
+            for (var i = 0; i < this.navbarButtons.length; i++) {
                 _loop_2(i);
             }
             //preferences ui
@@ -249,25 +253,31 @@ var Editor = /** @class */ (function () {
             _this.openedItem = null;
             document.getElementById("inventory-container").style.display = "none";
             document.getElementById("small-item-list-container").style.display = "none";
+            if (_this.loader.NEWUI && document.getElementById("chunk-popup")) {
+                document.getElementById("chunk-popup").style.display = "none";
+            }
         });
         document.getElementById("2Dcanvas").addEventListener('mouseup', function (e) {
             _this.mouseButtonPressed[e.button] = false;
             if (e.button === 0) {
-                if (_this.hoveredStorage) {
-                    _this.openedStorage = _this.hoveredStorage;
-                    _this.hoveredStorage.visualize(_this.images, _this.slotSize, _this.loader.getCurrentWorld());
-                    _this.positionInventory();
+                if (_this.selectedTool == 7) {
+                    if (_this.hoveredStorage) {
+                        _this.openedStorage = _this.hoveredStorage;
+                        _this.hoveredStorage.visualize(_this.images, _this.slotSize, _this.loader.getCurrentWorld());
+                        _this.positionInventory();
+                    }
+                    else if (_this.hoveredItem) {
+                        _this.openedItem = _this.hoveredItem;
+                        _this.openedItemStorage = new Inventory();
+                        _this.openedItemStorage.width = 1;
+                        _this.openedItemStorage.height = 1;
+                        _this.openedItemStorage.setIdAtSlot(0, _this.openedItem.id);
+                        _this.openedItemStorage.setCountAtSlot(0, _this.openedItem.count);
+                        _this.openedItemStorage.visualize(_this.images, _this.slotSize);
+                        _this.positionInventory();
+                    }
                 }
-                else if (_this.hoveredItem) {
-                    _this.openedItem = _this.hoveredItem;
-                    _this.openedItemStorage = new Inventory();
-                    _this.openedItemStorage.width = 1;
-                    _this.openedItemStorage.height = 1;
-                    _this.openedItemStorage.setIdAtSlot(0, _this.openedItem.id);
-                    _this.openedItemStorage.setCountAtSlot(0, _this.openedItem.count);
-                    _this.openedItemStorage.visualize(_this.images, _this.slotSize);
-                    _this.positionInventory();
-                }
+                _this.callToolEvents("MouseButton0Up");
             }
             /*if (e.button === 0) {
                 for (let i = 0; i < worlds[currentWorld].chunks.length; i++) {
@@ -282,6 +292,11 @@ var Editor = /** @class */ (function () {
             }*/
         });
         document.body.addEventListener("keydown", function (e) {
+            var _a;
+            //console.log((e.target as HTMLElement)?.tagName)
+            if (((_a = e.target) === null || _a === void 0 ? void 0 : _a.tagName) == "INPUT") {
+                return;
+            }
             //console.log(e)
             //console.log(e.key)
             _this.pressedKeys[e.key] = true;
@@ -289,36 +304,38 @@ var Editor = /** @class */ (function () {
                 _this.pressedKeys["ctrlKey"] = true;
             }
             if (e.ctrlKey && e.key == "z" && !e.shiftKey && !_this.loader.worldSettingsIsOpen) {
+                e.preventDefault();
                 _this.loader.getCurrentWorld().undo();
             }
             if (e.ctrlKey && e.key == "y" && !_this.loader.worldSettingsIsOpen) {
+                e.preventDefault();
                 _this.loader.getCurrentWorld().redo();
             }
             //tool keybind
             switch (e.key) {
                 case "1":
-                    _this.setTool(0, _this);
+                    _this.setTool(7, _this, true);
                     break;
                 case "2":
-                    _this.setTool(1, _this);
+                    _this.setTool(0, _this, true);
                     break;
                 case "3":
-                    _this.setTool(7, _this);
+                    _this.setTool(1, _this, true);
                     break;
                 case "4":
-                    _this.setTool(2, _this);
+                    _this.setTool(2, _this, true);
                     break;
                 case "5":
-                    _this.setTool(3, _this);
+                    _this.setTool(3, _this, true);
                     break;
                 case "6":
-                    _this.setTool(4, _this);
+                    _this.setTool(4, _this, true);
                     break;
                 case "7":
-                    _this.setTool(5, _this);
+                    _this.setTool(5, _this, true);
                     break;
                 case "8":
-                    _this.setTool(6, _this);
+                    _this.setTool(6, _this, true);
                 default:
                     break;
             }
@@ -337,6 +354,9 @@ var Editor = /** @class */ (function () {
             }
             if (e.key == "Escape") {
                 _this.callToolEvents("Deselect");
+            }
+            if (e.key == "f") {
+                _this.callToolEvents("Fill");
             }
         });
         document.body.addEventListener("keyup", function (e) {
@@ -377,6 +397,41 @@ var Editor = /** @class */ (function () {
             7: new SelectTool(7, "Select", this.toolInfo)
         };
     }
+    Editor.prototype.setPreventClick = function (shouldPrevent) {
+        //console.log(shouldPrevent)
+        if (shouldPrevent) {
+            this.preventClickElement.classList.add("prevent-click-active");
+        }
+        else {
+            this.preventClickElement.classList.remove("prevent-click-active");
+        }
+    };
+    Editor.prototype.getHoveredButton = function (target) {
+        var newHoveredButton = null;
+        var lastCheckedElement = target;
+        while (lastCheckedElement != null) {
+            if (lastCheckedElement.classList.contains("navbar-button")) {
+                newHoveredButton = lastCheckedElement.id;
+                lastCheckedElement = null;
+            }
+            else {
+                lastCheckedElement = lastCheckedElement.parentElement;
+                if (lastCheckedElement && lastCheckedElement.classList.contains("navbar-dropdown")) {
+                    lastCheckedElement = document.getElementById(lastCheckedElement.id.replace("-buttons", ""));
+                }
+            }
+        }
+        return newHoveredButton;
+    };
+    Editor.prototype.removeDropdowns = function () {
+        //remove dropdowns
+        for (var i = 0; i < this.navbarButtons.length; i++) {
+            var dropdownList = document.getElementById(this.navbarButtons[i].id + "-buttons");
+            if (dropdownList) {
+                document.getElementById(this.navbarButtons[i].id + "-buttons").classList.remove("navbar-dropdown-active");
+            }
+        }
+    };
     Editor.prototype.callToolEvents = function (eventName) {
         for (var toolId in this.tools) {
             var tool = this.tools[toolId];
@@ -485,11 +540,17 @@ var Editor = /** @class */ (function () {
             document.getElementById("layer-input").classList.add("selected-slot");
         }
     };
-    Editor.prototype.setTool = function (tool, editor) {
+    Editor.prototype.setTool = function (tool, editor, dontPrioritizeSelect) {
+        if (dontPrioritizeSelect === void 0) { dontPrioritizeSelect = false; }
         if (document.getElementById("tool-" + editor.selectedTool)) {
             document.getElementById("tool-" + editor.selectedTool).classList.remove("tool-selected");
         }
-        editor.selectedTool = tool;
+        if (editor.selectedTool != tool || dontPrioritizeSelect) {
+            editor.selectedTool = tool;
+        }
+        else {
+            editor.selectedTool = 7;
+        }
         if (document.getElementById("tool-" + editor.selectedTool)) {
             document.getElementById("tool-" + editor.selectedTool).classList.add("tool-selected");
         }
@@ -511,7 +572,7 @@ var Editor = /** @class */ (function () {
                 this.loader.worlds[this.loader.currentWorld][settingName] = num;
             }
         }
-        else if (settingName == "version" || settingName == "highestUsedVersion" || settingName == "additionalParams") { //objects
+        else if (settingName == "version" || settingName == "highestUsedVersion" || settingName == "additionalParams" || settingName == "entrancePoint") { //objects
             try {
                 var object = JSON.parse(worldSettingValue);
                 this.loader.worlds[this.loader.currentWorld][settingName] = object;

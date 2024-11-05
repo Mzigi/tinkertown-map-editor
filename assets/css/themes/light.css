@@ -14,4 +14,6 @@
     --text-weak: #464646;
 
     --body-color: var(--lightgray);
+
+    --file-drop: url(/assets/file-drop-dark.svg)
 }

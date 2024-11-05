@@ -19,8 +19,9 @@ export class Loader {
 
     newButton: any = document.getElementById("navbar-new")
     importInput: any = document.getElementById("navbar-import")
-    exportButton: any = document.getElementById("navbar-export")
-    exportButton2: any = document.getElementById("navbar-export-2")
+    exportButton: any = document.getElementById("navbar-export-old")
+    exportButton2: any = document.getElementById("navbar-export-new")
+    exportDungeonButton: any = document.getElementById("navbar-export-dungeon")
     helpButton: any = document.getElementById("navbar-help")
     worldSettingsButton: any = document.getElementById("navbar-world-settings")
     examplesButton: any = document.getElementById("navbar-examples")
@@ -31,10 +32,14 @@ export class Loader {
     copyButton: any = document.getElementById("navbar-copy")
     pasteButton: any = document.getElementById("navbar-paste")
     deselectButton: any = document.getElementById("navbar-deselect")
+    eraseButton: any = document.getElementById("navbar-erase")
+    fillButton: any = document.getElementById("navbar-fill")
 
     closeDialogButton: any = document.getElementById("close-dialog-help")
     closeExamplesDialogButton: any = document.getElementById("close-dialog-examples")
     closeWorldSettingsDialogButton: any = document.getElementById("close-dialog-world-settings")
+
+    fileDropDialog = document.getElementById("dialog-file-drop")
 
     alertElement: HTMLElement = document.getElementById("alert")
 
@@ -48,7 +53,7 @@ export class Loader {
             "name": "House in Forest",
         },
         {
-            "file": "OneChunkChallenge",
+            "file": "10x10 Forest and House Cutout",
             "name": "10x10 Forest and House Cutout",
         },
         {
@@ -58,14 +63,17 @@ export class Loader {
         {
             "file": "Statue Structure",
             "name": "Statue Structure",
+            "hidden": true
         },
         {
             "file": "Small House",
             "name": "Small House",
+            "hidden": true
         },
         {
             "file": "IslandSurvival",
             "name": "Large Island Survival",
+            "hidden": true
         },
         {
             "file": "test storage",
@@ -195,6 +203,10 @@ export class Loader {
             this.exportButton2.addEventListener("click", () => {
                 this.worlds[this.currentWorld].saveAsFile(true)
             })
+
+            this.exportDungeonButton.addEventListener("click", () => {
+                this.getCurrentWorld().saveAsFile(true, true)
+            })
         }
     
         this.helpButton.addEventListener("click", () => {
@@ -234,6 +246,18 @@ export class Loader {
             (<HTMLDialogElement>document.getElementById("dialog-examples")).close()
         })
 
+        /*document.getElementById("2Dcanvas").addEventListener("dragenter", (e) => {
+            console.log(e)
+            this.fileDropDialog.classList.add("dialog-active")
+        })
+
+        document.getElementById("2Dcanvas").addEventListener("dragleave", (e) => {
+            if (e.relatedTarget != this.fileDropDialog && !this.fileDropDialog.contains(e.relatedTarget)) {
+                console.log(e)
+                this.fileDropDialog.classList.remove("dialog-active")
+            }
+        })*/
+
         this.undoButton.addEventListener("click", () => {
             this.getCurrentWorld().undo()
         })
@@ -256,6 +280,14 @@ export class Loader {
 
         this.deselectButton.addEventListener("click", () => {
             this.editor.callToolEvents("Deselect")
+        })
+
+        this.eraseButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Delete")
+        })
+
+        this.fillButton.addEventListener("click", () => {
+            this.editor.callToolEvents("Fill")
         })
 
         if (!window["chrome"]) {
@@ -464,6 +496,12 @@ export class Loader {
                 console.warn("Attempted to load inventory file while world is in the Database format")
                 this.worlds[worldId].uneditedFiles[filePath] = buffer
             }
+        } else if (filePath.endsWith("DungeonMeta.metadat")) {
+            let plainTextData = await file.text()
+            let dungeonMeta: any = JSON.parse(plainTextData)
+            this.getCurrentWorld().name = dungeonMeta.title
+            this.getCurrentWorld().entrancePoint = {"x": dungeonMeta.entrancePoint[0], "y": dungeonMeta.entrancePoint[1]}
+            this.updateWorldList()
         } else {
             const buffer: ArrayBuffer = await file.arrayBuffer()
 

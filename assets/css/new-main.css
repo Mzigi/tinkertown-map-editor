@@ -116,6 +116,21 @@ select {
     background-color: var(--lightgray-hovered);
 }
 
+#prevent-click {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    display: none;
+    top: 0;
+    left: 0;
+    z-index: -2;
+    background-color: none;
+}
+
+.prevent-click-active {
+    display: block !important;
+}
+
 #navbar {
     width: 100%;
     background-color: var(--lightgray);
@@ -168,7 +183,7 @@ select {
 }
 
 .navbar-dropdown-parented {
-    position: absolute;
+    position: fixed;
     top: -1px;
     left: 0;
 }
@@ -190,6 +205,12 @@ select {
 
 .navbar-li:hover {
     background-color: var(--lightgray-hovered);
+}
+
+.navbar-divide {
+    height: 1px;
+    width: 100%;
+    background-color: var(--lightgray-border);
 }
 
 .navbar-import {
@@ -366,6 +387,26 @@ input[type=search] {
     font-family: Arial, Helvetica, sans-serif;
 
     box-sizing: border-box;
+}
+
+#chunk-popup {
+    padding: var(--inventory-padding);
+    background-color: var(--lightgray-border);
+    width: fit-content;
+    height: fit-content;
+    display: block;
+    position: fixed;
+    border-color: var(--lightgray-border);
+    border-width: 2px;
+    border-radius: 5px 0 5px 5px;
+    box-shadow: 0 0 5px var(--shadow-color);
+    z-index: 3;
+
+    font-family: Arial, Helvetica, sans-serif;
+    /*background-color: var(--lightgray);
+    border-radius: 10px;
+    box-shadow: 0 0 15px var(--shadow-color);*/
+    color: var(--text-weak);
 }
 
 #inventory-container {
@@ -618,6 +659,37 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+#dialog-file-drop {
+    /*display: flex;*/
+    flex-direction: column;
+    padding: 6vw;
+    border-style: dotted;
+    border-color: var(--title-color);
+    width: 30vh;
+    aspect-ratio: 1 / 1;
+    top: calc(50% - 30vh);
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-active {
+    display: flex
+}
+
+#dialog-file-drop-img {
+    color: var(--title-color);
+    background-image: var(--file-drop);
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 25vh;
+    aspect-ratio: 1 / 1;
+}
+
+#dialog-file-drop-text {
+    text-align: center;
+    font-size: 4vh;
 }
 
 .dialog-buttons {

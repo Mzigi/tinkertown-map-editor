@@ -15,6 +15,9 @@ export class ImageHolder {
         "assets/Tilesets/Desert.png",
         "assets/Tilesets/DesertObjects.png",
         "assets/Tilesets/Dungeon.png",
+
+        "assets/Tilesets/Dungeon Black Large_697.png",
+
         "assets/Tilesets/DungeonDesert.png",
         "assets/Tilesets/DungeonForest.png",
         "assets/Tilesets/DungeonIce.png",
@@ -24,7 +27,9 @@ export class ImageHolder {
         "assets/Tilesets/Farming.png",
         "assets/Tilesets/Forest.png",
         "assets/Tilesets/ForestObjects.png",
+
         "assets/Tilesets/GrassPatch.png",
+
         "assets/Tilesets/Housing.png",
         "assets/Tilesets/HousingObjects.png",
         "assets/Tilesets/Ice.png",

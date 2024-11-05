@@ -75,14 +75,12 @@ var Chunk = /** @class */ (function () {
     };
     Chunk.prototype.removeTileAt = function (x, y, z) {
         var tileIndex = this.findTileIndexAt(x, y, z);
-        var tile = this.tileDataList[tileIndex];
         if (tileIndex != null) {
-            this.tileDataList.splice(tileIndex, 1);
-            this.chunkHasBeenEdited = true;
-            this.undoEdited = true;
-            this.resetCacheImage();
+            var tile = this.tileDataList.splice(tileIndex, 1)[0];
+            this.edited();
+            return tile;
         }
-        return tile;
+        return null;
     };
     Chunk.prototype.getTilePosAtWorldPos = function (x, y) {
         var tileX = Math.floor(x / 16) % 10;
@@ -129,9 +127,7 @@ var Chunk = /** @class */ (function () {
         if (tile.z + 1 > this.layers) {
             this.layers = tile.z + 1;
         }
-        this.chunkHasBeenEdited = true;
-        this.undoEdited = true;
-        this.resetCacheImage();
+        this.edited();
         return originalTile;
     };
     Chunk.prototype.getTiles = function () {

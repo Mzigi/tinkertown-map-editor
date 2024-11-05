@@ -30,8 +30,7 @@ var Pick = /** @class */ (function (_super) {
             return;
         if (!ti.mouseButtonPressed[0])
             return;
-        if (ti.isHoveringOverObject)
-            return;
+        //if (ti.isHoveringOverObject) return
         var selectedLayer = ti.selectedLayer;
         var selectedTile = ti.selectedTile;
         var chunkAtMouse = this.getChunkAtMouse();

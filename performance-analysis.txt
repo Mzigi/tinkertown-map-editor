@@ -1,0 +1,58 @@
+Tiles took 9.9585s
+debug-timer.ts:15 Items took 0.002699999988079071s
+debug-timer.ts:15 WorldItems took 0.006100000023841858s
+debug-timer.ts:15 ItemPalette took 0.001699999988079071s
+debug-timer.ts:15 BuildingDTO took 0.00030000001192092895s
+debug-timer.ts:15 BuildingDTOTiles took 0.00009999999403953553s
+debug-timer.ts:15 DiscoveryPOI took 0.00019999998807907106s
+debug-timer.ts:15 BiomeEntry took 5.455800000011921s
+debug-timer.ts:15 FogReveal took 0.0015999999940395355s
+debug-timer.ts:15 Minimap took 5.7505s
+debug-timer.ts:15 PlayerSave took 0.0005s
+debug-timer.ts:15 POI took 0.0005999999940395355s
+world.ts:1436 Generating world database file took 21.189 seconds
+
+--BEFORE CHANGING GLOBAL TILE POS FUNC
+Tiles took 9.867300000011921s
+debug-timer.ts:15 Items took 0.0027000000178813936s
+debug-timer.ts:15 WorldItems took 0.006099999994039536s
+debug-timer.ts:15 ItemPalette took 0.001800000011920929s
+debug-timer.ts:15 BuildingDTO took 0.00019999998807907106s
+debug-timer.ts:15 BuildingDTOTiles took 0.00019999998807907106s
+debug-timer.ts:15 DiscoveryPOI took 0.00030000001192092895s
+debug-timer.ts:15 BiomeEntry took 5.5635999999940395s
+debug-timer.ts:15 FogReveal took 0.0015999999940395355s
+debug-timer.ts:15 Minimap took 5.8045s
+debug-timer.ts:15 PlayerSave took 0.0005s
+debug-timer.ts:15 POI took 0.0005999999940395355s
+world.ts:1440 Generating world database file took 21.261 seconds
+
+--AFTER
+Tiles took 9.864799999982118s
+debug-timer.ts:15 Items took 0.0025s
+debug-timer.ts:15 WorldItems took 0.005900000005960465s
+debug-timer.ts:15 ItemPalette took 0.0015s
+debug-timer.ts:15 BuildingDTO took 0.00030000001192092895s
+debug-timer.ts:15 BuildingDTOTiles took 0.00019999998807907106s
+debug-timer.ts:15 DiscoveryPOI took 0.0003999999761581421s
+debug-timer.ts:15 BiomeEntry took 5.532199999988079s
+debug-timer.ts:15 FogReveal took 0.0017000000178813935s
+debug-timer.ts:15 Minimap took 5.733699999988079s
+debug-timer.ts:15 PlayerSave took 0.0003999999761581421s
+debug-timer.ts:15 POI took 0.0005s
+world.ts:1437 Generating world database file took 21.155 seconds
+
+--BEFORE DB TEST
+Tiles took 10.141s
+debug-timer.ts:15 Items took 0.0025999999940395356s
+debug-timer.ts:15 WorldItems took 0.006599999994039535s
+debug-timer.ts:15 ItemPalette took 0.0015999999940395355s
+debug-timer.ts:15 BuildingDTO took 0.00030000001192092895s
+debug-timer.ts:15 BuildingDTOTiles took 0.00010000002384185791s
+debug-timer.ts:15 DiscoveryPOI took 0.00029999998211860656s
+debug-timer.ts:15 BiomeEntry took 5.770900000005961s
+debug-timer.ts:15 FogReveal took 0.0015s
+debug-timer.ts:15 Minimap took 5.9305s
+debug-timer.ts:15 PlayerSave took 0.00040000000596046445s
+debug-timer.ts:15 POI took 0.0005999999940395355s
+world.ts:1438 Generating world database file took 21.867 seconds
