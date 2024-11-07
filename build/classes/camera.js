@@ -96,7 +96,6 @@ var Camera = /** @class */ (function () {
     Camera.prototype.drawImageCropped = function (canvas, ctx, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
         if (!image)
             return;
-        ctx.imageSmoothingEnabled = false;
         var W = dWidth * this.zoom;
         var H = dHeight * this.zoom;
         var X = dx - this.x;
@@ -107,23 +106,16 @@ var Camera = /** @class */ (function () {
         Y = Y * this.zoom;
         Y = Y - H / 2;
         Y = Y + canvas.height / 2;
-        ctx.drawImage(image, sx, sy, sWidth, sHeight, X, Y, W, H);
+        ctx.drawImage(image, sx, sy, sWidth, sHeight, Math.floor(X) - 1, Math.floor(Y) - 1, Math.floor(W) + 2, Math.floor(H) + 2);
     };
     Camera.prototype.drawImage = function (canvas, ctx, image, dx, dy, dWidth, dHeight) {
         if (!image)
             return;
-        ctx.imageSmoothingEnabled = false;
         var W = dWidth * this.zoom;
         var H = dHeight * this.zoom;
-        var X = dx - this.x;
-        X = X * this.zoom;
-        X = X - W / 2;
-        X = X + canvas.width / 2;
-        var Y = dy - this.y;
-        Y = Y * this.zoom;
-        Y = Y - H / 2;
-        Y = Y + canvas.height / 2;
-        ctx.drawImage(image, X, Y, W, H);
+        var X = (dx - this.x) * this.zoom - W / 2 + canvas.width / 2;
+        var Y = (dy - this.y) * this.zoom - H / 2 + canvas.height / 2;
+        ctx.drawImage(image, Math.floor(X) - 1, Math.floor(Y) - 1, Math.floor(W) + 2, Math.floor(H) + 2);
     };
     Camera.prototype.drawRect = function (canvas, ctx, dx, dy, dWidth, dHeight) {
         var W = dWidth * this.zoom;

@@ -20,7 +20,7 @@ var Renderer = /** @class */ (function () {
         this.imageHolder = imageHolder;
         this.images = imageHolder.images;
         this.canvasElement = canvasElement;
-        this.ctx = this.canvasElement.getContext("2d");
+        this.ctx = this.canvasElement.getContext("2d", { alpha: false });
         this.ctx.imageSmoothingEnabled = false;
     }
     Renderer.prototype.componentToHex = function (c) {
@@ -158,7 +158,7 @@ var Renderer = /** @class */ (function () {
         cacheCanvasElement.height = 224;
         var cacheCtx = cacheCanvasElement.getContext("2d");
         cacheCtx.imageSmoothingEnabled = false;
-        cacheCtx.fillStyle = "#000000";
+        //cacheCtx.fillStyle = "#000000"
         cacheCtx.clearRect(0, 0, 2740, 2740);
         //Tiles
         for (var layerIndex = 0; layerIndex < chunk.layers; layerIndex++) {
@@ -219,7 +219,7 @@ var Renderer = /** @class */ (function () {
                 dx += 160 / 2;
                 dy = chunk.y * -160;
                 dy -= 160 / 2;
-                this.ctx.fillStyle = "#000000";
+                //this.ctx.fillStyle = "#000000"
                 /*ctx.font = (160 * camera.zoom) + "px Arial"
                 dx += chunk.x * 160
                 camera.drawText(canvas, ctx, chunk.x + "_" + chunk.y, dx, dy, 160)*/
@@ -290,17 +290,17 @@ var Renderer = /** @class */ (function () {
             var yMax = Math.max(world.yMin, topLeftCornerWorldPos.y);
             var yMin = Math.min(world.yMax, bottomRightCornerWorldPos.y);
             //draw chunk grid
+            var alpha = Math.min((world.camera.zoom - 0.25) * 4, 1);
+            if (this.loader.getPreference("theme") === "dark") {
+                this.ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")";
+            }
+            else {
+                this.ctx.fillStyle = "rgba(202, 202, 202, " + alpha + ")";
+            }
             for (var x = topLeftCornerWorldPos.x; x < bottomRightCornerWorldPos.x + 2; x++) {
                 for (var y = bottomRightCornerWorldPos.y; y < topLeftCornerWorldPos.y + 1; y++) {
                     if ((x + y % 2) % 2 == 0) {
                         //when camera approaches 0.25 alpha should become 0
-                        var alpha = Math.min((world.camera.zoom - 0.25) * 4, 1);
-                        if (this.loader.getPreference("theme") === "dark") {
-                            this.ctx.fillStyle = "rgba(30, 31, 33, " + alpha + ")";
-                        }
-                        else {
-                            this.ctx.fillStyle = "rgba(202, 202, 202, " + alpha + ")";
-                        }
                         world.camera.drawRect(this.canvasElement, this.ctx, x * 160 - 80, y * -160 - 80, 160, 160);
                     }
                 }
@@ -421,9 +421,14 @@ var Renderer = /** @class */ (function () {
         } else {
             chunkDrawLimit = 4
         }*/
-        this.canvasElement.width = this.canvasElement.clientWidth;
-        this.canvasElement.height = this.canvasElement.clientHeight;
-        this.ctx.clearRect(0, 0, 10000, 10000);
+        if (this.canvasElement.width !== this.canvasElement.clientWidth || this.canvasElement.height !== this.canvasElement.clientHeight) {
+            this.canvasElement.width = this.canvasElement.clientWidth;
+            this.canvasElement.height = this.canvasElement.clientHeight;
+            this.ctx.imageSmoothingEnabled = false;
+        }
+        this.ctx.fillStyle = this.loader.getPreference("theme") === "dark" ? "#232527" : "#e2e2e2";
+        //this.ctx.clearRect(0,0,10000,10000)
+        this.ctx.fillRect(0, 0, 10000, 10000);
         /*let placeToDrawCorner = worlds[currentWorld].camera.screenPosToWorldPos(canvasElement, worlds[currentWorld].camera.lastPosition.x, worlds[currentWorld].camera.lastPosition.y)
         let chunkAtMouse = worlds[currentWorld].getChunkAtWorldPos(placeToDrawCorner.x, placeToDrawCorner.y)
         if (chunkAtMouse) {

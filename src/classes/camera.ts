@@ -129,8 +129,6 @@ export class Camera {
     drawImageCropped(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement, sx: number, sy: number, sWidth: number, sHeight: number, dx: number, dy: number, dWidth: number, dHeight: number) {
         if (!image)
             return
-        
-        ctx.imageSmoothingEnabled = false
 
         let W: number = dWidth * this.zoom
         let H: number = dHeight * this.zoom
@@ -145,29 +143,20 @@ export class Camera {
         Y = Y - H / 2
         Y = Y + canvas.height / 2
 
-        ctx.drawImage(image, sx, sy, sWidth, sHeight, X, Y, W, H)
+        ctx.drawImage(image, sx, sy, sWidth, sHeight, Math.floor(X) - 1, Math.floor(Y) - 1, Math.floor(W) + 2, Math.floor(H) + 2)
     }
 
     drawImage(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement|HTMLCanvasElement, dx: number, dy: number, dWidth: number, dHeight: number) {
         if (!image)
             return
 
-        ctx.imageSmoothingEnabled = false
-
         let W: number = dWidth * this.zoom
         let H: number = dHeight * this.zoom
         
-        let X: number = dx - this.x
-        X = X * this.zoom
-        X = X - W / 2
-        X = X + canvas.width / 2
+        let X: number = (dx - this.x) * this.zoom - W / 2 + canvas.width / 2
+        let Y: number = (dy - this.y) * this.zoom - H / 2 + canvas.height / 2
 
-        let Y: number = dy - this.y
-        Y = Y * this.zoom
-        Y = Y - H / 2
-        Y = Y + canvas.height / 2
-
-        ctx.drawImage(image, X, Y, W, H)
+        ctx.drawImage(image, Math.floor(X) - 1, Math.floor(Y) - 1, Math.floor(W) + 2, Math.floor(H) + 2)
     }
 
     drawRect(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, dx: number, dy: number, dWidth: number, dHeight: number) {
