@@ -186,8 +186,8 @@ var World = /** @class */ (function () {
         //world meta
         this.seed = Math.floor(Math.random() * 9999);
         this.name = "World " + this.seed;
-        this.version = { "Major": 2, "Minor": 0, "Patch": 0, "Build": "\u0000" };
-        this.highestUsedVersion = { "Major": 2, "Minor": 0, "Patch": 0, "Build": "\u0000" };
+        this.version = { "Major": 2, "Minor": 0, "Patch": 3, "Build": "\u0000" };
+        this.highestUsedVersion = { "Major": 2, "Minor": 0, "Patch": 3, "Build": "\u0000" };
         this.hasBeenGenerated = true;
         //settings meta
         this.progression = false;
@@ -558,9 +558,10 @@ var World = /** @class */ (function () {
         }
         return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize + 2 + containersByteSize;
     };
-    World.prototype.saveAsFile = function (isDatabase, isDungeon) {
+    World.prototype.saveAsFile = function (isDatabase, isDungeon, hasItemPalette) {
         if (isDatabase === void 0) { isDatabase = false; }
         if (isDungeon === void 0) { isDungeon = false; }
+        if (hasItemPalette === void 0) { hasItemPalette = true; }
         return __awaiter(this, void 0, void 0, function () {
             var zip, key, fileBuffer, fileWorldName, maxChunkX, maxChunkY, _i, _a, chunk, i, chunk, buffer, buffer, i, container, buffer, buffer, world_1, error_1, exportingDialog;
             return __generator(this, function (_b) {
@@ -644,7 +645,7 @@ var World = /** @class */ (function () {
                             }
                         }
                         if (!isDatabase) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.toDatabase(isDungeon)];
+                        return [4 /*yield*/, this.toDatabase(isDungeon, hasItemPalette)];
                     case 1:
                         buffer = ((_b.sent()).export()).buffer;
                         zip.file(isDungeon ? "MapAddition.db" : "backups/world.dat", buffer, { "binary": true });
@@ -678,7 +679,7 @@ var World = /** @class */ (function () {
     };
     World.prototype.fromDatabase = function (db, isDungeon) {
         return __awaiter(this, void 0, void 0, function () {
-            var loadingDialog, dbTileData, tileData, chunkPos, chunk, tile, dbBiomeEntryData, biomeEntryData, chunkAndTilePos, chunk, itemPaletteData, dbItemPaletteData, itemPalette, dbWorldItemData, worldItemData, worldItem, itemChunk, dbItemByInventory, itemByInventory, container, containerChunkAndTilePos, item, container, item, dbFogRevealData, fogRevealData, chunkAndTilePos, chunkArr, chunk, dbPlayerSaveData, playerSaveData, playerSave, dbBuildingDTOData, buildingDTOData, buildingDTO, dbBuildingTilesDTO, buildingTileDTOData, buildingDTOId, buildingDTO, dbPOI, POIData, poi, dbDiscoveryPOI, discoveryPOIData, discoveryPOI, dbMinimapData, minimapData, minimapValue;
+            var loadingDialog, existingTables, allTables, dbTileData, tileData, chunkPos, chunk, tile, dbBiomeEntryData, biomeEntryData, chunkAndTilePos, chunk, itemPaletteData, dbItemPaletteData, itemPalette, dbWorldItemData, worldItemData, worldItem, itemChunk, dbItemByInventory, itemByInventory, container, containerChunkAndTilePos, item, container, item, dbFogRevealData, fogRevealData, chunkAndTilePos, chunkArr, chunk, dbPlayerSaveData, playerSaveData, playerSave, dbBuildingDTOData, buildingDTOData, buildingDTO, dbBuildingTilesDTO, buildingTileDTOData, buildingDTOId, buildingDTO, dbPOI, POIData, poi, dbDiscoveryPOI, discoveryPOIData, discoveryPOI, dbMinimapData, minimapData, minimapValue;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -690,6 +691,12 @@ var World = /** @class */ (function () {
                     case 1:
                         _a.sent();
                         console.log(db);
+                        existingTables = [];
+                        allTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
+                        while (allTables.step()) {
+                            existingTables.push(allTables.getAsObject().name);
+                        }
+                        allTables.free();
                         dbTileData = db.prepare("SELECT * FROM Tiles");
                         while (dbTileData.step()) {
                             tileData = dbTileData.getAsObject();
@@ -726,13 +733,17 @@ var World = /** @class */ (function () {
                         }
                         dbBiomeEntryData.free();
                         if (!isDungeon) {
-                            itemPaletteData = {};
-                            dbItemPaletteData = db.prepare("SELECT * FROM Item");
-                            while (dbItemPaletteData.step()) {
-                                itemPalette = dbItemPaletteData.getAsObject();
-                                itemPaletteData[itemPalette.itemGuid] = { "id": itemPalette.itemAssetID, "count": itemPalette.count };
+                            itemPaletteData = null;
+                            if (existingTables.includes("Item")) {
+                                //load item palette
+                                itemPaletteData = {};
+                                dbItemPaletteData = db.prepare("SELECT * FROM Item");
+                                while (dbItemPaletteData.step()) {
+                                    itemPalette = dbItemPaletteData.getAsObject();
+                                    itemPaletteData[itemPalette.itemGuid] = { "id": itemPalette.itemAssetID, "count": itemPalette.count };
+                                }
+                                dbItemPaletteData.free();
                             }
-                            dbItemPaletteData.free();
                             dbWorldItemData = db.prepare("SELECT * FROM WorldItem");
                             while (dbWorldItemData.step()) {
                                 worldItemData = dbWorldItemData.getAsObject();
@@ -765,13 +776,20 @@ var World = /** @class */ (function () {
                                         container.x = containerChunkAndTilePos[1].x;
                                         container.y = containerChunkAndTilePos[1].y;
                                         container.z = itemByInventory.tileZ;
+                                        container.inventoryType = itemByInventory.inventoryType;
                                         container.target = InventoryFormat.Container;
                                         this.containers.push(container);
                                     }
                                     item = new InventoryItem();
                                     item.slot = itemByInventory.inventoryIndex;
-                                    item.count = itemPaletteData[itemByInventory.itemGuid].count;
-                                    item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    if (itemPaletteData) {
+                                        item.count = itemPaletteData[itemByInventory.itemGuid].count;
+                                        item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    }
+                                    else {
+                                        item.count = itemByInventory.count;
+                                        item.id = itemByInventory.itemAssetID;
+                                    }
                                     container.addItem(item);
                                 }
                                 else { //player inventory (i hope), inventoryType = Armor or Inventory
@@ -782,12 +800,19 @@ var World = /** @class */ (function () {
                                         container.width = 5;
                                         container.height = 5;
                                         container.target = InventoryFormat.Player;
+                                        container.inventoryType = itemByInventory.inventoryType;
                                         this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container;
                                     }
                                     item = new InventoryItem();
                                     item.slot = itemByInventory.inventoryIndex;
-                                    item.count = itemPaletteData[itemByInventory.itemGuid].count;
-                                    item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    if (itemPaletteData) {
+                                        item.count = itemPaletteData[itemByInventory.itemGuid].count;
+                                        item.id = itemPaletteData[itemByInventory.itemGuid].id;
+                                    }
+                                    else {
+                                        item.count = itemByInventory.count;
+                                        item.id = itemByInventory.itemAssetID;
+                                    }
                                     container.addItem(item);
                                 }
                             }
@@ -922,12 +947,13 @@ var World = /** @class */ (function () {
         itemPalette.push(itemGuid, itemAssetID, count);
         return itemPalette;
     };
-    World.prototype.toDatabase = function (isDungeon) {
+    World.prototype.toDatabase = function (isDungeon, hasItemPalette) {
         if (isDungeon === void 0) { isDungeon = false; }
+        if (hasItemPalette === void 0) { hasItemPalette = true; }
         return __awaiter(this, void 0, void 0, function () {
-            var startTime, SQL, exportingDialog, db, tilesTimer, start, values_1, resetValues, _i, _a, chunk, _b, _c, tile, tilePos, _d, _e, _f, _g, dungeonId, _h, _j, chunk, _k, _l, tile, tilePos, biomeEntryTimer, _m, _o, chunk, x, y, tilePos, itemsTimer, itemPalette, _p, _q, container, tilePos, _r, _s, item, itemGuid, _t, _u, _v, _w, otherContainerKey, actorGuidAndInventoryType, actorGuid, inventoryType, container, _x, _y, item, itemGuid, worldItemsTimer, _z, _0, chunk, _1, _2, item, tilePos, itemGuid, itemPaletteTimer, i, buildingDTOTimer, _3, _4, _5, _6, buildingDTOkey, buildingDTO, buildingDTOTilesTimer, _7, _8, _9, _10, buildingDTOkey, buildingDTO, _11, _12, tilePosition, discoveryPOITimer, _13, _14, discoveryPOI, fogRevealTimer, _15, _16, chunk, tilePos, _17, _18, _19, _20, dungeonId, _21, _22, chunk, tilePos, minimapTimer, _23, _24, minimapValue, playerSaveTimer, _25, _26, _27, _28, playerSaveKey, playerSave, POITimer, _29, _30, poi, endTime, totalTime;
-            return __generator(this, function (_31) {
-                switch (_31.label) {
+            var startTime, SQL, exportingDialog, db, tilesTimer, start, values_1, resetValues, _i, _a, chunk, _b, _c, tile, tilePos, _d, _e, _f, _g, dungeonId, _h, _j, chunk, _k, _l, tile, tilePos, biomeEntryTimer, _m, _o, chunk, x, y, tilePos, itemsTimer, itemPalette, _p, _q, container, tilePos, _r, _s, item, itemGuid, _t, _u, _v, _w, otherContainerKey, actorGuidAndInventoryType, actorGuid, inventoryType, container, _x, _y, item, itemGuid, worldItemsTimer, _z, _0, chunk, _1, _2, item, tilePos, itemGuid, itemPaletteTimer, i, _3, _4, container, tilePos, _5, _6, item, _7, _8, _9, _10, otherContainerKey, actorGuidAndInventoryType, actorGuid, inventoryType, container, _11, _12, item, worldItemsTimer, _13, _14, chunk, _15, _16, item, tilePos, itemGuid, buildingDTOTimer, _17, _18, _19, _20, buildingDTOkey, buildingDTO, buildingDTOTilesTimer, _21, _22, _23, _24, buildingDTOkey, buildingDTO, _25, _26, tilePosition, discoveryPOITimer, _27, _28, discoveryPOI, fogRevealTimer, _29, _30, chunk, tilePos, _31, _32, _33, _34, dungeonId, _35, _36, chunk, tilePos, minimapTimer, _37, _38, minimapValue, playerSaveTimer, _39, _40, _41, _42, playerSaveKey, playerSave, POITimer, _43, _44, poi, endTime, totalTime;
+            return __generator(this, function (_45) {
+                switch (_45.label) {
                     case 0:
                         console.log("Started timer");
                         startTime = new Date().getTime();
@@ -942,10 +968,10 @@ var World = /** @class */ (function () {
                         exportingDialog = document.getElementById("dialog-exporting");
                         //let exportingPercentageElement: HTMLElement | null = document.getElementById("dialog-exporting-percentage")
                         exportingDialog.showModal();
-                        if (!SQL) return [3 /*break*/, 95];
+                        if (!SQL) return [3 /*break*/, 117];
                         return [4 /*yield*/, Wait(1000 / 60)]; //to show dialog
                     case 1:
-                        _31.sent(); //to show dialog
+                        _45.sent(); //to show dialog
                         db = new SQL.Database();
                         tilesTimer = new DebugTimer("Tiles");
                         db.run("CREATE TABLE Tiles(x int, y int, z int, hp int DEFAULT 10, memA int, dungeon int, memB int, rotation int, tileAssetID int, PRIMARY KEY (x,y,z))");
@@ -955,12 +981,12 @@ var World = /** @class */ (function () {
                             values_1 = [];
                         };
                         _i = 0, _a = this.chunks;
-                        _31.label = 2;
+                        _45.label = 2;
                     case 2:
                         if (!(_i < _a.length)) return [3 /*break*/, 7];
                         chunk = _a[_i];
                         _b = 0, _c = chunk.getTiles();
-                        _31.label = 3;
+                        _45.label = 3;
                     case 3:
                         if (!(_b < _c.length)) return [3 /*break*/, 6];
                         tile = _c[_b];
@@ -968,8 +994,8 @@ var World = /** @class */ (function () {
                         values_1.push(tilePos.x, tilePos.y, tile.z, tile.health, tile.memoryA, 0, tile.memoryB, tile.rotation, tile.tileAssetId);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, false, resetValues)];
                     case 4:
-                        _31.sent();
-                        _31.label = 5;
+                        _45.sent();
+                        _45.label = 5;
                     case 5:
                         _b++;
                         return [3 /*break*/, 3];
@@ -982,19 +1008,19 @@ var World = /** @class */ (function () {
                         for (_f in _d)
                             _e.push(_f);
                         _g = 0;
-                        _31.label = 8;
+                        _45.label = 8;
                     case 8:
                         if (!(_g < _e.length)) return [3 /*break*/, 15];
                         _f = _e[_g];
                         if (!(_f in _d)) return [3 /*break*/, 14];
                         dungeonId = _f;
                         _h = 0, _j = this.dungeons[dungeonId];
-                        _31.label = 9;
+                        _45.label = 9;
                     case 9:
                         if (!(_h < _j.length)) return [3 /*break*/, 14];
                         chunk = _j[_h];
                         _k = 0, _l = chunk.getTiles();
-                        _31.label = 10;
+                        _45.label = 10;
                     case 10:
                         if (!(_k < _l.length)) return [3 /*break*/, 13];
                         tile = _l[_k];
@@ -1002,8 +1028,8 @@ var World = /** @class */ (function () {
                         values_1.push(tilePos.x, tilePos.y, tile.z, tile.health, tile.memoryA, dungeonId, tile.memoryB, tile.rotation, tile.tileAssetId);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, false, resetValues)];
                     case 11:
-                        _31.sent();
-                        _31.label = 12;
+                        _45.sent();
+                        _45.label = 12;
                     case 12:
                         _k++;
                         return [3 /*break*/, 10];
@@ -1018,30 +1044,30 @@ var World = /** @class */ (function () {
                     return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, true, resetValues)];
                     case 16:
                         //end insert
-                        _31.sent();
+                        _45.sent();
                         tilesTimer.log();
                         biomeEntryTimer = new DebugTimer("BiomeEntry");
                         db.run("CREATE TABLE BiomeEntry(X int, Y int, Biome int, PRIMARY KEY (X,Y))");
                         start = "INSERT INTO BiomeEntry (X,Y,Biome) VALUES ";
                         _m = 0, _o = this.chunks;
-                        _31.label = 17;
+                        _45.label = 17;
                     case 17:
                         if (!(_m < _o.length)) return [3 /*break*/, 24];
                         chunk = _o[_m];
                         x = 0;
-                        _31.label = 18;
+                        _45.label = 18;
                     case 18:
                         if (!(x < 10)) return [3 /*break*/, 23];
                         y = 0;
-                        _31.label = 19;
+                        _45.label = 19;
                     case 19:
                         if (!(y < 10)) return [3 /*break*/, 22];
                         tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, x, y);
                         values_1.push(tilePos.x, tilePos.y, chunk.biomeID);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
                     case 20:
-                        _31.sent();
-                        _31.label = 21;
+                        _45.sent();
+                        _45.label = 21;
                     case 21:
                         y++;
                         return [3 /*break*/, 19];
@@ -1053,9 +1079,10 @@ var World = /** @class */ (function () {
                         return [3 /*break*/, 17];
                     case 24: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, true, resetValues)];
                     case 25:
-                        _31.sent();
+                        _45.sent();
                         biomeEntryTimer.log();
-                        if (!!isDungeon) return [3 /*break*/, 94];
+                        if (!!isDungeon) return [3 /*break*/, 116];
+                        if (!hasItemPalette) return [3 /*break*/, 51];
                         itemsTimer = new DebugTimer("Items");
                         itemPalette = [];
                         db.run("CREATE TABLE \"Item\" ('itemGuid' varchar primary key not null, 'itemAssetID' integer, 'count' integer)");
@@ -1063,13 +1090,13 @@ var World = /** @class */ (function () {
                         db.run("CREATE TABLE \"ItemByInventory\" (\"tileX\" integer ,\"tileY\" integer ,\"tileZ\" integer ,\"actorGuid\" varchar ,\"inventoryType\" integer ,\"itemGuid\" varchar primary key not null ,\"inventoryIndex\" integer )");
                         start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemGuid,inventoryIndex) VALUES ";
                         _p = 0, _q = this.containers;
-                        _31.label = 26;
+                        _45.label = 26;
                     case 26:
                         if (!(_p < _q.length)) return [3 /*break*/, 31];
                         container = _q[_p];
                         tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
                         _r = 0, _s = container.itemDataList;
-                        _31.label = 27;
+                        _45.label = 27;
                     case 27:
                         if (!(_r < _s.length)) return [3 /*break*/, 30];
                         item = _s[_r];
@@ -1078,8 +1105,8 @@ var World = /** @class */ (function () {
                         values_1.push(tilePos.x, tilePos.y, container.z, "tile", 0, itemGuid, item.slot);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 7, values_1, false, resetValues)];
                     case 28:
-                        _31.sent();
-                        _31.label = 29;
+                        _45.sent();
+                        _45.label = 29;
                     case 29:
                         _r++;
                         return [3 /*break*/, 27];
@@ -1092,7 +1119,7 @@ var World = /** @class */ (function () {
                         for (_v in _t)
                             _u.push(_v);
                         _w = 0;
-                        _31.label = 32;
+                        _45.label = 32;
                     case 32:
                         if (!(_w < _u.length)) return [3 /*break*/, 37];
                         _v = _u[_w];
@@ -1103,7 +1130,7 @@ var World = /** @class */ (function () {
                         inventoryType = Number(actorGuidAndInventoryType[1]);
                         container = this.otherContainers[otherContainerKey];
                         _x = 0, _y = container.itemDataList;
-                        _31.label = 33;
+                        _45.label = 33;
                     case 33:
                         if (!(_x < _y.length)) return [3 /*break*/, 36];
                         item = _y[_x];
@@ -1112,8 +1139,8 @@ var World = /** @class */ (function () {
                         values_1.push(0, 0, 0, actorGuid, inventoryType, itemGuid, item.slot);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 7, values_1, false, resetValues)];
                     case 34:
-                        _31.sent();
-                        _31.label = 35;
+                        _45.sent();
+                        _45.label = 35;
                     case 35:
                         _x++;
                         return [3 /*break*/, 33];
@@ -1122,18 +1149,18 @@ var World = /** @class */ (function () {
                         return [3 /*break*/, 32];
                     case 37: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 7, values_1, true, resetValues)];
                     case 38:
-                        _31.sent();
+                        _45.sent();
                         itemsTimer.log();
                         worldItemsTimer = new DebugTimer("WorldItems");
                         db.run("CREATE TABLE \"WorldItem\" (\"worldPositionX\" float ,\"worldPositionY\" float ,\"itemGuid\" varchar primary key not null )");
                         start = "INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid) VALUES ";
                         _z = 0, _0 = this.chunks;
-                        _31.label = 39;
+                        _45.label = 39;
                     case 39:
                         if (!(_z < _0.length)) return [3 /*break*/, 44];
                         chunk = _0[_z];
                         _1 = 0, _2 = chunk.itemDataList;
-                        _31.label = 40;
+                        _45.label = 40;
                     case 40:
                         if (!(_1 < _2.length)) return [3 /*break*/, 43];
                         item = _2[_1];
@@ -1143,8 +1170,8 @@ var World = /** @class */ (function () {
                         values_1.push(tilePos.x, tilePos.y, itemGuid);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
                     case 41:
-                        _31.sent();
-                        _31.label = 42;
+                        _45.sent();
+                        _45.label = 42;
                     case 42:
                         _1++;
                         return [3 /*break*/, 40];
@@ -1153,236 +1180,332 @@ var World = /** @class */ (function () {
                         return [3 /*break*/, 39];
                     case 44: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, true, resetValues)];
                     case 45:
-                        _31.sent();
+                        _45.sent();
                         worldItemsTimer.log();
                         itemPaletteTimer = new DebugTimer("ItemPalette");
                         start = "INSERT INTO Item (itemGuid,itemAssetID,count) VALUES ";
                         i = 0;
-                        _31.label = 46;
+                        _45.label = 46;
                     case 46:
                         if (!(i < itemPalette.length)) return [3 /*break*/, 49];
                         values_1.push(itemPalette[i + 0], itemPalette[i + 1], itemPalette[i + 2]);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
                     case 47:
-                        _31.sent();
-                        _31.label = 48;
+                        _45.sent();
+                        _45.label = 48;
                     case 48:
                         i += 3;
                         return [3 /*break*/, 46];
                     case 49: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, true, resetValues)];
                     case 50:
-                        _31.sent();
+                        _45.sent();
                         itemPaletteTimer.log();
-                        buildingDTOTimer = new DebugTimer("BuildingDTO");
-                        db.run("CREATE TABLE \"BuildingDTO\" (\"id\" varchar primary key not null ,\"boundingboxbottomlefty\" integer ,\"boundingboxbottomleftx\" integer ,\"boundingboxtoprighty\" integer ,\"boundingboxtoprightx\" integer ,\"rootpositionx\" integer ,\"rootpositiony\" integer ,\"rootpositionz\" integer ,\"townianid\" integer )");
-                        start = "INSERT INTO BuildingDTO (id,boundingboxbottomlefty,boundingboxbottomleftx,boundingboxtoprighty,boundingboxtoprightx,rootpositionx,rootpositiony,rootpositionz,townianid) VALUES ";
-                        _3 = this.buildingDTOs;
-                        _4 = [];
-                        for (_5 in _3)
-                            _4.push(_5);
-                        _6 = 0;
-                        _31.label = 51;
+                        return [3 /*break*/, 72];
                     case 51:
-                        if (!(_6 < _4.length)) return [3 /*break*/, 54];
-                        _5 = _4[_6];
-                        if (!(_5 in _3)) return [3 /*break*/, 53];
-                        buildingDTOkey = _5;
-                        buildingDTO = this.buildingDTOs[buildingDTOkey];
-                        values_1.push(buildingDTO.id, buildingDTO.bottomLeft.y, buildingDTO.bottomLeft.x, buildingDTO.topRight.y, buildingDTO.topRight.x, buildingDTO.rootX, buildingDTO.rootY, buildingDTO.rootZ, buildingDTO.townianId);
-                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, false, resetValues)];
+                        // CONTAINERS AND INVENTORIES
+                        db.run("CREATE TABLE \"ItemByInventory\" (tileX INTEGER, tileY INTEGER, tileZ INTEGER, actorGuid VARCHAR, inventoryType INTEGER, itemAssetID INTEGER, count INTEGER, inventoryIndex INTEGER)");
+                        start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemAssetID,count,inventoryIndex) VALUES ";
+                        _3 = 0, _4 = this.containers;
+                        _45.label = 52;
                     case 52:
-                        _31.sent();
-                        _31.label = 53;
+                        if (!(_3 < _4.length)) return [3 /*break*/, 57];
+                        container = _4[_3];
+                        tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y);
+                        _5 = 0, _6 = container.itemDataList;
+                        _45.label = 53;
                     case 53:
-                        _6++;
-                        return [3 /*break*/, 51];
-                    case 54: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, true, resetValues)];
+                        if (!(_5 < _6.length)) return [3 /*break*/, 56];
+                        item = _6[_5];
+                        values_1.push(tilePos.x, tilePos.y, container.z, "tile", container.inventoryType, item.id, item.count, item.slot);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 8, values_1, false, resetValues)];
+                    case 54:
+                        _45.sent();
+                        _45.label = 55;
                     case 55:
-                        _31.sent();
-                        buildingDTOTimer.log();
-                        buildingDTOTilesTimer = new DebugTimer("BuildingDTOTiles");
-                        db.run("CREATE TABLE BuildingTilesDTO (x int,y int,z int,id TEXT)");
-                        start = "INSERT INTO BuildingTilesDTO (x,y,z,id) VALUES ";
-                        _7 = this.buildingDTOs;
+                        _5++;
+                        return [3 /*break*/, 53];
+                    case 56:
+                        _3++;
+                        return [3 /*break*/, 52];
+                    case 57:
+                        _7 = this.otherContainers;
                         _8 = [];
                         for (_9 in _7)
                             _8.push(_9);
                         _10 = 0;
-                        _31.label = 56;
-                    case 56:
-                        if (!(_10 < _8.length)) return [3 /*break*/, 61];
-                        _9 = _8[_10];
-                        if (!(_9 in _7)) return [3 /*break*/, 60];
-                        buildingDTOkey = _9;
-                        buildingDTO = this.buildingDTOs[buildingDTOkey];
-                        _11 = 0, _12 = buildingDTO.tilePositions;
-                        _31.label = 57;
-                    case 57:
-                        if (!(_11 < _12.length)) return [3 /*break*/, 60];
-                        tilePosition = _12[_11];
-                        values_1.push(tilePosition.x, tilePosition.y, tilePosition.x, buildingDTO.id);
-                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, false, resetValues)];
+                        _45.label = 58;
                     case 58:
-                        _31.sent();
-                        _31.label = 59;
+                        if (!(_10 < _8.length)) return [3 /*break*/, 63];
+                        _9 = _8[_10];
+                        if (!(_9 in _7)) return [3 /*break*/, 62];
+                        otherContainerKey = _9;
+                        actorGuidAndInventoryType = otherContainerKey.split("_");
+                        actorGuid = actorGuidAndInventoryType[0];
+                        inventoryType = Number(actorGuidAndInventoryType[1]);
+                        container = this.otherContainers[otherContainerKey];
+                        _11 = 0, _12 = container.itemDataList;
+                        _45.label = 59;
                     case 59:
-                        _11++;
-                        return [3 /*break*/, 57];
+                        if (!(_11 < _12.length)) return [3 /*break*/, 62];
+                        item = _12[_11];
+                        values_1.push(0, 0, 0, actorGuid, inventoryType, item.id, item.count, item.slot);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 8, values_1, false, resetValues)];
                     case 60:
-                        _10++;
-                        return [3 /*break*/, 56];
-                    case 61: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
+                        _45.sent();
+                        _45.label = 61;
+                    case 61:
+                        _11++;
+                        return [3 /*break*/, 59];
                     case 62:
-                        _31.sent();
-                        buildingDTOTilesTimer.log();
-                        discoveryPOITimer = new DebugTimer("DiscoveryPOI");
-                        db.run("CREATE TABLE DiscoveryPOI (tilepositionx int, tilepositiony int, discoverer varchar(140), questID varchar(20), PRIMARY KEY (tilepositionx,tilepositiony,discoverer))");
-                        start = "INSERT INTO DiscoveryPOI (tilepositionx,tilepositiony,discoverer,questID) VALUES ";
-                        _13 = 0, _14 = this.discoveryPointsOfInterest;
-                        _31.label = 63;
-                    case 63:
-                        if (!(_13 < _14.length)) return [3 /*break*/, 66];
-                        discoveryPOI = _14[_13];
-                        values_1.push(discoveryPOI.position.x, discoveryPOI.position.y, discoveryPOI.discoverer, discoveryPOI.questId);
-                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, false, resetValues)];
+                        _10++;
+                        return [3 /*break*/, 58];
+                    case 63: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 8, values_1, true, resetValues)
+                        // WORLD ITEMS
+                    ];
                     case 64:
-                        _31.sent();
-                        _31.label = 65;
+                        _45.sent();
+                        worldItemsTimer = new DebugTimer("WorldItems");
+                        db.run("CREATE TABLE \"WorldItem\" (\"worldPositionX\" float ,\"worldPositionY\" float ,\"itemGuid\" varchar primary key not null , itemAssetID INTEGER NOT NULL DEFAULT 0, count INTEGER NOT NULL DEFAULT 0, dayDropped INTEGER DEFAULT 0)");
+                        start = "INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid,itemAssetID,count,dayDropped) VALUES ";
+                        _13 = 0, _14 = this.chunks;
+                        _45.label = 65;
                     case 65:
-                        _13++;
-                        return [3 /*break*/, 63];
-                    case 66: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
+                        if (!(_13 < _14.length)) return [3 /*break*/, 70];
+                        chunk = _14[_13];
+                        _15 = 0, _16 = chunk.itemDataList;
+                        _45.label = 66;
+                    case 66:
+                        if (!(_15 < _16.length)) return [3 /*break*/, 69];
+                        item = _16[_15];
+                        tilePos = this.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y);
+                        itemGuid = uuid();
+                        values_1.push(tilePos.x, tilePos.y, itemGuid, item.id, item.count, item.dayDropped);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 6, values_1, false, resetValues)];
                     case 67:
-                        _31.sent();
-                        discoveryPOITimer.log();
-                        fogRevealTimer = new DebugTimer("FogReveal");
-                        db.run("CREATE TABLE FogReveal (x int, y int, dungeon int)");
-                        start = "INSERT INTO FogReveal (x,y,dungeon) VALUES ";
-                        _15 = 0, _16 = this.chunks;
-                        _31.label = 68;
+                        _45.sent();
+                        _45.label = 68;
                     case 68:
-                        if (!(_15 < _16.length)) return [3 /*break*/, 71];
-                        chunk = _16[_15];
-                        tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, 0, 0);
-                        if (!chunk.revealed) return [3 /*break*/, 70];
-                        values_1.push(tilePos.x, tilePos.y, 0);
-                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
-                    case 69:
-                        _31.sent();
-                        _31.label = 70;
-                    case 70:
                         _15++;
-                        return [3 /*break*/, 68];
+                        return [3 /*break*/, 66];
+                    case 69:
+                        _13++;
+                        return [3 /*break*/, 65];
+                    case 70: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 6, values_1, true, resetValues)];
                     case 71:
-                        _17 = this.dungeons;
+                        _45.sent();
+                        worldItemsTimer.log();
+                        _45.label = 72;
+                    case 72:
+                        buildingDTOTimer = new DebugTimer("BuildingDTO");
+                        db.run("CREATE TABLE \"BuildingDTO\" (\"id\" varchar primary key not null ,\"boundingboxbottomlefty\" integer ,\"boundingboxbottomleftx\" integer ,\"boundingboxtoprighty\" integer ,\"boundingboxtoprightx\" integer ,\"rootpositionx\" integer ,\"rootpositiony\" integer ,\"rootpositionz\" integer ,\"townianid\" integer )");
+                        start = "INSERT INTO BuildingDTO (id,boundingboxbottomlefty,boundingboxbottomleftx,boundingboxtoprighty,boundingboxtoprightx,rootpositionx,rootpositiony,rootpositionz,townianid) VALUES ";
+                        _17 = this.buildingDTOs;
                         _18 = [];
                         for (_19 in _17)
                             _18.push(_19);
                         _20 = 0;
-                        _31.label = 72;
-                    case 72:
-                        if (!(_20 < _18.length)) return [3 /*break*/, 77];
-                        _19 = _18[_20];
-                        if (!(_19 in _17)) return [3 /*break*/, 76];
-                        dungeonId = _19;
-                        _21 = 0, _22 = this.dungeons[dungeonId];
-                        _31.label = 73;
+                        _45.label = 73;
                     case 73:
-                        if (!(_21 < _22.length)) return [3 /*break*/, 76];
-                        chunk = _22[_21];
+                        if (!(_20 < _18.length)) return [3 /*break*/, 76];
+                        _19 = _18[_20];
+                        if (!(_19 in _17)) return [3 /*break*/, 75];
+                        buildingDTOkey = _19;
+                        buildingDTO = this.buildingDTOs[buildingDTOkey];
+                        values_1.push(buildingDTO.id, buildingDTO.bottomLeft.y, buildingDTO.bottomLeft.x, buildingDTO.topRight.y, buildingDTO.topRight.x, buildingDTO.rootX, buildingDTO.rootY, buildingDTO.rootZ, buildingDTO.townianId);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, false, resetValues)];
+                    case 74:
+                        _45.sent();
+                        _45.label = 75;
+                    case 75:
+                        _20++;
+                        return [3 /*break*/, 73];
+                    case 76: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, true, resetValues)];
+                    case 77:
+                        _45.sent();
+                        buildingDTOTimer.log();
+                        buildingDTOTilesTimer = new DebugTimer("BuildingDTOTiles");
+                        db.run("CREATE TABLE BuildingTilesDTO (x int,y int,z int,id TEXT)");
+                        start = "INSERT INTO BuildingTilesDTO (x,y,z,id) VALUES ";
+                        _21 = this.buildingDTOs;
+                        _22 = [];
+                        for (_23 in _21)
+                            _22.push(_23);
+                        _24 = 0;
+                        _45.label = 78;
+                    case 78:
+                        if (!(_24 < _22.length)) return [3 /*break*/, 83];
+                        _23 = _22[_24];
+                        if (!(_23 in _21)) return [3 /*break*/, 82];
+                        buildingDTOkey = _23;
+                        buildingDTO = this.buildingDTOs[buildingDTOkey];
+                        _25 = 0, _26 = buildingDTO.tilePositions;
+                        _45.label = 79;
+                    case 79:
+                        if (!(_25 < _26.length)) return [3 /*break*/, 82];
+                        tilePosition = _26[_25];
+                        values_1.push(tilePosition.x, tilePosition.y, tilePosition.x, buildingDTO.id);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, false, resetValues)];
+                    case 80:
+                        _45.sent();
+                        _45.label = 81;
+                    case 81:
+                        _25++;
+                        return [3 /*break*/, 79];
+                    case 82:
+                        _24++;
+                        return [3 /*break*/, 78];
+                    case 83: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
+                    case 84:
+                        _45.sent();
+                        buildingDTOTilesTimer.log();
+                        discoveryPOITimer = new DebugTimer("DiscoveryPOI");
+                        db.run("CREATE TABLE DiscoveryPOI (tilepositionx int, tilepositiony int, discoverer varchar(140), questID varchar(20), PRIMARY KEY (tilepositionx,tilepositiony,discoverer))");
+                        start = "INSERT INTO DiscoveryPOI (tilepositionx,tilepositiony,discoverer,questID) VALUES ";
+                        _27 = 0, _28 = this.discoveryPointsOfInterest;
+                        _45.label = 85;
+                    case 85:
+                        if (!(_27 < _28.length)) return [3 /*break*/, 88];
+                        discoveryPOI = _28[_27];
+                        values_1.push(discoveryPOI.position.x, discoveryPOI.position.y, discoveryPOI.discoverer, discoveryPOI.questId);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, false, resetValues)];
+                    case 86:
+                        _45.sent();
+                        _45.label = 87;
+                    case 87:
+                        _27++;
+                        return [3 /*break*/, 85];
+                    case 88: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
+                    case 89:
+                        _45.sent();
+                        discoveryPOITimer.log();
+                        fogRevealTimer = new DebugTimer("FogReveal");
+                        db.run("CREATE TABLE FogReveal (x int, y int, dungeon int)");
+                        start = "INSERT INTO FogReveal (x,y,dungeon) VALUES ";
+                        _29 = 0, _30 = this.chunks;
+                        _45.label = 90;
+                    case 90:
+                        if (!(_29 < _30.length)) return [3 /*break*/, 93];
+                        chunk = _30[_29];
                         tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, 0, 0);
-                        if (!chunk.revealed) return [3 /*break*/, 75];
+                        if (!chunk.revealed) return [3 /*break*/, 92];
+                        values_1.push(tilePos.x, tilePos.y, 0);
+                        return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
+                    case 91:
+                        _45.sent();
+                        _45.label = 92;
+                    case 92:
+                        _29++;
+                        return [3 /*break*/, 90];
+                    case 93:
+                        _31 = this.dungeons;
+                        _32 = [];
+                        for (_33 in _31)
+                            _32.push(_33);
+                        _34 = 0;
+                        _45.label = 94;
+                    case 94:
+                        if (!(_34 < _32.length)) return [3 /*break*/, 99];
+                        _33 = _32[_34];
+                        if (!(_33 in _31)) return [3 /*break*/, 98];
+                        dungeonId = _33;
+                        _35 = 0, _36 = this.dungeons[dungeonId];
+                        _45.label = 95;
+                    case 95:
+                        if (!(_35 < _36.length)) return [3 /*break*/, 98];
+                        chunk = _36[_35];
+                        tilePos = this.getGlobalPosAtChunkAndTilePos(chunk.x, chunk.y, 0, 0);
+                        if (!chunk.revealed) return [3 /*break*/, 97];
                         values_1.push(tilePos.x, tilePos.y, dungeonId);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, false, resetValues)];
-                    case 74:
-                        _31.sent();
-                        _31.label = 75;
-                    case 75:
-                        _21++;
-                        return [3 /*break*/, 73];
-                    case 76:
-                        _20++;
-                        return [3 /*break*/, 72];
-                    case 77: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, true, resetValues)];
-                    case 78:
-                        _31.sent();
+                    case 96:
+                        _45.sent();
+                        _45.label = 97;
+                    case 97:
+                        _35++;
+                        return [3 /*break*/, 95];
+                    case 98:
+                        _34++;
+                        return [3 /*break*/, 94];
+                    case 99: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 3, values_1, true, resetValues)];
+                    case 100:
+                        _45.sent();
                         fogRevealTimer.log();
                         minimapTimer = new DebugTimer("Minimap");
                         db.run("CREATE TABLE Minimap (x int, y int, tileAssetID int, dungeon int, PRIMARY KEY (x,y))");
                         start = "INSERT INTO Minimap (x,y,tileAssetID,dungeon) VALUES ";
-                        _23 = 0, _24 = this.minimapData;
-                        _31.label = 79;
-                    case 79:
-                        if (!(_23 < _24.length)) return [3 /*break*/, 82];
-                        minimapValue = _24[_23];
+                        _37 = 0, _38 = this.minimapData;
+                        _45.label = 101;
+                    case 101:
+                        if (!(_37 < _38.length)) return [3 /*break*/, 104];
+                        minimapValue = _38[_37];
                         values_1.push(minimapValue.position.x, minimapValue.position.y, minimapValue.tileAssetId, minimapValue.dungeon);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, false, resetValues)];
-                    case 80:
-                        _31.sent();
-                        _31.label = 81;
-                    case 81:
-                        _23++;
-                        return [3 /*break*/, 79];
-                    case 82: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
-                    case 83:
-                        _31.sent();
+                    case 102:
+                        _45.sent();
+                        _45.label = 103;
+                    case 103:
+                        _37++;
+                        return [3 /*break*/, 101];
+                    case 104: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 4, values_1, true, resetValues)];
+                    case 105:
+                        _45.sent();
                         minimapTimer.log();
                         playerSaveTimer = new DebugTimer("PlayerSave");
                         db.run("CREATE TABLE \"PlayerSave\" (\"Puid\" varchar primary key not null ,\"Health\" integer ,\"Mana\" integer ,\"SpawnPointX\" float ,\"SpawnPointY\" float ,\"DeathPointX\" float ,\"DeathPointY\" float ,\"PositionX\" float ,\"PositionY\" float )");
                         start = "INSERT INTO PlayerSave (Puid,Health,Mana,SpawnPointX,SpawnPointY,DeathPointX,DeathPointY,PositionX,PositionY) VALUES ";
-                        _25 = this.playerSaves;
-                        _26 = [];
-                        for (_27 in _25)
-                            _26.push(_27);
-                        _28 = 0;
-                        _31.label = 84;
-                    case 84:
-                        if (!(_28 < _26.length)) return [3 /*break*/, 87];
-                        _27 = _26[_28];
-                        if (!(_27 in _25)) return [3 /*break*/, 86];
-                        playerSaveKey = _27;
+                        _39 = this.playerSaves;
+                        _40 = [];
+                        for (_41 in _39)
+                            _40.push(_41);
+                        _42 = 0;
+                        _45.label = 106;
+                    case 106:
+                        if (!(_42 < _40.length)) return [3 /*break*/, 109];
+                        _41 = _40[_42];
+                        if (!(_41 in _39)) return [3 /*break*/, 108];
+                        playerSaveKey = _41;
                         playerSave = this.playerSaves[playerSaveKey];
                         values_1.push(playerSave.puid, playerSave.health, playerSave.mana, playerSave.spawnPointX, playerSave.spawnPointY, playerSave.deathPointX, playerSave.deathPointY, playerSave.positionX, playerSave.positionY);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, false, resetValues)];
-                    case 85:
-                        _31.sent();
-                        _31.label = 86;
-                    case 86:
-                        _28++;
-                        return [3 /*break*/, 84];
-                    case 87: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, true, resetValues)];
-                    case 88:
-                        _31.sent();
+                    case 107:
+                        _45.sent();
+                        _45.label = 108;
+                    case 108:
+                        _42++;
+                        return [3 /*break*/, 106];
+                    case 109: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 9, values_1, true, resetValues)];
+                    case 110:
+                        _45.sent();
                         playerSaveTimer.log();
                         POITimer = new DebugTimer("POI");
                         db.run("CREATE TABLE PointOfInterest (tilepositionx int, tilepositiony int, id int, RevealedForAllPlayers int, type int, questID varchar(20), PRIMARY KEY (tilepositionx,tilepositiony, id, type, questID))");
                         start = "INSERT INTO PointOfInterest (tilepositionx,tilepositiony,id,RevealedForAllPlayers,type,questID) VALUES ";
-                        _29 = 0, _30 = this.pointsOfInterest;
-                        _31.label = 89;
-                    case 89:
-                        if (!(_29 < _30.length)) return [3 /*break*/, 92];
-                        poi = _30[_29];
+                        _43 = 0, _44 = this.pointsOfInterest;
+                        _45.label = 111;
+                    case 111:
+                        if (!(_43 < _44.length)) return [3 /*break*/, 114];
+                        poi = _44[_43];
                         values_1.push(poi.position.x, poi.position.y, poi.id, poi.revealedForAllPlayers, poi.type, poi.questId);
                         return [4 /*yield*/, this.dbCheckMassInsert(db, start, 6, values_1, false, resetValues)];
-                    case 90:
-                        _31.sent();
-                        _31.label = 91;
-                    case 91:
-                        _29++;
-                        return [3 /*break*/, 89];
-                    case 92: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 6, values_1, true, resetValues)];
-                    case 93:
-                        _31.sent();
+                    case 112:
+                        _45.sent();
+                        _45.label = 113;
+                    case 113:
+                        _43++;
+                        return [3 /*break*/, 111];
+                    case 114: return [4 /*yield*/, this.dbCheckMassInsert(db, start, 6, values_1, true, resetValues)];
+                    case 115:
+                        _45.sent();
                         POITimer.log();
-                        _31.label = 94;
-                    case 94:
+                        _45.label = 116;
+                    case 116:
                         // END
                         exportingDialog.close();
                         endTime = new Date().getTime();
                         totalTime = (endTime - startTime) / 1000;
                         console.log("Generating world database file took ".concat(totalTime, " seconds"));
                         return [2 /*return*/, db];
-                    case 95:
+                    case 117:
                         exportingDialog.close();
                         return [2 /*return*/, null];
                 }

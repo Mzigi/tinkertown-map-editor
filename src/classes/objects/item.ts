@@ -28,6 +28,8 @@ export class Item {
     x: number
     y: number
 
+    dayDropped: number
+
     constructor() {
         this.reset()
     }
@@ -45,6 +47,8 @@ export class Item {
         
         this.x = 0
         this.y = 0
+
+        this.dayDropped = 0
     }
 
     getName(): string | null {
@@ -115,8 +119,14 @@ export class Item {
         this.x = chunkAndTilePos[1].x
         this.y = chunkAndTilePos[1].y
 
-        this.count = itemPaletteData[itemGuid].count
-        this.id = itemPaletteData[itemGuid].id
+        if (itemPaletteData) {
+            this.count = itemPaletteData[itemGuid].count
+            this.id = itemPaletteData[itemGuid].id
+        } else {
+            this.count = worldItemData.count
+            this.id = worldItemData.itemAssetID
+            this.dayDropped = worldItemData.dayDropped
+        }
     }
 
     clone() {

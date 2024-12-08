@@ -46,6 +46,7 @@ var Loader = /** @class */ (function () {
         this.importInput = document.getElementById("navbar-import");
         this.exportButton = document.getElementById("navbar-export-old");
         this.exportButton2 = document.getElementById("navbar-export-new");
+        this.exportButton3 = document.getElementById("navbar-export-new2");
         this.exportDungeonButton = document.getElementById("navbar-export-dungeon");
         this.helpButton = document.getElementById("navbar-help");
         this.worldSettingsButton = document.getElementById("navbar-world-settings");
@@ -210,6 +211,9 @@ var Loader = /** @class */ (function () {
         if (this.NEWUI) {
             this.exportButton2.addEventListener("click", function () {
                 _this.worlds[_this.currentWorld].saveAsFile(true);
+            });
+            this.exportButton3.addEventListener("click", function () {
+                _this.worlds[_this.currentWorld].saveAsFile(true, false, false);
             });
             this.exportDungeonButton.addEventListener("click", function () {
                 _this.getCurrentWorld().saveAsFile(true, true);
@@ -409,7 +413,7 @@ var Loader = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!(filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3)) return [3 /*break*/, 2];
+                        if (!(filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3 && !filePath.startsWith("backups/world"))) return [3 /*break*/, 2];
                         return [4 /*yield*/, file.arrayBuffer()];
                     case 1:
                         buffer = _a.sent();
@@ -420,7 +424,7 @@ var Loader = /** @class */ (function () {
                             this.worlds[worldId].chunkCache[filePath] = buffer;
                         }
                         else {
-                            console.warn("Attempted to load chunk file while world is in the Database format");
+                            console.warn("Attempted to load chunk file while world is in the Database format (".concat(filePath, ")"));
                             this.worlds[worldId].uneditedFiles[filePath] = buffer;
                         }
                         return [3 /*break*/, 10];

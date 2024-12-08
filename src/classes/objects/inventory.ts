@@ -115,6 +115,8 @@ export class Inventory {
 
     itemDataList: Array<InventoryItem>
 
+    inventoryType: number
+
     //editor only
     filePath: string
 
@@ -143,6 +145,8 @@ export class Inventory {
         this.totalSlots = 0
 
         this.itemDataList = []
+
+        this.inventoryType = 0
 
         //editor only
         this.filePath = ""

@@ -258,8 +258,8 @@ export class World {
         //world meta
         this.seed = Math.floor(Math.random() * 9999)
         this.name = "World " + this.seed
-        this.version = {"Major":2,"Minor":0,"Patch":0,"Build":"\u0000"}
-        this.highestUsedVersion = {"Major":2,"Minor":0,"Patch":0,"Build":"\u0000"}
+        this.version = {"Major":2,"Minor":0,"Patch":3,"Build":"\u0000"}
+        this.highestUsedVersion = {"Major":2,"Minor":0,"Patch":3,"Build":"\u0000"}
         this.hasBeenGenerated = true
 
         //settings meta
@@ -721,7 +721,7 @@ export class World {
         return 4 + this.name.length + 4 + versionByteSize + highestUsedVersionByteSize + 1 + 1 + 1 + 1 + 4 + 1 + 2 + additionalParamsByteSize + 4 + chunksByteSize + 2 + containersByteSize
     }
 
-    async saveAsFile(isDatabase = false, isDungeon = false) {
+    async saveAsFile(isDatabase = false, isDungeon = false, hasItemPalette = true) {
         try {
             let zip = new JSZip()
 
@@ -814,7 +814,7 @@ export class World {
             }
             
             if (isDatabase) {
-                let buffer = ((await this.toDatabase(isDungeon)).export()).buffer
+                let buffer = ((await this.toDatabase(isDungeon, hasItemPalette)).export()).buffer
                 zip.file(isDungeon ? "MapAddition.db" : "backups/world.dat", buffer, {"binary":true})
             }
 
@@ -855,6 +855,15 @@ export class World {
         await Wait(1)
 
         console.log(db)
+
+        //get table list
+        let existingTables = []
+
+        let allTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        while (allTables.step()) {
+            existingTables.push(allTables.getAsObject().name)
+        }
+        allTables.free()
 
         //load tiles
         let dbTileData = db.prepare("SELECT * FROM Tiles")
@@ -903,18 +912,22 @@ export class World {
         dbBiomeEntryData.free()
 
         if (!isDungeon) {
-            //load item palette
-            let itemPaletteData = {}
+            let itemPaletteData = null
 
-            let dbItemPaletteData = db.prepare("SELECT * FROM Item")
+            if (existingTables.includes("Item")) {
+                //load item palette
+                itemPaletteData = {}
 
-            while (dbItemPaletteData.step()) {
-                let itemPalette = dbItemPaletteData.getAsObject()
+                let dbItemPaletteData = db.prepare("SELECT * FROM Item")
 
-                itemPaletteData[itemPalette.itemGuid] = {"id": itemPalette.itemAssetID, "count": itemPalette.count}
+                while (dbItemPaletteData.step()) {
+                    let itemPalette = dbItemPaletteData.getAsObject()
+
+                    itemPaletteData[itemPalette.itemGuid] = {"id": itemPalette.itemAssetID, "count": itemPalette.count}
+                }
+
+                dbItemPaletteData.free()
             }
-
-            dbItemPaletteData.free()
 
             //load world items (ground items)
             let dbWorldItemData = db.prepare("SELECT * FROM WorldItem")
@@ -957,6 +970,7 @@ export class World {
                         container.x = containerChunkAndTilePos[1].x
                         container.y = containerChunkAndTilePos[1].y
                         container.z = itemByInventory.tileZ
+                        container.inventoryType = itemByInventory.inventoryType
                         container.target = InventoryFormat.Container
 
                         this.containers.push(container)
@@ -964,8 +978,13 @@ export class World {
 
                     let item = new InventoryItem()
                     item.slot = itemByInventory.inventoryIndex
-                    item.count = itemPaletteData[itemByInventory.itemGuid].count
-                    item.id = itemPaletteData[itemByInventory.itemGuid].id
+                    if (itemPaletteData) {
+                        item.count = itemPaletteData[itemByInventory.itemGuid].count
+                        item.id = itemPaletteData[itemByInventory.itemGuid].id
+                    } else {
+                        item.count = itemByInventory.count
+                        item.id = itemByInventory.itemAssetID
+                    }
 
                     container.addItem(item)
                 } else { //player inventory (i hope), inventoryType = Armor or Inventory
@@ -977,14 +996,20 @@ export class World {
                         container.width = 5
                         container.height = 5
                         container.target = InventoryFormat.Player
+                        container.inventoryType = itemByInventory.inventoryType
 
                         this.otherContainers[itemByInventory.actorGuid + "_" + itemByInventory.inventoryType] = container
                     }
 
                     let item = new InventoryItem()
                     item.slot = itemByInventory.inventoryIndex
-                    item.count = itemPaletteData[itemByInventory.itemGuid].count
-                    item.id = itemPaletteData[itemByInventory.itemGuid].id
+                    if (itemPaletteData) {
+                        item.count = itemPaletteData[itemByInventory.itemGuid].count
+                        item.id = itemPaletteData[itemByInventory.itemGuid].id
+                    } else {
+                        item.count = itemByInventory.count
+                        item.id = itemByInventory.itemAssetID
+                    }
 
                     container.addItem(item)
                 }
@@ -1162,7 +1187,7 @@ export class World {
         return itemPalette
     }
 
-    async toDatabase(isDungeon: boolean = false): Promise<any | null> {
+    async toDatabase(isDungeon: boolean = false, hasItemPalette: boolean = true): Promise<any | null> {
         console.log("Started timer")
         let startTime = new Date().getTime()
 
@@ -1251,89 +1276,146 @@ export class World {
             biomeEntryTimer.log()
 
             if (!isDungeon) {
-                // ITEMS
-                let itemsTimer = new DebugTimer("Items")
-                let itemPalette = []
+                if (hasItemPalette) {
+                    // ITEMS
+                    let itemsTimer = new DebugTimer("Items")
+                    let itemPalette = []
 
-                db.run(`CREATE TABLE "Item" ('itemGuid' varchar primary key not null, 'itemAssetID' integer, 'count' integer)`)
+                    db.run(`CREATE TABLE "Item" ('itemGuid' varchar primary key not null, 'itemAssetID' integer, 'count' integer)`)
 
-                // CONTAINERS AND INVENTORIES
-                db.run(`CREATE TABLE "ItemByInventory" ("tileX" integer ,"tileY" integer ,"tileZ" integer ,"actorGuid" varchar ,"inventoryType" integer ,"itemGuid" varchar primary key not null ,"inventoryIndex" integer )`)
+                    // CONTAINERS AND INVENTORIES
+                    db.run(`CREATE TABLE "ItemByInventory" ("tileX" integer ,"tileY" integer ,"tileZ" integer ,"actorGuid" varchar ,"inventoryType" integer ,"itemGuid" varchar primary key not null ,"inventoryIndex" integer )`)
 
-                start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemGuid,inventoryIndex) VALUES "
+                    start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemGuid,inventoryIndex) VALUES "
 
-                //containers
-                for (let container of this.containers) {
-                    let tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y)
+                    //containers
+                    for (let container of this.containers) {
+                        let tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y)
 
-                    for (let item of container.itemDataList) {
-                        let itemGuid = uuid()
-                        this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+                        for (let item of container.itemDataList) {
+                            let itemGuid = uuid()
+                            this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
 
-                        values.push(tilePos.x, tilePos.y, container.z, "tile", 0, itemGuid, item.slot)
+                            values.push(tilePos.x, tilePos.y, container.z, "tile", 0, itemGuid, item.slot)
 
-                        await this.dbCheckMassInsert(db, start, 7, values, false, resetValues)
+                            await this.dbCheckMassInsert(db, start, 7, values, false, resetValues)
+                        }
                     }
-                }
 
-                //player inventories
-                for (let otherContainerKey in this.otherContainers) {
-                    let actorGuidAndInventoryType = otherContainerKey.split("_")
-                    let actorGuid = actorGuidAndInventoryType[0]
-                    let inventoryType = Number(actorGuidAndInventoryType[1])
+                    //player inventories
+                    for (let otherContainerKey in this.otherContainers) {
+                        let actorGuidAndInventoryType = otherContainerKey.split("_")
+                        let actorGuid = actorGuidAndInventoryType[0]
+                        let inventoryType = Number(actorGuidAndInventoryType[1])
 
-                    let container = this.otherContainers[otherContainerKey]
+                        let container = this.otherContainers[otherContainerKey]
 
-                    for (let item of container.itemDataList) {
-                        let itemGuid = uuid()
-                        this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+                        for (let item of container.itemDataList) {
+                            let itemGuid = uuid()
+                            this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
 
-                        values.push(0, 0, 0, actorGuid, inventoryType, itemGuid, item.slot)
+                            values.push(0, 0, 0, actorGuid, inventoryType, itemGuid, item.slot)
 
-                        await this.dbCheckMassInsert(db, start, 7, values, false, resetValues)
+                            await this.dbCheckMassInsert(db, start, 7, values, false, resetValues)
+                        }
                     }
-                }
 
-                await this.dbCheckMassInsert(db, start, 7, values, true, resetValues)
+                    await this.dbCheckMassInsert(db, start, 7, values, true, resetValues)
 
-                itemsTimer.log()
+                    itemsTimer.log()
 
-                // WORLD ITEMS
-                let worldItemsTimer = new DebugTimer("WorldItems")
+                    // WORLD ITEMS
+                    let worldItemsTimer = new DebugTimer("WorldItems")
 
-                db.run(`CREATE TABLE "WorldItem" ("worldPositionX" float ,"worldPositionY" float ,"itemGuid" varchar primary key not null )`)
+                    db.run(`CREATE TABLE "WorldItem" ("worldPositionX" float ,"worldPositionY" float ,"itemGuid" varchar primary key not null )`)
 
-                start = `INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid) VALUES `
-                
-                for (let chunk of this.chunks) {
-                    for (let item of chunk.itemDataList) {
-                        let tilePos = this.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y)
+                    start = `INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid) VALUES `
+                    
+                    for (let chunk of this.chunks) {
+                        for (let item of chunk.itemDataList) {
+                            let tilePos = this.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y)
 
-                        let itemGuid = uuid()
-                        this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
+                            let itemGuid = uuid()
+                            this.addToItemPalette(itemPalette, itemGuid, item.id, item.count)
 
-                        values.push(tilePos.x, tilePos.y, itemGuid)
+                            values.push(tilePos.x, tilePos.y, itemGuid)
+                            await this.dbCheckMassInsert(db, start, 3, values, false, resetValues)
+                        }
+                    }
+
+                    await this.dbCheckMassInsert(db, start, 3, values, true, resetValues)
+
+                    worldItemsTimer.log()
+
+                    // ITEM PALETTE
+                    let itemPaletteTimer = new DebugTimer("ItemPalette")
+
+                    start = `INSERT INTO Item (itemGuid,itemAssetID,count) VALUES `
+
+                    for (let i = 0; i < itemPalette.length; i += 3) {
+                        values.push(itemPalette[i + 0], itemPalette[i + 1], itemPalette[i + 2])
                         await this.dbCheckMassInsert(db, start, 3, values, false, resetValues)
                     }
+
+                    await this.dbCheckMassInsert(db, start, 3, values, true, resetValues)
+
+                    itemPaletteTimer.log()
+                } else { //2.0.3 and after
+                    // CONTAINERS AND INVENTORIES
+                    db.run(`CREATE TABLE "ItemByInventory" (tileX INTEGER, tileY INTEGER, tileZ INTEGER, actorGuid VARCHAR, inventoryType INTEGER, itemAssetID INTEGER, count INTEGER, inventoryIndex INTEGER)`)
+
+                    start = "INSERT INTO ItemByInventory (tileX,tileY,tileZ,actorGuid,inventoryType,itemAssetID,count,inventoryIndex) VALUES "
+
+                    //containers
+                    for (let container of this.containers) {
+                        let tilePos = this.getGlobalPosAtChunkAndTilePos(container.chunkX, container.chunkY, container.x, container.y)
+
+                        for (let item of container.itemDataList) {
+                            values.push(tilePos.x, tilePos.y, container.z, "tile", container.inventoryType, item.id, item.count, item.slot)
+
+                            await this.dbCheckMassInsert(db, start, 8, values, false, resetValues)
+                        }
+                    }
+
+                    //player inventories
+                    for (let otherContainerKey in this.otherContainers) {
+                        let actorGuidAndInventoryType = otherContainerKey.split("_")
+                        let actorGuid = actorGuidAndInventoryType[0]
+                        let inventoryType = Number(actorGuidAndInventoryType[1])
+
+                        let container = this.otherContainers[otherContainerKey]
+
+                        for (let item of container.itemDataList) {
+                            values.push(0, 0, 0, actorGuid, inventoryType, item.id, item.count, item.slot)
+
+                            await this.dbCheckMassInsert(db, start, 8, values, false, resetValues)
+                        }
+                    }
+
+                    await this.dbCheckMassInsert(db, start, 8, values, true, resetValues)
+
+                    // WORLD ITEMS
+                    let worldItemsTimer = new DebugTimer("WorldItems")
+
+                    db.run(`CREATE TABLE "WorldItem" ("worldPositionX" float ,"worldPositionY" float ,"itemGuid" varchar primary key not null , itemAssetID INTEGER NOT NULL DEFAULT 0, count INTEGER NOT NULL DEFAULT 0, dayDropped INTEGER DEFAULT 0)`)
+
+                    start = `INSERT INTO WorldItem (worldPositionX,worldPositionY,itemGuid,itemAssetID,count,dayDropped) VALUES `
+                    
+                    for (let chunk of this.chunks) {
+                        for (let item of chunk.itemDataList) {
+                            let tilePos = this.getGlobalPosAtChunkAndTilePos(item.chunkX, item.chunkY, item.x, item.y)
+
+                            let itemGuid = uuid()
+                            
+                            values.push(tilePos.x, tilePos.y, itemGuid, item.id, item.count, item.dayDropped)
+                            await this.dbCheckMassInsert(db, start, 6, values, false, resetValues)
+                        }
+                    }
+
+                    await this.dbCheckMassInsert(db, start, 6, values, true, resetValues)
+
+                    worldItemsTimer.log()
                 }
-
-                await this.dbCheckMassInsert(db, start, 3, values, true, resetValues)
-
-                worldItemsTimer.log()
-
-                // ITEM PALETTE
-                let itemPaletteTimer = new DebugTimer("ItemPalette")
-
-                start = `INSERT INTO Item (itemGuid,itemAssetID,count) VALUES `
-
-                for (let i = 0; i < itemPalette.length; i += 3) {
-                    values.push(itemPalette[i + 0], itemPalette[i + 1], itemPalette[i + 2])
-                    await this.dbCheckMassInsert(db, start, 3, values, false, resetValues)
-                }
-
-                await this.dbCheckMassInsert(db, start, 3, values, true, resetValues)
-
-                itemPaletteTimer.log()
 
                 // BUILDING DTO
                 let buildingDTOTimer = new DebugTimer("BuildingDTO")

@@ -99,6 +99,7 @@ var Inventory = /** @class */ (function () {
         this.containsItems = false;
         this.totalSlots = 0;
         this.itemDataList = [];
+        this.inventoryType = 0;
         //editor only
         this.filePath = "";
     };

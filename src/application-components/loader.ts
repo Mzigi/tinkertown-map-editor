@@ -21,6 +21,7 @@ export class Loader {
     importInput: any = document.getElementById("navbar-import")
     exportButton: any = document.getElementById("navbar-export-old")
     exportButton2: any = document.getElementById("navbar-export-new")
+    exportButton3: any = document.getElementById("navbar-export-new2")
     exportDungeonButton: any = document.getElementById("navbar-export-dungeon")
     helpButton: any = document.getElementById("navbar-help")
     worldSettingsButton: any = document.getElementById("navbar-world-settings")
@@ -202,6 +203,10 @@ export class Loader {
         if (this.NEWUI) {
             this.exportButton2.addEventListener("click", () => {
                 this.worlds[this.currentWorld].saveAsFile(true)
+            })
+
+            this.exportButton3.addEventListener("click", () => {
+                this.worlds[this.currentWorld].saveAsFile(true, false, false)
             })
 
             this.exportDungeonButton.addEventListener("click", () => {
@@ -451,7 +456,7 @@ export class Loader {
     }
 
     async readBinaryFile(file: any, filePath: string, worldId: number) {
-        if (filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3) { //chunk
+        if (filePath.endsWith(".dat") && filePath.includes("_") && filePath.split("/").length < 3 && !filePath.startsWith("backups/world")) { //chunk
             const buffer: ArrayBuffer = await file.arrayBuffer()
 
             if (this.worlds[worldId].format === WorldFormat.Binary) {
@@ -460,7 +465,7 @@ export class Loader {
                 this.worlds[worldId].addChunk(loadedChunk)
                 this.worlds[worldId].chunkCache[filePath] = buffer
             } else {
-                console.warn("Attempted to load chunk file while world is in the Database format")
+                console.warn(`Attempted to load chunk file while world is in the Database format (${filePath})`)
                 this.worlds[worldId].uneditedFiles[filePath] = buffer
             }
         } else if (filePath.endsWith("world.meta")) { //world.meta
