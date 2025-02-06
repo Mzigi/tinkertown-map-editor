@@ -26,6 +26,7 @@ export class ToolInfo {
 
     setSelectedTile: Function
     setSelectedLayer: Function
+    setSelectedTool: Function
 
     mouseButtonPressed: {[key: number]: boolean}
     lastMouseButtonPressed: {[key: number]: boolean}
@@ -36,7 +37,7 @@ export class ToolInfo {
     hoveredStorage: Inventory
     hoveredItem: Item
 
-    constructor(world: World, canvas: HTMLCanvasElement, selectedTile: number, selectedLayer: number, setSelectedTile: Function, setSelectedLayer: Function, editor: Editor, mouseButtonPressed, lastMouseButtonPressed, selectedTool, isHoveringOverObject) {
+    constructor(world: World, canvas: HTMLCanvasElement, selectedTile: number, selectedLayer: number, setSelectedTile: Function, setSelectedLayer: Function, editor: Editor, mouseButtonPressed, lastMouseButtonPressed, selectedTool, isHoveringOverObject, setSelectedTool: Function) {
         this.world = world
         this.camera = world.camera
         this.canvas = canvas
@@ -46,6 +47,7 @@ export class ToolInfo {
 
         this.setSelectedTile = setSelectedTile
         this.setSelectedLayer = setSelectedLayer
+        this.setSelectedTool = setSelectedTool
 
         this.editor = editor
 

@@ -7,7 +7,7 @@ var ToolHistory = /** @class */ (function () {
 }());
 export { ToolHistory };
 var ToolInfo = /** @class */ (function () {
-    function ToolInfo(world, canvas, selectedTile, selectedLayer, setSelectedTile, setSelectedLayer, editor, mouseButtonPressed, lastMouseButtonPressed, selectedTool, isHoveringOverObject) {
+    function ToolInfo(world, canvas, selectedTile, selectedLayer, setSelectedTile, setSelectedLayer, editor, mouseButtonPressed, lastMouseButtonPressed, selectedTool, isHoveringOverObject, setSelectedTool) {
         this.world = world;
         this.camera = world.camera;
         this.canvas = canvas;
@@ -15,6 +15,7 @@ var ToolInfo = /** @class */ (function () {
         this.selectedLayer = selectedLayer;
         this.setSelectedTile = setSelectedTile;
         this.setSelectedLayer = setSelectedLayer;
+        this.setSelectedTool = setSelectedTool;
         this.editor = editor;
         this.mouseButtonPressed = mouseButtonPressed;
         this.lastMouseButtonPressed = lastMouseButtonPressed;

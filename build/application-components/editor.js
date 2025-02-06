@@ -385,7 +385,7 @@ var Editor = /** @class */ (function () {
             editor.changeSetting(settingName);
         };
         this.loader.updateWorldList();
-        this.toolInfo = new ToolInfo(this.loader.worlds[this.loader.currentWorld], document.getElementById("2Dcanvas"), this.selectedTile, this.selectedLayer, function (tileId, editor) { editor.selectedTile = tileId; }, function (layerId, editor) { editor.setLayer(layerId, editor); }, this, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, false);
+        this.toolInfo = new ToolInfo(this.loader.worlds[this.loader.currentWorld], document.getElementById("2Dcanvas"), this.selectedTile, this.selectedLayer, function (tileId, editor) { editor.selectedTile = tileId; }, function (layerId, editor) { editor.setLayer(layerId, editor); }, this, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, false, function (toolId, editor) { editor.setTool(toolId, editor); });
         this.tools = {
             0: new Draw(0, "Draw", this.toolInfo),
             1: new Erase(1, "Erase", this.toolInfo),

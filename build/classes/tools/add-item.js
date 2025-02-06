@@ -86,6 +86,7 @@ var AddItem = /** @class */ (function (_super) {
                 chunkAtMouse.edited();
             };
             ti.world.addHistory(new ToolHistory(undo, redo));
+            ti.setSelectedTool(7, ti.editor);
         }
         this.lastChunkAtMouse = chunkAtMouse;
         this.lastWorldMousePos = worldMousePos;

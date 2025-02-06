@@ -474,7 +474,7 @@ export class Editor {
 
         this.loader.updateWorldList()
 
-        this.toolInfo = new ToolInfo(this.loader.worlds[this.loader.currentWorld], <HTMLCanvasElement>document.getElementById("2Dcanvas"), this.selectedTile, this.selectedLayer, (tileId, editor) => {editor.selectedTile = tileId}, (layerId, editor) => {editor.setLayer(layerId, editor)}, this, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, false)
+        this.toolInfo = new ToolInfo(this.loader.worlds[this.loader.currentWorld], <HTMLCanvasElement>document.getElementById("2Dcanvas"), this.selectedTile, this.selectedLayer, (tileId, editor) => {editor.selectedTile = tileId}, (layerId, editor) => {editor.setLayer(layerId, editor)}, this, this.mouseButtonPressed, this.lastMouseButtonPressed, this.selectedTool, false, (toolId: number, editor: Editor) => {editor.setTool(toolId, editor)})
 
         this.tools = {
             0: new Draw(0, "Draw", this.toolInfo),
