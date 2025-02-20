@@ -196,6 +196,10 @@ export class Loader {
             })
         })
     
+        if (!this.NEWUI) {
+            this.exportButton = document.getElementById("navbar-export")
+        }
+
         this.exportButton.addEventListener("click", () => {
             this.worlds[this.currentWorld].saveAsFile()
         })
@@ -263,37 +267,39 @@ export class Loader {
             }
         })*/
 
-        this.undoButton.addEventListener("click", () => {
-            this.getCurrentWorld().undo()
-        })
+        if (this.NEWUI) {
+            this.undoButton.addEventListener("click", () => {
+                this.getCurrentWorld().undo()
+            })
 
-        this.redoButton.addEventListener("click", () => {
-            this.getCurrentWorld().redo()
-        })
+            this.redoButton.addEventListener("click", () => {
+                this.getCurrentWorld().redo()
+            })
 
-        this.cutButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Cut")
-        })
+            this.cutButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Cut")
+            })
 
-        this.copyButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Copy")
-        })
+            this.copyButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Copy")
+            })
 
-        this.pasteButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Paste")
-        })
+            this.pasteButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Paste")
+            })
 
-        this.deselectButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Deselect")
-        })
+            this.deselectButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Deselect")
+            })
 
-        this.eraseButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Delete")
-        })
+            this.eraseButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Delete")
+            })
 
-        this.fillButton.addEventListener("click", () => {
-            this.editor.callToolEvents("Fill")
-        })
+            this.fillButton.addEventListener("click", () => {
+                this.editor.callToolEvents("Fill")
+            })
+        }
 
         if (!window["chrome"]) {
             this.alertText("This website was designed to be used on a Chromium-based browser like Edge or Chrome, exporting might take a while or not work on this browser", true, 10)

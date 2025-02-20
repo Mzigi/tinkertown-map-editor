@@ -205,6 +205,9 @@ var Loader = /** @class */ (function () {
                 loader.updateWorldList();
             });
         });
+        if (!this.NEWUI) {
+            this.exportButton = document.getElementById("navbar-export");
+        }
         this.exportButton.addEventListener("click", function () {
             _this.worlds[_this.currentWorld].saveAsFile();
         });
@@ -260,30 +263,32 @@ var Loader = /** @class */ (function () {
                 this.fileDropDialog.classList.remove("dialog-active")
             }
         })*/
-        this.undoButton.addEventListener("click", function () {
-            _this.getCurrentWorld().undo();
-        });
-        this.redoButton.addEventListener("click", function () {
-            _this.getCurrentWorld().redo();
-        });
-        this.cutButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Cut");
-        });
-        this.copyButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Copy");
-        });
-        this.pasteButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Paste");
-        });
-        this.deselectButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Deselect");
-        });
-        this.eraseButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Delete");
-        });
-        this.fillButton.addEventListener("click", function () {
-            _this.editor.callToolEvents("Fill");
-        });
+        if (this.NEWUI) {
+            this.undoButton.addEventListener("click", function () {
+                _this.getCurrentWorld().undo();
+            });
+            this.redoButton.addEventListener("click", function () {
+                _this.getCurrentWorld().redo();
+            });
+            this.cutButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Cut");
+            });
+            this.copyButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Copy");
+            });
+            this.pasteButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Paste");
+            });
+            this.deselectButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Deselect");
+            });
+            this.eraseButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Delete");
+            });
+            this.fillButton.addEventListener("click", function () {
+                _this.editor.callToolEvents("Fill");
+            });
+        }
         if (!window["chrome"]) {
             this.alertText("This website was designed to be used on a Chromium-based browser like Edge or Chrome, exporting might take a while or not work on this browser", true, 10);
         }
